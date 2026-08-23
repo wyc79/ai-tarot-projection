@@ -151,6 +151,10 @@ class Handler(BaseHTTPRequestHandler):
         return self.serve_static(path)
 
     def do_POST(self):
+        # Read the body first, whatever happens next: a keep-alive connection
+        # left holding an unread body would corrupt the request after it.
+        raw = self.rfile.read(int(self.headers.get("Content-Length") or 0))
+
         if not self.origin_allowed():
             return self.send_error_code(403, "origin_denied", "origin not allowed")
         if self.path.split("?", 1)[0] != "/v1/chat":
@@ -161,7 +165,6 @@ class Handler(BaseHTTPRequestHandler):
         if not key:
             return self.send_error_code(401, "missing_key", "missing bearer token")
 
-        raw = self.rfile.read(int(self.headers.get("Content-Length") or 0))
         try:
             body = json.loads(raw)
             provider_name, payload = body["provider"], body["payload"]
