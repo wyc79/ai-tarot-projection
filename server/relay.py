@@ -251,9 +251,13 @@ class Server(ThreadingHTTPServer):
 
 
 def main():
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else PORT
+    port = PORT
+    if len(sys.argv) > 1:
+        if not sys.argv[1].isdigit():
+            sys.exit("usage: python3 server/relay.py [port]  (got %r)" % sys.argv[1])
+        port = int(sys.argv[1])
     print("relay on http://localhost:%d  providers=%s  DEV_LOG=%s"
-          % (port, ",".join(sorted(PROVIDERS)), "on" if DEV_LOG else "off"))
+          % (port, ",".join(sorted(PROVIDERS)), "on" if DEV_LOG else "off"), flush=True)
     Server(("127.0.0.1", port), Handler).serve_forever()
 
 
