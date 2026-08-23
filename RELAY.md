@@ -169,30 +169,43 @@ Asymmetric on purpose.
 ## Contract tests
 
 `tests/contract/` is one suite run against a base URL, so both relays are
-exercised by identical assertions:
+exercised by identical assertions. Stdlib `unittest`, no test dependencies:
 
 ```
-python3 -m pytest tests/contract --relay-base=http://localhost:8787
+RELAY_BASE=http://127.0.0.1:8788 python3 -m unittest discover -s tests/contract -t . -v
 ```
 
-`scripts/run_contract_tests.sh` starts each relay in turn and runs the suite
-against both (the Worker leg needs `wrangler` and skips loudly without it).
+`scripts/run_contract_tests.sh` starts a mock provider and each relay in turn and
+runs the suite against both. The Worker leg uses `wrangler` from PATH, else
+`npx wrangler`; with neither available it skips loudly rather than passing one
+relay and reporting two.
 
 Both must pass:
 
-- `test_health_shape` — `{ok, providers}`, and no implementation-identifying field
-- `test_missing_key` / `test_unknown_provider` / `test_bad_request` — error codes,
-  statuses, and `X-Relay-Error: 1`
-- `test_origin_denied` — disallowed `Origin` is refused
-- `test_payload_forwarded_verbatim` — mock upstream receives byte-identical `payload`
-- `test_auth_translated` — mock upstream sees the provider's auth header, not the client's
-- `test_upstream_error_passes_through` — upstream 429 arrives as 429 with no `X-Relay-Error`
-- `test_stream_is_incremental` — chunks arrive before the upstream finishes
-- `test_key_never_logged` — with `DEV_LOG=1` and a canary key, the canary appears
-  in no captured output stream
-- `test_error_paths_never_leak_key` — same canary, forced through every error branch
+- `test_health_shape` — `{ok, providers}` and nothing else
+- `test_health_does_not_identify_the_implementation` — no "python", "worker",
+  "cloudflare" or similar anywhere in the response
+- `test_missing_key`, `test_unknown_provider`, `test_bad_request`,
+  `test_origin_denied`, `test_upstream_unreachable` — status, code, and
+  `X-Relay-Error: 1` on each
+- `test_allowed_origin_passes` — an allowed `Origin` is not refused
+- `test_payload_forwarded_verbatim` — the mock provider receives the payload unchanged
+- `test_auth_translated_to_x_api_key` / `test_auth_translated_to_bearer` — the
+  provider sees its own auth header, and never the client's `Authorization`
+- `test_static_provider_headers_are_added` — a provider's static headers are merged in
+- `test_upstream_error_passes_through` — an upstream 429 arrives as 429 with no
+  `X-Relay-Error`
+- `test_stream_is_incremental` — the first chunk arrives well before the last,
+  so a token stream is not buffered into one late delivery
+- `test_key_never_logged` — a canary key appears in no captured output
+- `test_error_paths_never_leak_key` — the canary survives no error branch, in
+  neither the response body nor the log
+- `test_dev_log_still_captured_something` — guards the two above: an empty log
+  would pass them vacuously
+- `test_worker_has_no_logging_code` — the Worker source, comments stripped,
+  contains no logging call at all
 
 Worker-only:
 
-- `test_worker_has_no_logging_code` — source contains no logging call at all
-- `test_rate_limited` — `RATE_LIMIT` exceeded yields 429 `rate_limited`
+- `test_rate_limited` — exceeding `RATE_LIMIT` yields 429 `rate_limited`
+  (skipped for the Python relay, which has no limiter)
