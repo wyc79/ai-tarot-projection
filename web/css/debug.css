@@ -1,0 +1,74 @@
+/* Deliberately plain. The card table UI is M4; this page exists to show that
+   the pack and the relay are wired up. */
+
+:root {
+  --bg: #14131a;
+  --panel: #1d1c26;
+  --line: #33313f;
+  --text: #e8e6ef;
+  --dim: #948fa8;
+  --ok: #7bd88f;
+  --bad: #f2777a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 2rem 1.25rem 4rem;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.55 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+}
+
+main { max-width: 60rem; margin: 0 auto; }
+
+h1 { font-size: 1.1rem; font-weight: 600; margin: 0 0 0.25rem; }
+h1 + p { margin: 0 0 2rem; color: var(--dim); font-size: 0.85rem; }
+
+.row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem; }
+
+select, input, button {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.6rem;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+input { flex: 1 1 16rem; }
+button { cursor: pointer; }
+button:hover { border-color: var(--dim); }
+
+.ok { color: var(--ok); }
+.bad { color: var(--bad); }
+
+.card-layout { display: flex; flex-wrap: wrap; gap: 1.75rem; }
+
+img {
+  width: 240px;
+  max-width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.45);
+}
+
+.reading { flex: 1 1 22rem; min-width: 0; }
+.reading h2 { margin: 0; font-size: 1.5rem; }
+.reading code { color: var(--dim); font-size: 0.8rem; }
+
+.imagery {
+  margin: 1rem 0;
+  padding: 0.85rem 1rem;
+  background: var(--panel);
+  border-left: 2px solid var(--line);
+  border-radius: 0 6px 6px 0;
+}
+
+.label { color: var(--dim); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; }
+
+.positions { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0.75rem; margin-top: 1.25rem; }
+.position { padding: 0.75rem 0.9rem; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.position h3 { margin: 0 0 0.4rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.position h3 span { color: var(--dim); font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: 0.4rem; }
+.position p { margin: 0; font-size: 0.9rem; }
