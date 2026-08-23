@@ -1,0 +1,123 @@
+"""Validate a symbol pack against pack schema v1.
+
+Run against any pack dir, not just this one -- "fork it, drop in your own deck"
+only works if forks can check themselves:
+
+    python3 scripts/validate_deck.py [pack_dir]
+
+Exits non-zero and lists every problem found.
+"""
+
+import json
+import os
+import sys
+
+REQUIRED_POSITIONS = ["situation", "obstacle", "advice"]
+MEANING_KEYS = REQUIRED_POSITIONS + ["general"]
+EXPECTED_CARDS = 78
+IMAGERY_MAX = 160  # one line, not a paragraph
+
+
+def nonempty_str(v):
+    return isinstance(v, str) and v.strip() != ""
+
+
+def validate(pack_dir):
+    problems, warnings = [], []
+    deck_path = os.path.join(pack_dir, "deck.json")
+    if not os.path.exists(deck_path):
+        return ["no deck.json in %s" % pack_dir], []
+
+    try:
+        deck = json.load(open(deck_path))
+    except json.JSONDecodeError as e:
+        return ["deck.json is not valid JSON: %s" % e], []
+
+    if deck.get("schema_version") != 1:
+        problems.append("schema_version must be 1, got %r" % deck.get("schema_version"))
+    for key in ("pack_id", "name", "card_back"):
+        if not nonempty_str(deck.get(key)):
+            problems.append("missing or empty top-level %r" % key)
+
+    back = deck.get("card_back", "")
+    if nonempty_str(back) and not os.path.exists(os.path.join(pack_dir, back)):
+        problems.append("card_back image not found: %s" % back)
+
+    positions = deck.get("positions")
+    if not isinstance(positions, list) or len(positions) != len(REQUIRED_POSITIONS):
+        problems.append("positions must be a list of %d" % len(REQUIRED_POSITIONS))
+    else:
+        ids = [p.get("id") for p in positions]
+        if ids != REQUIRED_POSITIONS:
+            problems.append("position ids must be %r, got %r" % (REQUIRED_POSITIONS, ids))
+        for p in positions:
+            for key in ("label", "arc_role", "prompt_hint"):
+                if not nonempty_str(p.get(key)):
+                    problems.append("position %r: missing or empty %r" % (p.get("id"), key))
+
+    cards = deck.get("cards")
+    if not isinstance(cards, list):
+        return problems + ["cards must be a list"], warnings
+    if len(cards) != EXPECTED_CARDS:
+        problems.append("expected %d cards, got %d" % (EXPECTED_CARDS, len(cards)))
+
+    seen_ids, seen_images = set(), set()
+    for i, card in enumerate(cards):
+        where = card.get("card_id") or "card index %d" % i
+
+        for key in ("card_id", "name", "image", "imagery_line"):
+            if not nonempty_str(card.get(key)):
+                problems.append("%s: missing or empty %r" % (where, key))
+
+        cid = card.get("card_id")
+        if cid in seen_ids:
+            problems.append("duplicate card_id: %s" % cid)
+        seen_ids.add(cid)
+
+        image = card.get("image", "")
+        if nonempty_str(image):
+            if image.startswith("/"):
+                problems.append("%s: image path must be relative (subpath-safe): %s"
+                                % (where, image))
+            elif not os.path.exists(os.path.join(pack_dir, image)):
+                problems.append("%s: image not found: %s" % (where, image))
+            if image in seen_images:
+                problems.append("%s: image reused: %s" % (where, image))
+            seen_images.add(image)
+
+        line = card.get("imagery_line", "")
+        if nonempty_str(line) and len(line) > IMAGERY_MAX:
+            warnings.append("%s: imagery_line is %d chars (max %d)"
+                            % (where, len(line), IMAGERY_MAX))
+
+        meanings = card.get("meanings")
+        if not isinstance(meanings, dict):
+            problems.append("%s: meanings must be an object" % where)
+            continue
+        for key in MEANING_KEYS:
+            if not nonempty_str(meanings.get(key)):
+                problems.append("%s: missing or empty meanings.%s" % (where, key))
+        for key in meanings:
+            if key not in MEANING_KEYS:
+                problems.append("%s: unexpected meanings.%s" % (where, key))
+
+    return problems, warnings
+
+
+def main():
+    pack_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+    problems, warnings = validate(pack_dir)
+
+    for w in warnings:
+        print("warn: %s" % w)
+    if problems:
+        for p in problems:
+            print("fail: %s" % p)
+        print("\n%d problem(s) in %s" % (len(problems), pack_dir))
+        sys.exit(1)
+    print("ok: %s validates against pack schema v1 (%d warnings)" % (pack_dir, len(warnings)))
+
+
+if __name__ == "__main__":
+    main()

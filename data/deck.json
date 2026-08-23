@@ -1,0 +1,964 @@
+{
+  "schema_version": 1,
+  "pack_id": "smith-waite-1909",
+  "name": "Smith-Waite (1909)",
+  "card_back": "Cards-jpg/CardBacks.jpg",
+  "positions": [
+    {
+      "id": "situation",
+      "label": "Situation",
+      "arc_role": "setup",
+      "prompt_hint": "where things stand right now"
+    },
+    {
+      "id": "obstacle",
+      "label": "Obstacle",
+      "arc_role": "tension",
+      "prompt_hint": "what is in the way, or what the pull is against"
+    },
+    {
+      "id": "advice",
+      "label": "Advice",
+      "arc_role": "resolution",
+      "prompt_hint": "where this could land, and what to do with it"
+    }
+  ],
+  "cards": [
+    {
+      "card_id": "major-00-fool",
+      "name": "The Fool",
+      "image": "Cards-jpg/00-TheFool.jpg",
+      "imagery_line": "With light step, as if earth and its trammels had little power to restrain him, a young man in gorgeous vestments pauses at the brink of a precipice among the great heights of the world;",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Folly, mania, extravagance, intoxication, delirium, frenzy, bewrayment"
+      }
+    },
+    {
+      "card_id": "major-01-magician",
+      "name": "The Magician",
+      "image": "Cards-jpg/01-TheMagician.jpg",
+      "imagery_line": "A youthful figure in the robe of a magician, having the countenance of divine Apollo, with smile of confidence and shining eyes.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Skill, diplomacy, address, subtlety"
+      }
+    },
+    {
+      "card_id": "major-02-high-priestess",
+      "name": "The High Priestess",
+      "image": "Cards-jpg/02-TheHighPriestess.jpg",
+      "imagery_line": "She has the lunar crescent at her feet, a horned diadem on her head, with a globe in the middle place, and a large solar cross on her breast.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Secrets, mystery, the future as yet unrevealed"
+      }
+    },
+    {
+      "card_id": "major-03-empress",
+      "name": "The Empress",
+      "image": "Cards-jpg/03-TheEmpress.jpg",
+      "imagery_line": "A stately figure, seated, having rich vestments and royal aspect, as of a daughter of heaven and earth.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Fruitfulness, action, initiative, length of days"
+      }
+    },
+    {
+      "card_id": "major-04-emperor",
+      "name": "The Emperor",
+      "image": "Cards-jpg/04-TheEmperor.jpg",
+      "imagery_line": "He has a form of the Crux ansata for his sceptre and a globe in his left hand.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Stability, power, protection, realization"
+      }
+    },
+    {
+      "card_id": "major-05-hierophant",
+      "name": "The Hierophant",
+      "image": "Cards-jpg/05-TheHierophant.jpg",
+      "imagery_line": "He wears the triple crown and is seated between two pillars, but they are not those of the Temple which is guarded by the High Priestess.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Marriage, alliance, captivity, servitude"
+      }
+    },
+    {
+      "card_id": "major-06-lovers",
+      "name": "The Lovers",
+      "image": "Cards-jpg/06-TheLovers.jpg",
+      "imagery_line": "The sun shines in the zenith, and beneath is a great winged figure with arms extended, pouring down influences.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Attraction, love, beauty, trials overcome"
+      }
+    },
+    {
+      "card_id": "major-07-chariot",
+      "name": "The Chariot",
+      "image": "Cards-jpg/07-TheChariot.jpg",
+      "imagery_line": "An erect and princely figure carrying a drawn sword and corresponding, broadly speaking, to the traditional description which I have given in the first part.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Succour, providence also war, triumph, presumption, vengeance, trouble"
+      }
+    },
+    {
+      "card_id": "major-08-strength",
+      "name": "Strength",
+      "image": "Cards-jpg/08-Strength.jpg",
+      "imagery_line": "A woman, over whose head there broods the same symbol of life which we have seen in the card of the Magician, is closing the jaws of a lion.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Power, energy, action, courage, magnanimity"
+      }
+    },
+    {
+      "card_id": "major-09-hermit",
+      "name": "The Hermit",
+      "image": "Cards-jpg/09-TheHermit.jpg",
+      "imagery_line": "The variation from the conventional models in this card is only that the lamp is not enveloped partially in the mantle of its bearer, who blends the idea of the Ancient of Days with the Light of the World It is a star which shines in the lantern.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Prudence, circumspection"
+      }
+    },
+    {
+      "card_id": "major-10-wheel-of-fortune",
+      "name": "Wheel of Fortune",
+      "image": "Cards-jpg/10-WheelOfFortune.jpg",
+      "imagery_line": "In this symbol I have again followed the reconstruction of Éliphas Lévi, who has furnished several variants.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Destiny, fortune, success, elevation, luck, felicity"
+      }
+    },
+    {
+      "card_id": "major-11-justice",
+      "name": "Justice",
+      "image": "Cards-jpg/11-Justice.jpg",
+      "imagery_line": "As this card follows the traditional symbolism and carries above all its obvious meanings, there is little to say regarding it outside the few considerations collected in the first part, to which the reader is referred.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Equity, rightness, probity, executive"
+      }
+    },
+    {
+      "card_id": "major-12-hanged-man",
+      "name": "The Hanged Man",
+      "image": "Cards-jpg/12-TheHangedMan.jpg",
+      "imagery_line": "The gallows from which he is suspended forms a Tau cross, while the figure--from the position of the legs--forms a fylfot cross.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Wisdom, circumspection, discernment, trials, sacrifice, intuition, divination, prophecy"
+      }
+    },
+    {
+      "card_id": "major-13-death",
+      "name": "Death",
+      "image": "Cards-jpg/13-Death.jpg",
+      "imagery_line": "The veil or mask of life is perpetuated in change, transformation and passage from lower to higher, and this is more fitly represented in the rectified Tarot by one of the apocalyptic visions than by the crude notion of the reaping skeleton.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "End, mortality, destruction, corruption also, for a man, the loss of a benefactor for a woman, many contrarieties"
+      }
+    },
+    {
+      "card_id": "major-14-temperance",
+      "name": "Temperance",
+      "image": "Cards-jpg/14-Temperance.jpg",
+      "imagery_line": "A winged angel, with the sign of the sun upon his forehead and on his breast the square and triangle of the septenary.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Economy, moderation, frugality, management, accommodation"
+      }
+    },
+    {
+      "card_id": "major-15-devil",
+      "name": "The Devil",
+      "image": "Cards-jpg/15-TheDevil.jpg",
+      "imagery_line": "The design is an accommodation, mean or harmony, between several motives mentioned in the first part.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Ravage, violence, vehemence, extraordinary efforts, force, fatality"
+      }
+    },
+    {
+      "card_id": "major-16-tower",
+      "name": "The Tower",
+      "image": "Cards-jpg/16-TheTower.jpg",
+      "imagery_line": "Occult explanations attached to this card are meagre and mostly disconcerting.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Misery, distress, indigence, adversity, calamity, disgrace, deception, ruin. It is a card in particular of unforeseen catastrophe"
+      }
+    },
+    {
+      "card_id": "major-17-star",
+      "name": "The Star",
+      "image": "Cards-jpg/17-TheStar.jpg",
+      "imagery_line": "A great, radiant star of eight rays, surrounded by seven lesser stars--also of eight rays.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Loss, theft, privation, abandonment"
+      }
+    },
+    {
+      "card_id": "major-18-moon",
+      "name": "The Moon",
+      "image": "Cards-jpg/18-TheMoon.jpg",
+      "imagery_line": "The distinction between this card and some of the conventional types is that the moon is increasing on what is called the side of mercy, to the right of the observer.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Hidden enemies, danger, calumny, darkness, terror, deception, occult forces, error"
+      }
+    },
+    {
+      "card_id": "major-19-sun",
+      "name": "The Sun",
+      "image": "Cards-jpg/19-TheSun.jpg",
+      "imagery_line": "The naked child mounted on a white horse and displaying a red standard has been mentioned already as the better symbolism connected with this card.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Material happiness, fortunate marriage, contentment"
+      }
+    },
+    {
+      "card_id": "major-20-judgement",
+      "name": "Judgement",
+      "image": "Cards-jpg/20-Judgement.jpg",
+      "imagery_line": "I have said that this symbol is essentially invariable in all Tarot sets, or at least the variations do not alter its character.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Change of position, renewal, outcome. Another account specifies total loss though lawsuit"
+      }
+    },
+    {
+      "card_id": "major-21-world",
+      "name": "The World",
+      "image": "Cards-jpg/21-TheWorld.jpg",
+      "imagery_line": "As this final message of the Major Trumps is unchanged--and indeed unchangeable--in respect of its design, it has been partly described already regarding its deeper sense.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Assured success, recompense, voyage, route, emigration, flight, change of place"
+      }
+    },
+    {
+      "card_id": "cups-01-ace",
+      "name": "Ace of Cups",
+      "image": "Cards-jpg/Cups01.jpg",
+      "imagery_line": "The waters are beneath, and thereon are water-lilies;",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "House of the true heart, joy, content, abode, nourishment, abundance, fertility"
+      }
+    },
+    {
+      "card_id": "cups-02-two",
+      "name": "Two of Cups",
+      "image": "Cards-jpg/Cups02.jpg",
+      "imagery_line": "A youth and maiden are pledging one another, and above their cups rises the Caduceus of Hermes, between the great wings of which there appears a lion's head.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Love, passion, friendship, affinity, union, concord, sympathy, the interrelation of the sexes, and--as a suggestion apart from all offices of divination--that desire which is not in Nature, but by which Nature is sanctified"
+      }
+    },
+    {
+      "card_id": "cups-03-three",
+      "name": "Three of Cups",
+      "image": "Cards-jpg/Cups03.jpg",
+      "imagery_line": "Maidens in a garden-ground with cups uplifted, as if pledging one another.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "The conclusion of any matter in plenty, perfection and merriment"
+      }
+    },
+    {
+      "card_id": "cups-04-four",
+      "name": "Four of Cups",
+      "image": "Cards-jpg/Cups04.jpg",
+      "imagery_line": "A young man is seated under a tree and contemplates three cups set on the grass before him;",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Weariness, disgust, aversion, imaginary vexations, as if the wine of this world had caused satiety only"
+      }
+    },
+    {
+      "card_id": "cups-05-five",
+      "name": "Five of Cups",
+      "image": "Cards-jpg/Cups05.jpg",
+      "imagery_line": "A dark, cloaked figure, looking sideways at three prone cups two others stand upright behind him;",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "A dark, cloaked figure, looking sideways at three prone cups two others stand upright behind him"
+      }
+    },
+    {
+      "card_id": "cups-06-six",
+      "name": "Six of Cups",
+      "image": "Cards-jpg/Cups06.jpg",
+      "imagery_line": "Children in an old garden, their cups filled with flowers.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "A card of the past and of memories, looking back, as--for example--on childhood"
+      }
+    },
+    {
+      "card_id": "cups-07-seven",
+      "name": "Seven of Cups",
+      "image": "Cards-jpg/Cups07.jpg",
+      "imagery_line": "Strange chalices of vision, but the images are more especially those of the fantastic spirit.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Fairy favours, images of reflection, sentiment, imagination, things seen in the glass of contemplation"
+      }
+    },
+    {
+      "card_id": "cups-08-eight",
+      "name": "Eight of Cups",
+      "image": "Cards-jpg/Cups08.jpg",
+      "imagery_line": "A man of dejected aspect is deserting the cups of his felicity, enterprise, undertaking or previous concern.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "The card speaks for itself on the surface, but other readings are entirely antithetical--giving joy, mildness, timidity, honour, modesty. In practice, it is usually found that the card shews the decline of a matter, or that a matter which has been thought to be important is really of slight consequence--either for good or evil"
+      }
+    },
+    {
+      "card_id": "cups-09-nine",
+      "name": "Nine of Cups",
+      "image": "Cards-jpg/Cups09.jpg",
+      "imagery_line": "A goodly personage has feasted to his heart's content, and abundant refreshment of wine is on the arched counter behind him, seeming to indicate that the future is also assured.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Concord, contentment, physical bien-être"
+      }
+    },
+    {
+      "card_id": "cups-10-ten",
+      "name": "Ten of Cups",
+      "image": "Cards-jpg/Cups10.jpg",
+      "imagery_line": "Appearance of Cups in a rainbow;",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Contentment, repose of the entire heart"
+      }
+    },
+    {
+      "card_id": "cups-11-page",
+      "name": "Page of Cups",
+      "image": "Cards-jpg/Cups11.jpg",
+      "imagery_line": "A fair, pleasing, somewhat effeminate page, of studious and intent aspect, contemplates a fish rising from a cup to look at him.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Fair young man, one impelled to render service and with whom the Querent will be connected"
+      }
+    },
+    {
+      "card_id": "cups-12-knight",
+      "name": "Knight of Cups",
+      "image": "Cards-jpg/Cups12.jpg",
+      "imagery_line": "Graceful, but not warlike;",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Arrival, approach--sometimes that of a messenger"
+      }
+    },
+    {
+      "card_id": "cups-13-queen",
+      "name": "Queen of Cups",
+      "image": "Cards-jpg/Cups13.jpg",
+      "imagery_line": "Beautiful, fair, dreamy--as one who sees visions in a cup.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Good, fair woman"
+      }
+    },
+    {
+      "card_id": "cups-14-king",
+      "name": "King of Cups",
+      "image": "Cards-jpg/Cups14.jpg",
+      "imagery_line": "He holds a short sceptre in his left hand and a great cup in his right;",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Fair man, man of business, law, or divinity"
+      }
+    },
+    {
+      "card_id": "pentacles-01-ace",
+      "name": "Ace of Pentacles",
+      "image": "Cards-jpg/Pentacles01.jpg",
+      "imagery_line": "A hand--issuing, as usual, from a cloud--holds up a pentacle.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Perfect contentment, felicity, ecstasy"
+      }
+    },
+    {
+      "card_id": "pentacles-02-two",
+      "name": "Two of Pentacles",
+      "image": "Cards-jpg/Pentacles02.jpg",
+      "imagery_line": "A young man, in the act of dancing, has a pentacle in either hand, and they are joined by that endless cord which is like the number 8 reversed.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "On the one hand it is represented as a card of gaiety, recreation and its connexions, which is the subject of the design"
+      }
+    },
+    {
+      "card_id": "pentacles-03-three",
+      "name": "Three of Pentacles",
+      "image": "Cards-jpg/Pentacles03.jpg",
+      "imagery_line": "A sculptor at his work in a monastery.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Métier, trade, skilled labour"
+      }
+    },
+    {
+      "card_id": "pentacles-04-four",
+      "name": "Four of Pentacles",
+      "image": "Cards-jpg/Pentacles04.jpg",
+      "imagery_line": "A crowned figure, having a pentacle over his crown, clasps another with hands and arms;",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "The surety of possessions, cleaving to that which one has, gift, legacy, inheritance"
+      }
+    },
+    {
+      "card_id": "pentacles-05-five",
+      "name": "Five of Pentacles",
+      "image": "Cards-jpg/Pentacles05.jpg",
+      "imagery_line": "Two mendicants in a snow-storm pass a lighted casement.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "The card foretells material trouble above all, whether in the form illustrated--that is, destitution--or otherwise. For some cartomancists, it is a card of love and lovers-wife, husband, friend, mistress"
+      }
+    },
+    {
+      "card_id": "pentacles-06-six",
+      "name": "Six of Pentacles",
+      "image": "Cards-jpg/Pentacles06.jpg",
+      "imagery_line": "A person in the guise of a merchant weighs money in a pair of scales and distributes it to the needy and distressed.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Presents, gifts, gratification another account says attention, vigilance now is the accepted time, present prosperity, etc"
+      }
+    },
+    {
+      "card_id": "pentacles-07-seven",
+      "name": "Seven of Pentacles",
+      "image": "Cards-jpg/Pentacles07.jpg",
+      "imagery_line": "A young man, leaning on his staff, looks intently at seven pentacles attached to a clump of greenery on his right;",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "These are exceedingly contradictory"
+      }
+    },
+    {
+      "card_id": "pentacles-08-eight",
+      "name": "Eight of Pentacles",
+      "image": "Cards-jpg/Pentacles08.jpg",
+      "imagery_line": "An artist in stone at his work, which he exhibits in the form of trophies.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Work, employment, commission, craftsmanship, skill in craft and business, perhaps in the preparatory stage"
+      }
+    },
+    {
+      "card_id": "pentacles-09-nine",
+      "name": "Nine of Pentacles",
+      "image": "Cards-jpg/Pentacles09.jpg",
+      "imagery_line": "A woman, with a bird upon her wrist, stands amidst a great abundance of grapevines in the garden of a manorial house.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Prudence, safety, success, accomplishment, certitude, discernment"
+      }
+    },
+    {
+      "card_id": "pentacles-10-ten",
+      "name": "Ten of Pentacles",
+      "image": "Cards-jpg/Pentacles10.jpg",
+      "imagery_line": "A man and woman beneath an archway which gives entrance to a house and domain.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Gain, riches"
+      }
+    },
+    {
+      "card_id": "pentacles-11-page",
+      "name": "Page of Pentacles",
+      "image": "Cards-jpg/Pentacles11.jpg",
+      "imagery_line": "A youthful figure, looking intently at the pentacle which hovers over his raised hands.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Application, study, scholarship, reflection another reading says news, messages and the bringer thereof"
+      }
+    },
+    {
+      "card_id": "pentacles-12-knight",
+      "name": "Knight of Pentacles",
+      "image": "Cards-jpg/Pentacles12.jpg",
+      "imagery_line": "He rides a slow, enduring, heavy horse, to which his own aspect corresponds.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Utility, serviceableness, interest, responsibility, rectitude-all on the normal and external plane"
+      }
+    },
+    {
+      "card_id": "pentacles-13-queen",
+      "name": "Queen of Pentacles",
+      "image": "Cards-jpg/Pentacles13.jpg",
+      "imagery_line": "The face suggests that of a dark woman, whose qualities might be summed up in the idea of greatness of soul;",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Opulence, generosity, magnificence, security, liberty"
+      }
+    },
+    {
+      "card_id": "pentacles-14-king",
+      "name": "King of Pentacles",
+      "image": "Cards-jpg/Pentacles14.jpg",
+      "imagery_line": "The figure calls for no special description the face is rather dark, suggesting also courage, but somewhat lethargic in tendency.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Valour, realizing intelligence, business and normal intellectual aptitude, sometimes mathematical gifts and attainments of this kind"
+      }
+    },
+    {
+      "card_id": "swords-01-ace",
+      "name": "Ace of Swords",
+      "image": "Cards-jpg/Swords01.jpg",
+      "imagery_line": "A hand issues from a cloud, grasping as word, the point of which is encircled by a crown.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Triumph, the excessive degree in everything, conquest, triumph of force. It is a card of great force, in love as well as in hatred. The crown may carry a much higher significance than comes usually within the sphere of fortune-telling"
+      }
+    },
+    {
+      "card_id": "swords-02-two",
+      "name": "Two of Swords",
+      "image": "Cards-jpg/Swords02.jpg",
+      "imagery_line": "A hoodwinked female figure balances two swords upon her shoulders.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Conformity and the equipoise which it suggests, courage, friendship, concord in a state of arms"
+      }
+    },
+    {
+      "card_id": "swords-03-three",
+      "name": "Three of Swords",
+      "image": "Cards-jpg/Swords03.jpg",
+      "imagery_line": "Three swords piercing a heart;",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Removal, absence, delay, division, rupture, dispersion, and all that the design signifies naturally, being too simple and obvious to call for specific enumeration"
+      }
+    },
+    {
+      "card_id": "swords-04-four",
+      "name": "Four of Swords",
+      "image": "Cards-jpg/Swords04.jpg",
+      "imagery_line": "The effigy of a knight in the attitude of prayer, at full length upon his tomb.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Vigilance, retreat, solitude, hermit's repose, exile, tomb and coffin. It is these last that have suggested the design"
+      }
+    },
+    {
+      "card_id": "swords-05-five",
+      "name": "Five of Swords",
+      "image": "Cards-jpg/Swords05.jpg",
+      "imagery_line": "A disdainful man looks after two retreating and dejected figures.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Degradation, destruction, revocation, infamy, dishonour, loss, with the variants and analogues of these"
+      }
+    },
+    {
+      "card_id": "swords-06-six",
+      "name": "Six of Swords",
+      "image": "Cards-jpg/Swords06.jpg",
+      "imagery_line": "A ferryman carrying passengers in his punt to the further shore.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Journey by water, route, way, envoy, commissionary, expedient"
+      }
+    },
+    {
+      "card_id": "swords-07-seven",
+      "name": "Seven of Swords",
+      "image": "Cards-jpg/Swords07.jpg",
+      "imagery_line": "A man in the act of carrying away five swords rapidly;",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Design, attempt, wish, hope, confidence"
+      }
+    },
+    {
+      "card_id": "swords-08-eight",
+      "name": "Eight of Swords",
+      "image": "Cards-jpg/Swords08.jpg",
+      "imagery_line": "A woman, bound and hoodwinked, with the swords of the card about her.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Bad news, violent chagrin, crisis, censure, power in trammels, conflict, calumny"
+      }
+    },
+    {
+      "card_id": "swords-09-nine",
+      "name": "Nine of Swords",
+      "image": "Cards-jpg/Swords09.jpg",
+      "imagery_line": "One seated on her couch in lamentation, with the swords over her.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Death, failure, miscarriage, delay, deception, disappointment, despair"
+      }
+    },
+    {
+      "card_id": "swords-10-ten",
+      "name": "Ten of Swords",
+      "image": "Cards-jpg/Swords10.jpg",
+      "imagery_line": "A prostrate figure, pierced by all the swords belonging to the card.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Whatsoever is intimated by the design"
+      }
+    },
+    {
+      "card_id": "swords-11-page",
+      "name": "Page of Swords",
+      "image": "Cards-jpg/Swords11.jpg",
+      "imagery_line": "A lithe, active figure holds a sword upright in both hands, while in the act of swift walking.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Authority, overseeing, secret service, vigilance, spying, examination, and the qualities thereto belonging"
+      }
+    },
+    {
+      "card_id": "swords-12-knight",
+      "name": "Knight of Swords",
+      "image": "Cards-jpg/Swords12.jpg",
+      "imagery_line": "He is riding in full course, as if scattering his enemies.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Skill, bravery, capacity, defence, address, enmity, wrath, war, destruction, opposition, resistance, ruin. There is therefore a sense in which the card signifies death, but it carries this meaning only in its proximity to other cards of fatality"
+      }
+    },
+    {
+      "card_id": "swords-13-queen",
+      "name": "Queen of Swords",
+      "image": "Cards-jpg/Swords13.jpg",
+      "imagery_line": "Her right hand raises the weapon vertically and the hilt rests on an arm of her royal chair the left hand is extended, the arm raised her countenance is severe but chastened;",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Widowhood, female sadness and embarrassment, absence, sterility, mourning, privation, separation"
+      }
+    },
+    {
+      "card_id": "swords-14-king",
+      "name": "King of Swords",
+      "image": "Cards-jpg/Swords14.jpg",
+      "imagery_line": "He sits in judgment, holding the unsheathed sign of his suit.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Whatsoever arises out of the idea of judgment and all its connexions-power, command, authority, militant intelligence, law, offices of the crown, and so forth"
+      }
+    },
+    {
+      "card_id": "wands-01-ace",
+      "name": "Ace of Wands",
+      "image": "Cards-jpg/Wands01.jpg",
+      "imagery_line": "A hand issuing from a cloud grasps a stout wand or club.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Creation, invention, enterprise, the powers which result in these"
+      }
+    },
+    {
+      "card_id": "wands-02-two",
+      "name": "Two of Wands",
+      "image": "Cards-jpg/Wands02.jpg",
+      "imagery_line": "A tall man looks from a battlemented roof over sea and shore;",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Between the alternative readings there is no marriage possible"
+      }
+    },
+    {
+      "card_id": "wands-03-three",
+      "name": "Three of Wands",
+      "image": "Cards-jpg/Wands03.jpg",
+      "imagery_line": "A calm, stately personage, with his back turned, looking from a cliff's edge at ships passing over the sea.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "He symbolizes established strength, enterprise, effort, trade, commerce, discovery"
+      }
+    },
+    {
+      "card_id": "wands-04-four",
+      "name": "Four of Wands",
+      "image": "Cards-jpg/Wands04.jpg",
+      "imagery_line": "From the four great staves planted in the foreground there is a great garland suspended;",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "They are for once almost on the surface--country life, haven of refuge, a species of domestic harvest-home, repose, concord, harmony, prosperity, peace, and the perfected work of these"
+      }
+    },
+    {
+      "card_id": "wands-05-five",
+      "name": "Five of Wands",
+      "image": "Cards-jpg/Wands05.jpg",
+      "imagery_line": "A posse of youths, who are brandishing staves, as if in sport or strife.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Imitation, as, for example, sham fight, but also the strenuous competition and struggle of the search after riches and fortune. In this sense it connects with the battle of life. Hence some attributions say that it is a card of gold, gain, opulence"
+      }
+    },
+    {
+      "card_id": "wands-06-six",
+      "name": "Six of Wands",
+      "image": "Cards-jpg/Wands06.jpg",
+      "imagery_line": "A laurelled horseman bears one staff adorned with a laurel crown;",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "The card has been so designed that it can cover several significations"
+      }
+    },
+    {
+      "card_id": "wands-07-seven",
+      "name": "Seven of Wands",
+      "image": "Cards-jpg/Wands07.jpg",
+      "imagery_line": "A young man on a craggy eminence brandishing a staff;",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "It is a card of valour, for, on the surface, six are attacking one, who has, however, the vantage position. On the intellectual plane, it signifies discussion, wordy strife"
+      }
+    },
+    {
+      "card_id": "wands-08-eight",
+      "name": "Eight of Wands",
+      "image": "Cards-jpg/Wands08.jpg",
+      "imagery_line": "The card represents motion through the immovable-a flight of wands through an open country;",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Activity in undertakings, the path of such activity, swiftness, as that of an express messenger"
+      }
+    },
+    {
+      "card_id": "wands-09-nine",
+      "name": "Nine of Wands",
+      "image": "Cards-jpg/Wands09.jpg",
+      "imagery_line": "The figure leans upon his staff and has an expectant look, as if awaiting an enemy.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "The card signifies strength in opposition. If attacked, the person will meet an onslaught boldly"
+      }
+    },
+    {
+      "card_id": "wands-10-ten",
+      "name": "Ten of Wands",
+      "image": "Cards-jpg/Wands10.jpg",
+      "imagery_line": "A man oppressed by the weight of the ten staves which he is carrying.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "A card of many significances, and some of the readings cannot be harmonized. I set aside that which connects it with honour and good faith. The chief meaning is oppression simply, but it is also fortune, gain, any kind of success, and then it is the oppression of these things. It is also a card of false-seeming, disguise, perfidy. The place which the figure is approaching may suffer from the rods that he carries. Success is stultified if the Nine of Swords follows, and if it is a question of a lawsuit, there will be certain loss"
+      }
+    },
+    {
+      "card_id": "wands-11-page",
+      "name": "Page of Wands",
+      "image": "Cards-jpg/Wands11.jpg",
+      "imagery_line": "In a scene similar to the former, a young man stands in the act of proclamation.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Dark young man, faithful, a lover, an envoy, a postman. Beside a man, he will bear favourable testimony concerning him. A dangerous rival, if followed by the Page of Cups. Has the chief qualities of his suit. He may signify family intelligence"
+      }
+    },
+    {
+      "card_id": "wands-12-knight",
+      "name": "Knight of Wands",
+      "image": "Cards-jpg/Wands12.jpg",
+      "imagery_line": "He is shewn as if upon a journey, armed with a short wand, and although mailed is not on a warlike errand.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Departure, absence, flight, emigration. A dark young man, friendly. Change of residence"
+      }
+    },
+    {
+      "card_id": "wands-13-queen",
+      "name": "Queen of Wands",
+      "image": "Cards-jpg/Wands13.jpg",
+      "imagery_line": "The Wands throughout this suit are always in leaf, as it is a suit of life and animation.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "A dark woman, countrywoman, friendly, chaste, loving, honourable. If the card beside her signifies a man, she is well disposed towards him"
+      }
+    },
+    {
+      "card_id": "wands-14-king",
+      "name": "King of Wands",
+      "image": "Cards-jpg/Wands14.jpg",
+      "imagery_line": "The physical and emotional nature to which this card is attributed is dark, ardent, lithe, animated, impassioned, noble.",
+      "meanings": {
+        "situation": "",
+        "obstacle": "",
+        "advice": "",
+        "general": "Dark man, friendly, countryman, generally married, honest and conscientious. The card always signifies honesty, and may mean news concerning an unexpected heritage to fall in before very long"
+      }
+    }
+  ]
+}
