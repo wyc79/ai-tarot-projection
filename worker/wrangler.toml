@@ -1,0 +1,19 @@
+name = "ai-tarot-relay"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# Deployed through Cloudflare's Git integration with the project root set to
+# /worker, so pushes that only touch /web or /data do not rebuild the relay.
+# That separation is the point: packs and prompts iterate without redeploying
+# anything that touches a key.
+
+[vars]
+# Set to the deployed frontend origin before going live. "*" is a local-dev
+# default and leaves the relay open to anyone.
+ALLOWED_ORIGINS = "*"
+
+# Requests per IP per minute.
+RATE_LIMIT = "30"
+
+# Adding a provider is a config change here, not a code change.
+PROVIDERS = '''{"anthropic":{"url":"https://api.anthropic.com/v1/messages","auth":"x-api-key","headers":{"anthropic-version":"2023-06-01"}},"openai":{"url":"https://api.openai.com/v1/chat/completions","auth":"bearer"}}'''

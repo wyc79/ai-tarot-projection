@@ -1,0 +1,964 @@
+{
+  "schema_version": 1,
+  "pack_id": "smith-waite-1909",
+  "name": "Smith-Waite (1909)",
+  "card_back": "Cards-jpg/CardBacks.jpg",
+  "positions": [
+    {
+      "id": "situation",
+      "label": "Situation",
+      "arc_role": "setup",
+      "prompt_hint": "where things stand right now"
+    },
+    {
+      "id": "obstacle",
+      "label": "Obstacle",
+      "arc_role": "tension",
+      "prompt_hint": "what is in the way, or what the pull is against"
+    },
+    {
+      "id": "advice",
+      "label": "Advice",
+      "arc_role": "resolution",
+      "prompt_hint": "where this could land, and what to do with it"
+    }
+  ],
+  "cards": [
+    {
+      "card_id": "major-00-fool",
+      "name": "The Fool",
+      "image": "Cards-jpg/00-TheFool.jpg",
+      "imagery_line": "A young man steps toward a cliff edge with a rose in one hand and a bundle on a stick, a small dog at his heels.",
+      "meanings": {
+        "situation": "standing at the start of something, not yet committed",
+        "obstacle": "leaping before looking, or refusing to leap at all",
+        "advice": "let it be unfinished; take the first step without the whole plan",
+        "general": "beginnings, innocence, stepping out without a map"
+      }
+    },
+    {
+      "card_id": "major-01-magician",
+      "name": "The Magician",
+      "image": "Cards-jpg/01-TheMagician.jpg",
+      "imagery_line": "A figure stands at a table of cup, sword, coin and wand, one arm raised to the sky and the other pointing at the ground.",
+      "meanings": {
+        "situation": "the means are already available, whether or not they are being used",
+        "obstacle": "capability without direction; talking about it instead of doing it",
+        "advice": "name what you actually want, then use what is already in reach",
+        "general": "will, focus, having the tools already in hand"
+      }
+    },
+    {
+      "card_id": "major-02-high-priestess",
+      "name": "The High Priestess",
+      "image": "Cards-jpg/02-TheHighPriestess.jpg",
+      "imagery_line": "A veiled woman sits between a black pillar and a white one, a half-hidden scroll in her lap, a crescent moon at her feet.",
+      "meanings": {
+        "situation": "something known but unspoken, still under the surface",
+        "obstacle": "an answer being withheld, including from yourself",
+        "advice": "stop explaining and listen for what you already suspect",
+        "general": "inner knowing, what has not been said aloud"
+      }
+    },
+    {
+      "card_id": "major-03-empress",
+      "name": "The Empress",
+      "image": "Cards-jpg/03-TheEmpress.jpg",
+      "imagery_line": "A woman rests on cushions in a field of ripe wheat, a crown of stars on her head, a stream running behind her.",
+      "meanings": {
+        "situation": "something being tended and slowly filling out",
+        "obstacle": "over-tending, or giving where nothing comes back",
+        "advice": "let it grow at its own pace; feed it rather than force it",
+        "general": "abundance, nurture, things growing on their own time"
+      }
+    },
+    {
+      "card_id": "major-04-emperor",
+      "name": "The Emperor",
+      "image": "Cards-jpg/04-TheEmperor.jpg",
+      "imagery_line": "A crowned figure sits upright on a stone throne carved with rams' heads, bare mountains behind him.",
+      "meanings": {
+        "situation": "order holding things together, whether chosen or inherited",
+        "obstacle": "rigidity, or someone else's rules standing in the way",
+        "advice": "decide what the frame is, and hold it without apologising",
+        "general": "structure, authority, boundaries"
+      }
+    },
+    {
+      "card_id": "major-05-hierophant",
+      "name": "The Hierophant",
+      "image": "Cards-jpg/05-TheHierophant.jpg",
+      "imagery_line": "A robed teacher raises one hand between two pillars while two figures kneel before him, crossed keys at his feet.",
+      "meanings": {
+        "situation": "operating inside an established system",
+        "obstacle": "inherited rules that no longer fit the person following them",
+        "advice": "keep the teacher or the tradition worth keeping; discard the rest",
+        "general": "tradition, teaching, the accepted way of doing things"
+      }
+    },
+    {
+      "card_id": "major-06-lovers",
+      "name": "The Lovers",
+      "image": "Cards-jpg/06-TheLovers.jpg",
+      "imagery_line": "A man and a woman stand apart beneath a winged figure in the sun, a tree behind each of them.",
+      "meanings": {
+        "situation": "two things pulling, or a bond that defines the ground",
+        "obstacle": "a choice deferred; wanting both paths at once",
+        "advice": "choose by what you value, not by which is easier to explain",
+        "general": "choice, union, what you align yourself with"
+      }
+    },
+    {
+      "card_id": "major-07-chariot",
+      "name": "The Chariot",
+      "image": "Cards-jpg/07-TheChariot.jpg",
+      "imagery_line": "An armoured figure rides a chariot drawn by one black sphinx and one white, holding no reins.",
+      "meanings": {
+        "situation": "movement underway, powered by tension held in balance",
+        "obstacle": "force applied without steering; speed used as avoidance",
+        "advice": "keep the two halves pulling the same way and stay on the road",
+        "general": "drive, momentum, opposing forces held together"
+      }
+    },
+    {
+      "card_id": "major-08-strength",
+      "name": "Strength",
+      "image": "Cards-jpg/08-Strength.jpg",
+      "imagery_line": "A woman in white lays her hands on a lion's jaws without hurry, a chain of flowers at her waist.",
+      "meanings": {
+        "situation": "something wild being handled gently rather than fought",
+        "obstacle": "trying to overpower what only yields to patience",
+        "advice": "meet it softly and repeatedly; force will cost more than it wins",
+        "general": "steady courage, patience over force"
+      }
+    },
+    {
+      "card_id": "major-09-hermit",
+      "name": "The Hermit",
+      "image": "Cards-jpg/09-TheHermit.jpg",
+      "imagery_line": "An old man stands alone on a summit holding up a lantern with a star inside it.",
+      "meanings": {
+        "situation": "a deliberate step back from the noise",
+        "obstacle": "isolation dressed up as reflection",
+        "advice": "take the solitude you need, then bring the lantern back down",
+        "general": "withdrawal, searching alone, the light carried inward"
+      }
+    },
+    {
+      "card_id": "major-10-wheel-of-fortune",
+      "name": "Wheel of Fortune",
+      "image": "Cards-jpg/10-WheelOfFortune.jpg",
+      "imagery_line": "A great wheel turns in the sky, a sphinx above it, a serpent sliding down one side and a figure rising on the other.",
+      "meanings": {
+        "situation": "a phase turning over; timing doing much of the work",
+        "obstacle": "waiting on luck, or fighting a cycle that has to run",
+        "advice": "act on the part that is yours and let the rest turn",
+        "general": "turning, cycles, what sits outside your control"
+      }
+    },
+    {
+      "card_id": "major-11-justice",
+      "name": "Justice",
+      "image": "Cards-jpg/11-Justice.jpg",
+      "imagery_line": "A crowned figure sits between two pillars, an upright sword in one hand and a set of scales in the other.",
+      "meanings": {
+        "situation": "a reckoning in progress; cause and effect coming due",
+        "obstacle": "an imbalance nobody has named out loud",
+        "advice": "weigh it honestly, your own part included, then decide",
+        "general": "balance, consequence, honest accounting"
+      }
+    },
+    {
+      "card_id": "major-12-hanged-man",
+      "name": "The Hanged Man",
+      "image": "Cards-jpg/12-TheHangedMan.jpg",
+      "imagery_line": "A man hangs upside down from a wooden beam by one ankle, his other leg crossed, a light around his head.",
+      "meanings": {
+        "situation": "a pause that cannot be rushed; things upside down",
+        "obstacle": "stuckness mistaken for patience; waiting used as a strategy",
+        "advice": "stop struggling long enough for the view to change",
+        "general": "suspension, reversal, seeing from another angle"
+      }
+    },
+    {
+      "card_id": "major-13-death",
+      "name": "Death",
+      "image": "Cards-jpg/13-Death.jpg",
+      "imagery_line": "A skeleton in armour rides a white horse past a fallen king, a bishop and a child, the sun rising between two towers.",
+      "meanings": {
+        "situation": "something is ending, whether or not it has been admitted",
+        "obstacle": "holding on to what is already over",
+        "advice": "let the ending finish; what comes next needs the room",
+        "general": "endings, transformation, what has to be let go"
+      }
+    },
+    {
+      "card_id": "major-14-temperance",
+      "name": "Temperance",
+      "image": "Cards-jpg/14-Temperance.jpg",
+      "imagery_line": "A winged figure pours water between two cups, one foot on the bank and one in the stream.",
+      "meanings": {
+        "situation": "two things being mixed into something workable",
+        "obstacle": "extremes swinging back and forth instead of settling",
+        "advice": "adjust in small amounts and keep testing the mix",
+        "general": "blending, moderation, patient adjustment"
+      }
+    },
+    {
+      "card_id": "major-15-devil",
+      "name": "The Devil",
+      "image": "Cards-jpg/15-TheDevil.jpg",
+      "imagery_line": "A horned figure crouches above a man and a woman, the chains around their necks hanging loose.",
+      "meanings": {
+        "situation": "a pattern with a hold on things, familiar and comfortable",
+        "obstacle": "a dependence being called a preference",
+        "advice": "name what you get out of it; the chain is looser than it looks",
+        "general": "attachment, compulsion, chains that are looser than they look"
+      }
+    },
+    {
+      "card_id": "major-16-tower",
+      "name": "The Tower",
+      "image": "Cards-jpg/16-TheTower.jpg",
+      "imagery_line": "Lightning strikes the crown off a tower and two figures fall from it into the dark.",
+      "meanings": {
+        "situation": "something breaking down fast, and not by choice",
+        "obstacle": "defending a structure that is already failing",
+        "advice": "let it fall and find out what was actually load-bearing",
+        "general": "sudden collapse, a structure that could not hold"
+      }
+    },
+    {
+      "card_id": "major-17-star",
+      "name": "The Star",
+      "image": "Cards-jpg/17-TheStar.jpg",
+      "imagery_line": "A woman kneels at the water's edge pouring from two pitchers, one large star and seven small ones above her.",
+      "meanings": {
+        "situation": "a calm opening after something hard",
+        "obstacle": "hope so faint it is easier to ignore than to hold",
+        "advice": "keep pouring; the small steady acts are the repair",
+        "general": "hope, clarity after the storm, quiet repair"
+      }
+    },
+    {
+      "card_id": "major-18-moon",
+      "name": "The Moon",
+      "image": "Cards-jpg/18-TheMoon.jpg",
+      "imagery_line": "A dog and a wolf howl at the moon while a crayfish crawls from the pool, a path running between two towers.",
+      "meanings": {
+        "situation": "half-lit ground; instinct running ahead of the facts",
+        "obstacle": "fear and imagination filling in what isn't known",
+        "advice": "walk the path in poor light rather than waiting for noon",
+        "general": "uncertainty, dreams, what is unclear by nature"
+      }
+    },
+    {
+      "card_id": "major-19-sun",
+      "name": "The Sun",
+      "image": "Cards-jpg/19-TheSun.jpg",
+      "imagery_line": "A child rides a white horse under a large sun, a red banner in hand, sunflowers along the wall behind.",
+      "meanings": {
+        "situation": "things out in the open, simpler than expected",
+        "obstacle": "exposure that feels like too much light",
+        "advice": "say the plain version out loud and let it be that simple",
+        "general": "clarity, warmth, being seen plainly"
+      }
+    },
+    {
+      "card_id": "major-20-judgement",
+      "name": "Judgement",
+      "image": "Cards-jpg/20-Judgement.jpg",
+      "imagery_line": "An angel sounds a trumpet above the water and figures rise from open coffins with their arms lifted.",
+      "meanings": {
+        "situation": "a summing up; the past asking for a verdict",
+        "obstacle": "a call heard clearly and left unanswered",
+        "advice": "decide what the story actually was, then answer it",
+        "general": "reckoning, awakening, answering a call"
+      }
+    },
+    {
+      "card_id": "major-21-world",
+      "name": "The World",
+      "image": "Cards-jpg/21-TheWorld.jpg",
+      "imagery_line": "A figure dances inside a great wreath with a wand in each hand, a winged creature in each corner.",
+      "meanings": {
+        "situation": "something arriving at its full shape",
+        "obstacle": "finishing avoided; a loop left open on purpose",
+        "advice": "close it properly, and let an ending be an ending",
+        "general": "completion, wholeness, a cycle closing"
+      }
+    },
+    {
+      "card_id": "cups-01-ace",
+      "name": "Ace of Cups",
+      "image": "Cards-jpg/Cups01.jpg",
+      "imagery_line": "A hand offers a cup from a cloud, water spilling over in five streams, a dove descending toward it.",
+      "meanings": {
+        "situation": "something new offered on the feeling side, not yet taken up",
+        "obstacle": "an offer that is hard to accept or to trust",
+        "advice": "accept what is being offered before you analyse it",
+        "general": "feeling offered, a new opening on the heart's side"
+      }
+    },
+    {
+      "card_id": "cups-02-two",
+      "name": "Two of Cups",
+      "image": "Cards-jpg/Cups02.jpg",
+      "imagery_line": "A man and a woman face each other and raise their cups, a winged lion's head above them.",
+      "meanings": {
+        "situation": "a real exchange between two people",
+        "obstacle": "a bond that needs both hands, and only one is offered",
+        "advice": "make the exchange explicit: say what you are giving and what you want",
+        "general": "meeting, mutual regard, a bond formed between equals"
+      }
+    },
+    {
+      "card_id": "cups-03-three",
+      "name": "Three of Cups",
+      "image": "Cards-jpg/Cups03.jpg",
+      "imagery_line": "Three women lift their cups together in a circle, fruit at their feet.",
+      "meanings": {
+        "situation": "a circle of people holding things up right now",
+        "obstacle": "company that crowds out the harder conversation",
+        "advice": "tell the people around you; let it be witnessed",
+        "general": "shared joy, company, celebration"
+      }
+    },
+    {
+      "card_id": "cups-04-four",
+      "name": "Four of Cups",
+      "image": "Cards-jpg/Cups04.jpg",
+      "imagery_line": "A young man sits under a tree with his arms folded, three cups in front of him and a fourth offered from a cloud.",
+      "meanings": {
+        "situation": "enough on the table, and none of it landing",
+        "obstacle": "an offer refused because it is not the expected one",
+        "advice": "look up; something is being held out that you haven't counted",
+        "general": "discontent, offers unseen, boredom with enough"
+      }
+    },
+    {
+      "card_id": "cups-05-five",
+      "name": "Five of Cups",
+      "image": "Cards-jpg/Cups05.jpg",
+      "imagery_line": "A cloaked figure looks down at three spilled cups and does not turn to see the two still standing.",
+      "meanings": {
+        "situation": "attention held by what was lost",
+        "obstacle": "grief that hides what is still standing",
+        "advice": "count what is left before you leave the field",
+        "general": "loss, grief, attention fixed on what spilled"
+      }
+    },
+    {
+      "card_id": "cups-06-six",
+      "name": "Six of Cups",
+      "image": "Cards-jpg/Cups06.jpg",
+      "imagery_line": "A child hands another a cup filled with flowers in a quiet courtyard.",
+      "meanings": {
+        "situation": "the past present in the room, warmly or otherwise",
+        "obstacle": "nostalgia used as a place to live",
+        "advice": "take the good from the old thing and carry it forward",
+        "general": "memory, kindness, the past returning gently"
+      }
+    },
+    {
+      "card_id": "cups-07-seven",
+      "name": "Seven of Cups",
+      "image": "Cards-jpg/Cups07.jpg",
+      "imagery_line": "A figure faces seven cups rising in cloud, each holding something different and some of it strange.",
+      "meanings": {
+        "situation": "many possibilities, unequal in substance",
+        "obstacle": "too many appealing options and no test to sort them",
+        "advice": "pick the one you would still want if nobody saw it",
+        "general": "options, fantasy, choices that are not all real"
+      }
+    },
+    {
+      "card_id": "cups-08-eight",
+      "name": "Eight of Cups",
+      "image": "Cards-jpg/Cups08.jpg",
+      "imagery_line": "A figure walks away toward the mountains, leaving eight cups stacked behind, under a clouded moon.",
+      "meanings": {
+        "situation": "a departure underway from something that mostly worked",
+        "obstacle": "staying out of investment rather than out of desire",
+        "advice": "leave properly; a partial exit costs more than a clean one",
+        "general": "leaving, walking away from what is nearly enough"
+      }
+    },
+    {
+      "card_id": "cups-09-nine",
+      "name": "Nine of Cups",
+      "image": "Cards-jpg/Cups09.jpg",
+      "imagery_line": "A man sits with his arms folded in front of nine cups arranged on a curved bench behind him.",
+      "meanings": {
+        "situation": "wishes met, at least on the surface",
+        "obstacle": "contentment that has stopped asking for anything",
+        "advice": "enjoy it plainly, and check that the wish was the real one",
+        "general": "satisfaction, comfort, having what you asked for"
+      }
+    },
+    {
+      "card_id": "cups-10-ten",
+      "name": "Ten of Cups",
+      "image": "Cards-jpg/Cups10.jpg",
+      "imagery_line": "A couple raise their arms toward a rainbow of ten cups while two children dance beside them.",
+      "meanings": {
+        "situation": "something whole and shared, at least for now",
+        "obstacle": "an ideal picture that the real one keeps failing",
+        "advice": "measure it against your life, not against the picture",
+        "general": "belonging, shared happiness, home"
+      }
+    },
+    {
+      "card_id": "cups-11-page",
+      "name": "Page of Cups",
+      "image": "Cards-jpg/Cups11.jpg",
+      "imagery_line": "A young figure holds up a cup with a fish looking out of it, the sea moving behind.",
+      "meanings": {
+        "situation": "something small and new surfacing, still odd",
+        "obstacle": "a feeling too new to be taken seriously yet",
+        "advice": "follow the odd small impulse and find out what it is",
+        "general": "a new feeling, curiosity, an unexpected message"
+      }
+    },
+    {
+      "card_id": "cups-12-knight",
+      "name": "Knight of Cups",
+      "image": "Cards-jpg/Cups12.jpg",
+      "imagery_line": "A rider moves at a walk, holding a cup out in front of him, a stream crossing his path.",
+      "meanings": {
+        "situation": "movement led by feeling rather than by plan",
+        "obstacle": "a pursuit that stalls whenever the mood does",
+        "advice": "make the offer, and carry it the whole way",
+        "general": "following feeling, an offer carried to someone"
+      }
+    },
+    {
+      "card_id": "cups-13-queen",
+      "name": "Queen of Cups",
+      "image": "Cards-jpg/Cups13.jpg",
+      "imagery_line": "A queen sits at the water's edge holding an ornate covered cup and looking straight into it.",
+      "meanings": {
+        "situation": "feeling being held and considered rather than acted on",
+        "obstacle": "absorbing other people's feelings until your own go unclear",
+        "advice": "trust what you feel, and say it as information",
+        "general": "deep feeling held steadily, intuition, care"
+      }
+    },
+    {
+      "card_id": "cups-14-king",
+      "name": "King of Cups",
+      "image": "Cards-jpg/Cups14.jpg",
+      "imagery_line": "A king holds a cup on a throne that floats on moving water, a ship behind him.",
+      "meanings": {
+        "situation": "strong currents handled calmly from the surface",
+        "obstacle": "calm maintained by keeping the depth out of view",
+        "advice": "stay steady without pretending the water is still",
+        "general": "emotional steadiness, deep water handled calmly"
+      }
+    },
+    {
+      "card_id": "pentacles-01-ace",
+      "name": "Ace of Pentacles",
+      "image": "Cards-jpg/Pentacles01.jpg",
+      "imagery_line": "A hand offers a single coin above a garden, an arched gate opening onto the mountains.",
+      "meanings": {
+        "situation": "a concrete opportunity present, not yet picked up",
+        "obstacle": "a solid option that would mean actually starting",
+        "advice": "take the practical opening and make it real this week",
+        "general": "a material opening, an offer with substance to it"
+      }
+    },
+    {
+      "card_id": "pentacles-02-two",
+      "name": "Two of Pentacles",
+      "image": "Cards-jpg/Pentacles02.jpg",
+      "imagery_line": "A figure juggles two coins tied by a looping ribbon while ships ride high waves behind.",
+      "meanings": {
+        "situation": "several things being kept up at once",
+        "obstacle": "keeping everything moving so that nothing has to be chosen",
+        "advice": "keep only what you can hold while the water is rough",
+        "general": "juggling, balance in motion, competing demands"
+      }
+    },
+    {
+      "card_id": "pentacles-03-three",
+      "name": "Three of Pentacles",
+      "image": "Cards-jpg/Pentacles03.jpg",
+      "imagery_line": "A stonemason works in a church while two others stand with the plans and watch.",
+      "meanings": {
+        "situation": "work underway with others, roles in place",
+        "obstacle": "skill without agreement about what is being built",
+        "advice": "say what you are good at and let others hold their part",
+        "general": "craft, collaboration, work being built to a plan"
+      }
+    },
+    {
+      "card_id": "pentacles-04-four",
+      "name": "Four of Pentacles",
+      "image": "Cards-jpg/Pentacles04.jpg",
+      "imagery_line": "A seated figure grips one coin to his chest, one balanced on his head and one under each foot.",
+      "meanings": {
+        "situation": "something being gripped tightly and kept safe",
+        "obstacle": "security held so tightly it prevents movement",
+        "advice": "loosen one hand and find out what the grip is protecting",
+        "general": "holding on, security, control of what you have"
+      }
+    },
+    {
+      "card_id": "pentacles-05-five",
+      "name": "Five of Pentacles",
+      "image": "Cards-jpg/Pentacles05.jpg",
+      "imagery_line": "Two figures pass through snow beneath a lit window, one on crutches, neither looking up.",
+      "meanings": {
+        "situation": "a lean stretch, and the feeling of being outside it alone",
+        "obstacle": "help close by and never asked for",
+        "advice": "ask; the door you keep walking past is open",
+        "general": "hardship, exclusion, being outside the warm room"
+      }
+    },
+    {
+      "card_id": "pentacles-06-six",
+      "name": "Six of Pentacles",
+      "image": "Cards-jpg/Pentacles06.jpg",
+      "imagery_line": "A man holds a set of scales in one hand and drops coins into the hands of two kneeling figures.",
+      "meanings": {
+        "situation": "help moving in one direction, and measured",
+        "obstacle": "generosity that keeps the scales in one person's hand",
+        "advice": "let it be even: give or receive without keeping the ledger",
+        "general": "giving and receiving, help with a balance to it"
+      }
+    },
+    {
+      "card_id": "pentacles-07-seven",
+      "name": "Seven of Pentacles",
+      "image": "Cards-jpg/Pentacles07.jpg",
+      "imagery_line": "A young man leans on his hoe and looks at the coins grown on the bush he has been tending.",
+      "meanings": {
+        "situation": "effort in the ground, results not yet in",
+        "obstacle": "impatience with something that only grows slowly",
+        "advice": "assess it honestly, then either let it grow or pull it up",
+        "general": "patience, assessment, waiting on what was planted"
+      }
+    },
+    {
+      "card_id": "pentacles-08-eight",
+      "name": "Eight of Pentacles",
+      "image": "Cards-jpg/Pentacles08.jpg",
+      "imagery_line": "A craftsman hammers one coin at his bench, seven finished ones hung up beside him.",
+      "meanings": {
+        "situation": "steady repeated work, one piece at a time",
+        "obstacle": "grinding at the work to avoid the bigger question",
+        "advice": "put the hours in; the skill is built by the repetition",
+        "general": "practice, diligence, repetition that builds skill"
+      }
+    },
+    {
+      "card_id": "pentacles-09-nine",
+      "name": "Nine of Pentacles",
+      "image": "Cards-jpg/Pentacles09.jpg",
+      "imagery_line": "A woman stands alone in her own walled garden, a hooded falcon resting on her glove.",
+      "meanings": {
+        "situation": "something built alone and enjoyed alone",
+        "obstacle": "independence that has quietly become a wall",
+        "advice": "enjoy what you built, and let someone into the garden",
+        "general": "self-sufficiency, earned comfort, your own ground"
+      }
+    },
+    {
+      "card_id": "pentacles-10-ten",
+      "name": "Ten of Pentacles",
+      "image": "Cards-jpg/Pentacles10.jpg",
+      "imagery_line": "An old man sits with his dogs under an archway while a couple and a child pass by, coins all around them.",
+      "meanings": {
+        "situation": "established ground: family, or a long-term structure",
+        "obstacle": "inherited structures that assume you will keep them going",
+        "advice": "decide what you want to keep of what was handed to you",
+        "general": "legacy, stability, what outlasts the person who built it"
+      }
+    },
+    {
+      "card_id": "pentacles-11-page",
+      "name": "Page of Pentacles",
+      "image": "Cards-jpg/Pentacles11.jpg",
+      "imagery_line": "A young figure holds a coin up in both hands and studies it, standing in a ploughed field.",
+      "meanings": {
+        "situation": "something new and practical being examined closely",
+        "obstacle": "study that stays study and never becomes practice",
+        "advice": "start small and expect to be bad at it first",
+        "general": "a beginner's study, an offer to learn something practical"
+      }
+    },
+    {
+      "card_id": "pentacles-12-knight",
+      "name": "Knight of Pentacles",
+      "image": "Cards-jpg/Pentacles12.jpg",
+      "imagery_line": "An armoured rider sits still on a heavy horse at the edge of a ploughed field, holding out a coin.",
+      "meanings": {
+        "situation": "progress happening slowly and dependably",
+        "obstacle": "steadiness that has become standing still",
+        "advice": "keep the plodding pace; it gets there if you don't stop",
+        "general": "slow reliability, unglamorous steady progress"
+      }
+    },
+    {
+      "card_id": "pentacles-13-queen",
+      "name": "Queen of Pentacles",
+      "image": "Cards-jpg/Pentacles13.jpg",
+      "imagery_line": "A queen sits in a flowering garden looking down at the coin cradled in her lap, a rabbit at her feet.",
+      "meanings": {
+        "situation": "things being looked after competently and quietly",
+        "obstacle": "carrying everyone's practical needs and your own last",
+        "advice": "tend yourself with the competence you give everything else",
+        "general": "practical care, resourcefulness, tending things well"
+      }
+    },
+    {
+      "card_id": "pentacles-14-king",
+      "name": "King of Pentacles",
+      "image": "Cards-jpg/Pentacles14.jpg",
+      "imagery_line": "A king sits among grapevines with a coin resting on his knee and a castle behind him.",
+      "meanings": {
+        "situation": "solid ground, built and maintained",
+        "obstacle": "success defended so carefully it stopped being enjoyed",
+        "advice": "use what you built; it exists to be spent, not guarded",
+        "general": "material mastery, provision, ground that is established"
+      }
+    },
+    {
+      "card_id": "swords-01-ace",
+      "name": "Ace of Swords",
+      "image": "Cards-jpg/Swords01.jpg",
+      "imagery_line": "A hand grips an upright sword from a cloud, a crown and a wreath hanging on the blade.",
+      "meanings": {
+        "situation": "a clear idea or a plain truth arriving with force",
+        "obstacle": "a truth that has to be said, and will cut when it is",
+        "advice": "name it precisely; the clean statement is the whole move",
+        "general": "clarity, the truth named, a decision that cuts through"
+      }
+    },
+    {
+      "card_id": "swords-02-two",
+      "name": "Two of Swords",
+      "image": "Cards-jpg/Swords02.jpg",
+      "imagery_line": "A blindfolded woman sits with two crossed swords held against her chest, the sea behind her.",
+      "meanings": {
+        "situation": "a decision held in balance, deliberately unlooked at",
+        "obstacle": "an avoidance being maintained with real effort",
+        "advice": "take the blindfold off before you decide anything",
+        "general": "stalemate, refusal to look, a balance held blind"
+      }
+    },
+    {
+      "card_id": "swords-03-three",
+      "name": "Three of Swords",
+      "image": "Cards-jpg/Swords03.jpg",
+      "imagery_line": "Three swords pass through a single heart under grey rain.",
+      "meanings": {
+        "situation": "a clean and painful piece of knowledge",
+        "obstacle": "a hurt that keeps getting re-read",
+        "advice": "let it hurt the honest amount, then stop rehearsing it",
+        "general": "heartbreak, painful clarity, the words that hurt"
+      }
+    },
+    {
+      "card_id": "swords-04-four",
+      "name": "Four of Swords",
+      "image": "Cards-jpg/Swords04.jpg",
+      "imagery_line": "A knight lies still on a tomb with his hands together, three swords on the wall above him.",
+      "meanings": {
+        "situation": "a pause; recovery rather than progress",
+        "obstacle": "rest that has quietly become hiding",
+        "advice": "actually rest: stopping is the work right now",
+        "general": "rest, retreat, deliberate stillness"
+      }
+    },
+    {
+      "card_id": "swords-05-five",
+      "name": "Five of Swords",
+      "image": "Cards-jpg/Swords05.jpg",
+      "imagery_line": "A man gathers up swords while two others walk away with their backs turned.",
+      "meanings": {
+        "situation": "a win that damaged something on the way",
+        "obstacle": "needing to be right more than needing the outcome",
+        "advice": "decide whether winning this is worth what it costs",
+        "general": "conflict won badly, the cost of being right"
+      }
+    },
+    {
+      "card_id": "swords-06-six",
+      "name": "Six of Swords",
+      "image": "Cards-jpg/Swords06.jpg",
+      "imagery_line": "A ferryman poles a boat with a cloaked woman and child aboard, six swords standing in the hull.",
+      "meanings": {
+        "situation": "a move away from something rough, in progress",
+        "obstacle": "leaving with everything still packed in the boat",
+        "advice": "go, and accept that some of it comes with you for now",
+        "general": "transition, moving to calmer water, carrying it along"
+      }
+    },
+    {
+      "card_id": "swords-07-seven",
+      "name": "Seven of Swords",
+      "image": "Cards-jpg/Swords07.jpg",
+      "imagery_line": "A man carries five swords away from a camp, glancing back at the two he has left behind.",
+      "meanings": {
+        "situation": "something being done quietly, around the edges",
+        "obstacle": "a strategy that depends on not being fully honest",
+        "advice": "do the direct version, or admit to yourself why you won't",
+        "general": "evasion, half-truths, taking the indirect route"
+      }
+    },
+    {
+      "card_id": "swords-08-eight",
+      "name": "Eight of Swords",
+      "image": "Cards-jpg/Swords08.jpg",
+      "imagery_line": "A bound and blindfolded figure stands among eight swords set in the ground, with no fence between them.",
+      "meanings": {
+        "situation": "constraint that feels total and is not quite",
+        "obstacle": "a cage with a gap in it that nobody has tested",
+        "advice": "test one wall and find out which parts are real",
+        "general": "feeling trapped, restriction that is mostly self-held"
+      }
+    },
+    {
+      "card_id": "swords-09-nine",
+      "name": "Nine of Swords",
+      "image": "Cards-jpg/Swords09.jpg",
+      "imagery_line": "Someone sits up in bed with their face in their hands, nine swords hanging on the wall behind.",
+      "meanings": {
+        "situation": "worry running much hotter than the facts",
+        "obstacle": "fear rehearsed in private and never said out loud",
+        "advice": "say the worst of it out loud to one person; it shrinks",
+        "general": "anxiety, sleepless dread, the mind at night"
+      }
+    },
+    {
+      "card_id": "swords-10-ten",
+      "name": "Ten of Swords",
+      "image": "Cards-jpg/Swords10.jpg",
+      "imagery_line": "A figure lies face down with ten swords in his back, the black sky breaking to gold at the horizon.",
+      "meanings": {
+        "situation": "something thoroughly finished, nothing left to defend",
+        "obstacle": "an ending being dramatised instead of accepted",
+        "advice": "call it over; the light is already at the edge",
+        "general": "ending, the bottom, overkill"
+      }
+    },
+    {
+      "card_id": "swords-11-page",
+      "name": "Page of Swords",
+      "image": "Cards-jpg/Swords11.jpg",
+      "imagery_line": "A young figure holds a sword up while walking over rough ground, hair and clouds blown sideways.",
+      "meanings": {
+        "situation": "questions being asked, energy sharp and unfocused",
+        "obstacle": "vigilance that reads everything as a threat",
+        "advice": "stay curious, and ask directly instead of watching",
+        "general": "watchfulness, curiosity, testing ideas out"
+      }
+    },
+    {
+      "card_id": "swords-12-knight",
+      "name": "Knight of Swords",
+      "image": "Cards-jpg/Swords12.jpg",
+      "imagery_line": "An armoured rider charges at a full gallop with his sword raised into the wind.",
+      "meanings": {
+        "situation": "fast forceful movement, all in one direction",
+        "obstacle": "speed that has outrun the reason for it",
+        "advice": "charge if you mean it, but know what you are riding at",
+        "general": "charge, urgency, argument at speed"
+      }
+    },
+    {
+      "card_id": "swords-13-queen",
+      "name": "Queen of Swords",
+      "image": "Cards-jpg/Swords13.jpg",
+      "imagery_line": "A queen sits with an upright sword in one hand and the other hand held out, clouds behind her.",
+      "meanings": {
+        "situation": "things being seen clearly, without comfort added",
+        "obstacle": "a clarity that has hardened into distance",
+        "advice": "say the true thing plainly, and stay warm while you say it",
+        "general": "clear sight, honesty without padding, hard-won perspective"
+      }
+    },
+    {
+      "card_id": "swords-14-king",
+      "name": "King of Swords",
+      "image": "Cards-jpg/Swords14.jpg",
+      "imagery_line": "A king faces forward with an upright sword in his hand, clouds gathering behind the throne.",
+      "meanings": {
+        "situation": "a matter being decided on principle",
+        "obstacle": "principle used to avoid the human part of it",
+        "advice": "rule on it, then check the ruling against the people in it",
+        "general": "judgment, principle, deciding by reason"
+      }
+    },
+    {
+      "card_id": "wands-01-ace",
+      "name": "Ace of Wands",
+      "image": "Cards-jpg/Wands01.jpg",
+      "imagery_line": "A hand holds out a sprouting branch from a cloud, loose leaves falling away from it.",
+      "meanings": {
+        "situation": "energy arriving, unformed but real",
+        "obstacle": "an impulse that keeps not getting acted on",
+        "advice": "act while it is hot; the spark does not keep",
+        "general": "a spark, raw impulse, the start of wanting something"
+      }
+    },
+    {
+      "card_id": "wands-02-two",
+      "name": "Two of Wands",
+      "image": "Cards-jpg/Wands02.jpg",
+      "imagery_line": "A man on a castle wall holds a small globe and looks out to sea, one staff fixed beside him.",
+      "meanings": {
+        "situation": "standing at the edge of a decision to expand",
+        "obstacle": "the world in hand and no move made toward it",
+        "advice": "pick a direction and commit; the view has told you enough",
+        "general": "planning, the wider view, deciding whether to go"
+      }
+    },
+    {
+      "card_id": "wands-03-three",
+      "name": "Three of Wands",
+      "image": "Cards-jpg/Wands03.jpg",
+      "imagery_line": "A figure stands on a cliff among three planted staffs, watching ships move out across the water.",
+      "meanings": {
+        "situation": "something sent out, the results still at sea",
+        "obstacle": "waiting on returns that cannot be hurried",
+        "advice": "keep looking out rather than back, and send the next one",
+        "general": "the wait after launching, watching it go out"
+      }
+    },
+    {
+      "card_id": "wands-04-four",
+      "name": "Four of Wands",
+      "image": "Cards-jpg/Wands04.jpg",
+      "imagery_line": "Four staffs hold up a flower garland while two figures raise bouquets beneath it.",
+      "meanings": {
+        "situation": "a milestone reached and worth marking",
+        "obstacle": "stability that would be risked by wanting more",
+        "advice": "mark it properly before moving to the next thing",
+        "general": "arrival, celebration, ground that feels steady"
+      }
+    },
+    {
+      "card_id": "wands-05-five",
+      "name": "Five of Wands",
+      "image": "Cards-jpg/Wands05.jpg",
+      "imagery_line": "Five young men swing staffs at each other, though nobody seems to be aiming.",
+      "meanings": {
+        "situation": "clashing energy, more noise than danger",
+        "obstacle": "a conflict nobody is actually trying to win",
+        "advice": "find out what the fight is really about, or leave it",
+        "general": "friction, scrappy competition, noise"
+      }
+    },
+    {
+      "card_id": "wands-06-six",
+      "name": "Six of Wands",
+      "image": "Cards-jpg/Wands06.jpg",
+      "imagery_line": "A rider wearing a laurel crown moves through a crowd on foot, a wreath tied to his staff.",
+      "meanings": {
+        "situation": "something going well, and visibly",
+        "obstacle": "needing the win to be witnessed before it counts",
+        "advice": "take the credit plainly and keep riding",
+        "general": "recognition, a win that others can see"
+      }
+    },
+    {
+      "card_id": "wands-07-seven",
+      "name": "Seven of Wands",
+      "image": "Cards-jpg/Wands07.jpg",
+      "imagery_line": "A man on higher ground holds off six staffs coming up at him, wearing two different boots.",
+      "meanings": {
+        "situation": "a position being held under steady pressure",
+        "obstacle": "defending something you never decided was worth it",
+        "advice": "hold the ground that is actually yours and drop the rest",
+        "general": "defending your ground, holding a position"
+      }
+    },
+    {
+      "card_id": "wands-08-eight",
+      "name": "Eight of Wands",
+      "image": "Cards-jpg/Wands08.jpg",
+      "imagery_line": "Eight staffs fly through clear air over open country with nothing in their way.",
+      "meanings": {
+        "situation": "fast movement, several things arriving together",
+        "obstacle": "everything moving too fast to aim",
+        "advice": "move now, while the way is still clear",
+        "general": "speed, things landing at once, momentum"
+      }
+    },
+    {
+      "card_id": "wands-09-nine",
+      "name": "Nine of Wands",
+      "image": "Cards-jpg/Wands09.jpg",
+      "imagery_line": "A bandaged man leans on his staff and watches, eight more staffs standing behind him like a fence.",
+      "meanings": {
+        "situation": "still standing, tired, watching for the next hit",
+        "obstacle": "vigilance built from old hits and applied to a quiet field",
+        "advice": "keep going, and check whether the fence is still needed",
+        "general": "resilience, guarded persistence, one more round"
+      }
+    },
+    {
+      "card_id": "wands-10-ten",
+      "name": "Ten of Wands",
+      "image": "Cards-jpg/Wands10.jpg",
+      "imagery_line": "A man carries ten staffs in a bundle, bent under them, the town not far ahead.",
+      "meanings": {
+        "situation": "a heavy load carried close to the destination",
+        "obstacle": "carrying what could have been shared or put down",
+        "advice": "put some of it down; you were never required to carry it all",
+        "general": "burden, taking on too much, the last stretch"
+      }
+    },
+    {
+      "card_id": "wands-11-page",
+      "name": "Page of Wands",
+      "image": "Cards-jpg/Wands11.jpg",
+      "imagery_line": "A young figure stands in open country holding a staff planted in the ground and looks up at it.",
+      "meanings": {
+        "situation": "a fresh interest with real heat behind it",
+        "obstacle": "enthusiasm that runs out before the second week",
+        "advice": "chase the new thing, and give it longer than the excitement lasts",
+        "general": "enthusiasm, a new want, restless beginnings"
+      }
+    },
+    {
+      "card_id": "wands-12-knight",
+      "name": "Knight of Wands",
+      "image": "Cards-jpg/Wands12.jpg",
+      "imagery_line": "An armoured rider on a rearing horse carries a staff, moving fast across dry country.",
+      "meanings": {
+        "situation": "bold movement, more heat than plan",
+        "obstacle": "impulsiveness that keeps costing the same way",
+        "advice": "go hard at it, but pick the direction before you kick",
+        "general": "boldness, charging at what you want, heat"
+      }
+    },
+    {
+      "card_id": "wands-13-queen",
+      "name": "Queen of Wands",
+      "image": "Cards-jpg/Wands13.jpg",
+      "imagery_line": "A queen sits facing outward with a staff in one hand and a sunflower in the other, a black cat at her feet.",
+      "meanings": {
+        "situation": "energy that other people gather around",
+        "obstacle": "warmth spent outward while your own want goes unnamed",
+        "advice": "say what you want as directly as you back other people",
+        "general": "confidence, warmth, presence held steadily"
+      }
+    },
+    {
+      "card_id": "wands-14-king",
+      "name": "King of Wands",
+      "image": "Cards-jpg/Wands14.jpg",
+      "imagery_line": "A king leans forward on his throne with a staff in his hand and a small salamander at his feet.",
+      "meanings": {
+        "situation": "direction being set, and others following it",
+        "obstacle": "vision that keeps outrunning the follow-through",
+        "advice": "set the direction, then stay for the unglamorous middle",
+        "general": "vision, leadership, the will to set a direction"
+      }
+    }
+  ]
+}
