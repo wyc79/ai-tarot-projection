@@ -41,6 +41,9 @@ input { flex: 1 1 16rem; }
 button { cursor: pointer; }
 button:hover { border-color: var(--dim); }
 
+a { color: #9db4ff; }
+a:hover { color: #c3d0ff; }
+
 .ok { color: var(--ok); }
 .bad { color: var(--bad); }
 
@@ -89,10 +92,12 @@ summary { cursor: pointer; font-size: 0.85rem; }
 @media (max-width: 60rem) { .session-layout { grid-template-columns: 1fr; } }
 
 .spread { display: flex; gap: 0.9rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
-.slot { margin: 0; width: 150px; }
+.slot { margin: 0; width: 11rem; }
 .slot img { width: 100%; }
-.slot figcaption { font-size: 0.75rem; margin-top: 0.4rem; }
-.slot .imagery { color: var(--dim); }
+.slot figcaption { font-size: 0.75rem; margin-top: 0.5rem; line-height: 1.45; }
+/* Not .imagery: that class is a block-level callout on the pack page, and an
+   inline span inheriting its padding overlaps the caption beside it. */
+.slot-imagery { color: var(--dim); }
 
 .transcript { display: flex; flex-direction: column; gap: 0.7rem; margin-bottom: 1rem; }
 .line { margin: 0; padding: 0.6rem 0.85rem; border-radius: 8px; white-space: pre-wrap; }

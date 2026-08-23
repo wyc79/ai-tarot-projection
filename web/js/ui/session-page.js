@@ -50,7 +50,7 @@ function renderFlip(card, position) {
   slot.innerHTML = `<img src="${pack.imageUrl(card)}" alt="${card.name}">
     <figcaption><strong>${card.name}</strong><br>
     <span class="label">${position}</span><br>
-    <span class="imagery">${card.imagery_line}</span></figcaption>`;
+    <span class="slot-imagery">${card.imagery_line}</span></figcaption>`;
   $("spread").append(slot);
 }
 
