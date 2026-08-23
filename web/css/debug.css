@@ -72,3 +72,35 @@ img {
 .position h3 { margin: 0 0 0.4rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
 .position h3 span { color: var(--dim); font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: 0.4rem; }
 .position p { margin: 0; font-size: 0.9rem; }
+
+/* --- M2 session debug ---------------------------------------------------- */
+
+main.wide { max-width: 74rem; }
+
+details { margin-bottom: 1.5rem; border: 1px solid var(--line); border-radius: 8px; padding: 0.6rem 0.9rem; background: var(--panel); }
+summary { cursor: pointer; font-size: 0.85rem; }
+
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 0.75rem; margin-top: 0.9rem; }
+.settings-grid label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.75rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.07em; }
+.settings-grid label.inline { flex-direction: row; align-items: center; text-transform: none; letter-spacing: 0; font-size: 0.85rem; }
+.settings-grid input[type="checkbox"] { flex: 0 0 auto; }
+
+.session-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(15rem, 1fr); gap: 1.75rem; align-items: start; }
+@media (max-width: 60rem) { .session-layout { grid-template-columns: 1fr; } }
+
+.spread { display: flex; gap: 0.9rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.slot { margin: 0; width: 150px; }
+.slot img { width: 100%; }
+.slot figcaption { font-size: 0.75rem; margin-top: 0.4rem; }
+.slot .imagery { color: var(--dim); }
+
+.transcript { display: flex; flex-direction: column; gap: 0.7rem; margin-bottom: 1rem; }
+.line { margin: 0; padding: 0.6rem 0.85rem; border-radius: 8px; white-space: pre-wrap; }
+.line.reader { background: var(--panel); border-left: 2px solid var(--line); }
+.line.user { background: transparent; border: 1px solid var(--line); color: var(--dim); }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 0.7rem 0.85rem; margin-bottom: 1.25rem; font-size: 0.85rem; }
+.panel .quote { color: var(--dim); font-style: italic; margin: 0.35rem 0; }
+.panel-details pre { max-height: 22rem; overflow: auto; font-size: 0.7rem; color: var(--dim); white-space: pre-wrap; word-break: break-word; }
+
+h2.label { margin: 0 0 0.4rem; }

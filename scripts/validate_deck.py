@@ -12,6 +12,7 @@ import json
 import os
 import sys
 
+SCHEMA_VERSION = 2
 REQUIRED_POSITIONS = ["situation", "obstacle", "advice"]
 MEANING_KEYS = REQUIRED_POSITIONS + ["general"]
 EXPECTED_CARDS = 78
@@ -33,15 +34,17 @@ def validate(pack_dir):
     except json.JSONDecodeError as e:
         return ["deck.json is not valid JSON: %s" % e], []
 
-    if deck.get("schema_version") != 1:
-        problems.append("schema_version must be 1, got %r" % deck.get("schema_version"))
-    for key in ("pack_id", "name", "card_back"):
+    if deck.get("schema_version") != SCHEMA_VERSION:
+        problems.append("schema_version must be %d, got %r"
+                        % (SCHEMA_VERSION, deck.get("schema_version")))
+    for key in ("pack_id", "name", "card_back", "persona"):
         if not nonempty_str(deck.get(key)):
             problems.append("missing or empty top-level %r" % key)
 
-    back = deck.get("card_back", "")
-    if nonempty_str(back) and not os.path.exists(os.path.join(pack_dir, back)):
-        problems.append("card_back image not found: %s" % back)
+    for key in ("card_back", "persona"):
+        ref = deck.get(key, "")
+        if nonempty_str(ref) and not os.path.exists(os.path.join(pack_dir, ref)):
+            problems.append("%s file not found: %s" % (key, ref))
 
     positions = deck.get("positions")
     if not isinstance(positions, list) or len(positions) != len(REQUIRED_POSITIONS):
@@ -116,7 +119,8 @@ def main():
             print("fail: %s" % p)
         print("\n%d problem(s) in %s" % (len(problems), pack_dir))
         sys.exit(1)
-    print("ok: %s validates against pack schema v1 (%d warnings)" % (pack_dir, len(warnings)))
+    print("ok: %s validates against pack schema v%d (%d warnings)"
+          % (pack_dir, SCHEMA_VERSION, len(warnings)))
 
 
 if __name__ == "__main__":

@@ -3,44 +3,78 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AI Tarot — pack debug</title>
-  <!-- Relative paths only: this page is served from / locally and from
-       /ai-tarot/ on Pages, and must work unchanged in both. -->
+  <title>AI Tarot — session debug</title>
+  <!-- Relative paths only: served from / locally and from /ai-tarot/ on Pages. -->
   <link rel="stylesheet" href="css/debug.css">
 </head>
 <body>
-<main>
-  <h1>AI Tarot — M1 debug</h1>
-  <p>Pack loading and relay health. No reader, no LLM calls yet.</p>
+<main class="wide">
+  <h1>AI Tarot — M2 session debug</h1>
+  <p>A seeded reading end to end. Unstyled on purpose; the card table is M4.
+     <a href="pack.html">Browse the pack &rarr;</a></p>
 
-  <div class="row">
-    <span class="label">pack</span>
-    <span id="pack-name">loading…</span>
-  </div>
+  <details id="settings" open>
+    <summary>Settings</summary>
+    <div class="settings-grid">
+      <label>API key
+        <input id="api-key" type="password" placeholder="sk-ant-…" autocomplete="off">
+      </label>
+      <label class="inline">
+        <input id="key-persist" type="checkbox">
+        remember on this device <span id="key-note" class="label"></span>
+      </label>
 
-  <div class="row">
-    <span class="label">relay</span>
-    <input id="relay-base" placeholder="relay base URL (blank = same origin)">
-    <button id="relay-check">check</button>
-    <span id="relay-status">…</span>
-  </div>
+      <label>Mode
+        <select id="mode">
+          <option value="relay">relay (local Python or hosted Worker)</option>
+          <option value="direct">direct (browser → provider)</option>
+        </select>
+      </label>
+      <label>Relay base URL
+        <input id="relay-base" placeholder="blank = same origin">
+      </label>
 
-  <div class="row">
-    <span class="label">card</span>
-    <select id="card-picker"></select>
-  </div>
+      <label>Chat model
+        <input id="chat-model">
+      </label>
+      <label>Judge model
+        <input id="judge-model">
+      </label>
 
-  <div class="card-layout">
-    <img id="card-image" alt="">
-    <div class="reading">
-      <h2 id="card-name"></h2>
-      <code id="card-id"></code>
-      <p class="imagery"><span class="label">imagery line</span><br><span id="imagery-line"></span></p>
-      <p><span class="label">general</span><br><span id="general"></span></p>
-      <div class="positions" id="positions"></div>
+      <label>Seed
+        <input id="seed" placeholder="blank = new seed each reading">
+      </label>
+      <div class="row">
+        <button id="start">Start reading</button>
+        <span id="status" class="label"></span>
+      </div>
     </div>
+  </details>
+
+  <div class="session-layout">
+    <section>
+      <div id="spread" class="spread"></div>
+      <div id="transcript" class="transcript"></div>
+      <form id="reply-form" class="row" hidden>
+        <input id="reply" placeholder="what does it look like it is pointing at?" autocomplete="off">
+        <button type="submit">Send</button>
+      </form>
+    </section>
+
+    <aside>
+      <h2 class="label">Flip gate</h2>
+      <div id="gate" class="panel">—</div>
+
+      <h2 class="label">Anchor</h2>
+      <div id="anchor" class="panel">not committed yet</div>
+
+      <details class="panel-details">
+        <summary class="label">Assembled prompt (last request)</summary>
+        <pre id="debug-payload">—</pre>
+      </details>
+    </aside>
   </div>
 </main>
-<script type="module" src="js/app.js"></script>
+<script type="module" src="js/ui/session-page.js"></script>
 </body>
 </html>

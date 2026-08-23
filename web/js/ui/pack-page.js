@@ -1,9 +1,10 @@
 /**
- * M1 debug page: proves the pack loads, the images resolve, and the relay
- * answers. No engine and no LLM calls yet -- those are M2.
+ * Pack browser: every card with its imagery line and the three position
+ * meanings side by side, so the pack content is reviewable by eye. Also pings
+ * the relay, since this page needs no key and is the cheapest health check.
  */
 
-import { loadPack } from "./pack.js";
+import { loadPack } from "../pack.js";
 
 const $ = (id) => document.getElementById(id);
 const RELAY_KEY = "tarot:relay_base";

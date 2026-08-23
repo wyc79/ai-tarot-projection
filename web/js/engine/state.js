@@ -100,8 +100,13 @@ export function recordExchange(session, { question, answer, gate }) {
   return session;
 }
 
-export function recordReading(session, text) {
-  const card = currentCard(session);
+/**
+ * Attach a reader turn to the card it was about. `offset` steps back through the
+ * ledger: a bridge turn answers the previous card while the next one is already
+ * face up, so it belongs to the card behind it.
+ */
+export function recordReading(session, text, { offset = 0 } = {}) {
+  const card = session.cards[session.cards.length - 1 - offset];
   if (card) card.ai_reading = text;
   return session;
 }
