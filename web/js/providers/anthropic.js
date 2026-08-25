@@ -22,6 +22,10 @@
  *    {type: "enabled", budget_tokens: N} instead and will reject this.)
  *  - stop_reason "refusal" comes back as HTTP 200, so the status code alone
  *    does not tell you the call succeeded.
+ *  - max_tokens is a ceiling on everything the model generates, thinking
+ *    included. A judge call returns a small object but may reason its way there
+ *    first, so the ceiling is sized for the reasoning, not for the JSON. Unused
+ *    budget is not billed; a truncated structured answer costs the whole call.
  */
 
 export const ANTHROPIC = {
@@ -41,7 +45,7 @@ export const ANTHROPIC = {
   },
 
   /** A reader turn: streamed, short, low effort -- this is voice, not analysis. */
-  chatPayload({ model, system, messages, maxTokens = 1024, effort = "low", features = {} }) {
+  chatPayload({ model, system, messages, maxTokens = 4096, effort = "low", features = {} }) {
     const payload = { model, max_tokens: maxTokens, stream: true, system, messages };
     if (features.thinking) payload.thinking = { type: "adaptive" };
     if (features.effort) payload.output_config = { effort };
@@ -56,7 +60,7 @@ export const ANTHROPIC = {
    * prompt and readText() has to cope with a model that wrapped its JSON in a
    * code fence.
    */
-  judgePayload({ model, system, messages, schema, maxTokens = 1024, effort = "medium", features = {} }) {
+  judgePayload({ model, system, messages, schema, maxTokens = 4096, effort = "medium", features = {} }) {
     const payload = { model, max_tokens: maxTokens, system, messages };
     if (features.thinking) payload.thinking = { type: "adaptive" };
     // A judge call is a classification, not a voice: pin it where the provider
@@ -119,7 +123,13 @@ export const ANTHROPIC = {
       throw new Error(`model declined: ${body.stop_details?.category ?? "unspecified"}`);
     }
     if (body.stop_reason === "max_tokens") {
-      throw new Error("response hit max_tokens; structured output may be truncated");
+      // Models that think before answering spend that budget here too, so a
+      // ceiling sized for the visible answer runs out before the JSON starts.
+      const error = new Error(
+        "the reply hit the token ceiling before it finished; on a model that " +
+        "thinks before answering, the thinking is spending the same budget");
+      error.code = "response_truncated";
+      throw error;
     }
     return (body.content ?? [])
       .filter((block) => block.type === "text")

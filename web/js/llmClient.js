@@ -202,7 +202,16 @@ export function makeLlmClient({ getKey, getConfig, onDebug = () => {} }) {
           `expected a JSON response from ${provider.id}, got ${response.headers.get("content-type") ?? "something else"}`,
           { hint: "the provider ignored a non-streaming request; check its endpoint url" });
       }
-      const text = provider.wire.readText(body);
+      let text;
+      try {
+        text = provider.wire.readText(body);
+      } catch (error) {
+        throw new RelayError(error.code ?? "bad_provider_response", error.message, {
+          hint: error.code === "response_truncated"
+            ? "raise maxTokens for judge calls, or use a model that does not think as hard"
+            : "",
+        });
+      }
       try {
         // Tolerant even where the schema was enforced: a fence costs nothing to
         // strip, and a provider that quietly ignored output_config should fail

@@ -216,7 +216,11 @@ test("truncated structured output is an error, not a silent half-object", async 
     respond: () => new Response(JSON.stringify({ stop_reason: "max_tokens", content: [{ type: "text", text: '{"disc' }] }),
                                 { status: 200 }),
   });
-  await assert.rejects(client.judge({ system: "s", messages: [], schema: GATE_SCHEMA }), /max_tokens/);
+  await assert.rejects(client.judge({ system: "s", messages: [], schema: GATE_SCHEMA }), (e) => {
+    assert.equal(e.code, "response_truncated");
+    assert.match(e.hint, /raise maxTokens/);
+    return true;
+  });
 });
 
 test("a missing key fails before any request is made", async () => {
