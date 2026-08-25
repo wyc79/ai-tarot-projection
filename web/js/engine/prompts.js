@@ -83,8 +83,11 @@ function describeCard(pack, session) {
 
 ${card.name}, in the ${position.label} position (${position.arc_role} — ${position.prompt_hint}).
 
-They can see the picture, and this line of text under it: "${card.imagery_line}"
-They have already read that line. Do not say it back to them.
+They can see the picture. They have not been given any words about it — no
+caption, no description, nothing to agree with — so whatever they say is theirs.
+
+If they freeze, this is the one line you may offer to get them looking:
+"${card.imagery_line}". Only then, and never as an opening.
 
 ### What is actually in the picture
 

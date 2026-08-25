@@ -239,9 +239,14 @@ test("agency is handed back once, not every turn the subject comes up", async ()
   assert.equal(reading.session.safety_state, "normal", "high stakes never drops the frame");
 });
 
-test("the reader is told not to read the printed line back", async () => {
-  const { client } = await run({ gates: [gate(1, false)], answers: ["hm"] });
-  assert.match(client.calls.chat[0].system, /Do not say it back to them/);
+test("the reader knows the user was given no words about the picture", async () => {
+  const { client, reading, pack } = await run({ gates: [gate(1, false)], answers: ["hm"] });
+  const system = client.calls.chat[0].system;
+  assert.match(system, /They have not been given any words about it/);
+  assert.match(system, /Only then, and never as an opening/);
+  // Still available to the reader, as the fallback the field is named for.
+  const card = pack.card(reading.session.cards[0].card_id);
+  assert.ok(system.includes(card.imagery_line));
 });
 
 test("the opening turn names the card; it does not just gesture at it", async () => {

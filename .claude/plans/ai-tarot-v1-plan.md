@@ -16,7 +16,9 @@ Tarot as a doorway, not divination. The cards are projective prompts that get pe
 - First card flips immediately; each next card flips after ~2 question-answer exchanges
 - Depth-gated, not count-gated: rich answer can flip early, thin answer gets a softer follow-up instead of stalling
 - Co-interpretation (projection-first reading): card flips, AI speaks second
-  1. Flip, show card name + one neutral imagery line
+  1. Flip, show card name only. No caption describing the picture: a printed
+     description is something to agree with, and agreeing is not projecting.
+     The imagery line stays as alt text and as the reader's fallback (below)
   2. AI asks the user to read it first ("what does this card feel like it's pointing at for you?")
   3. User's projection is the disclosure; AI builds on their words, adds light traditional flavor
   4. Rhythm per card: flip -> user projection -> AI follow-up -> next flip

@@ -100,10 +100,13 @@ function reportError(error) {
 function renderFlip(card, position) {
   const slot = document.createElement("figure");
   slot.className = "slot";
-  slot.innerHTML = `<img src="${pack.imageUrl(card)}" alt="${card.name}">
+  // No caption describing the picture. A printed description is something to
+  // agree with, and agreeing is not projecting -- whatever they say about the
+  // card should come from looking at it, not from reading a sentence about it.
+  // The line survives as alt text, where it belongs.
+  slot.innerHTML = `<img src="${pack.imageUrl(card)}" alt="${card.imagery_line}">
     <figcaption><strong>${card.name}</strong><br>
-    <span class="label">${position}</span><br>
-    <span class="slot-imagery">${card.imagery_line}</span></figcaption>`;
+    <span class="label">${position}</span></figcaption>`;
   $("spread").append(slot);
 }
 
