@@ -89,6 +89,21 @@ export function exchangesOnCurrentCard(session) {
   return session.exchanges.filter((e) => e.position === card.position).length;
 }
 
+/**
+ * Has anything of their own life reached this card yet?
+ *
+ * A card can collect three answers, all of them about the picture, and look
+ * from the outside exactly like a card that is going well. This is the question
+ * that tells the two apart, and the flip rule below is the only place it
+ * changes anything: a card moves on early only when something landed.
+ */
+export function groundedOnCurrentCard(session) {
+  const card = currentCard(session);
+  if (!card) return false;
+  return session.exchanges.some(
+    (e) => e.position === card.position && e.gate?.has_life_content === true);
+}
+
 export function flipCard(session, cardId, { flippedAt = Date.now(), reason = "" } = {}) {
   const position = nextPosition(session);
   if (!position) throw new Error("the spread is full");
@@ -207,7 +222,17 @@ export function flipDecision(session, gate) {
   if (count === 0) {
     return { flip: false, reason: "no answer on this card yet" };
   }
-  if (gate.disclosure_depth >= DEPTH_RICH) {
+
+  // Nothing of theirs has reached this card. The early exits below are rewards
+  // for a card that did its job, so they are switched off -- but only the early
+  // ones. The counted exits still fire: a gate someone cannot satisfy is a
+  // stalled meter, and someone who will not talk about themselves is allowed to
+  // have that be the reading. When it happens the reason says so, because a
+  // ledger full of ungrounded flips is the diagnosis for a whole session.
+  const grounded = groundedOnCurrentCard(session);
+  const ungrounded = grounded ? "" : " — ungrounded, nothing of theirs landed on this card";
+
+  if (grounded && gate.disclosure_depth >= DEPTH_RICH) {
     return { flip: true, reason: `rich answer (depth ${gate.disclosure_depth}) earns the next card early` };
   }
   // The last card has nowhere to advance to: flipping it means closing. So its
@@ -215,15 +240,15 @@ export function flipDecision(session, gate) {
   // the projection exchange, one follow-up at most, then the closing beat.
   // A reading that ends without one is worse than a reading that ends early.
   if (nextPosition(session) === null && count >= TARGET_EXCHANGES) {
-    return { flip: true, reason: `last card and ${count} exchanges; closing regardless of depth` };
+    return { flip: true, reason: `last card and ${count} exchanges; closing regardless of depth${ungrounded}` };
   }
-  if (gate.disclosure_depth >= DEPTH_ENOUGH && count >= TARGET_EXCHANGES) {
+  if (grounded && gate.disclosure_depth >= DEPTH_ENOUGH && count >= TARGET_EXCHANGES) {
     return { flip: true, reason: `depth ${gate.disclosure_depth} after ${count} exchanges` };
   }
   if (count >= MAX_EXCHANGES) {
-    return { flip: true, reason: `${count} exchanges on one card; moving on rather than stalling` };
+    return { flip: true, reason: `${count} exchanges on one card; moving on rather than stalling${ungrounded}` };
   }
-  return { flip: false, reason: `depth ${gate.disclosure_depth} after ${count}; one softer follow-up` };
+  return { flip: false, reason: `depth ${gate.disclosure_depth} after ${count}; one softer follow-up${ungrounded}` };
 }
 
 /** True once every position has been read to its depth. */

@@ -44,13 +44,21 @@ export function fakeClient({
       if (schema.properties.theme) {
         return anchor ?? { theme: "t", user_phrases: ["stuck"], resolution_beat: "r" };
       }
-      return queue.shift() ?? { disclosure_depth: 2, stakes: "low", reading_of_them: "x" };
+      return queue.shift() ?? { disclosure_depth: 2, has_life_content: true, stakes: "low", reading_of_them: "x" };
     },
   };
 }
 
+/** An ordinary answer: they said something about their life. */
 export const gate = (depth, stakes = "low") =>
-  ({ disclosure_depth: depth, stakes, reading_of_them: "noted" });
+  ({ disclosure_depth: depth, has_life_content: true, stakes, reading_of_them: "noted" });
+
+/**
+ * An answer entirely about the picture. Depth caps at 2 by the judge's own
+ * rule, and the card it lands on does not earn an early flip.
+ */
+export const cardOnly = (depth = 2, stakes = "low") =>
+  ({ disclosure_depth: depth, has_life_content: false, stakes, reading_of_them: "described the card" });
 
 /** Answer to the opening question. Declining is the default a test wants. */
 export const declines = { has_topic: false, topic: "", stakes: "low" };

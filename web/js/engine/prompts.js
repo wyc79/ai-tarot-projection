@@ -511,6 +511,18 @@ because this time they were asked something else.
 
 ---
 
+**A pure card answer caps at 2.** If everything they said is about the picture --
+what is in it, what the figures are doing, what it looks like -- it is a 2 at
+most, however long and however vivid, and a 1 if it is a shrug. It goes above 2
+only when something of theirs is in it: a person, a place, a time, an event, a
+feeling they own, or a sentence that turns back on them ("like me", "reminds me
+of", "I hate that"). This is the one rule that stops a reading of a picture
+being scored as a reading of a person, and getting it wrong is how a session
+spends three turns on the deck and calls it disclosure.
+
+That is the same judgement as **has_life_content**, and the two must agree: if
+has_life_content is false the depth is 1 or 2, always.
+
 ---
 
 **user_level** is the second axis, and it is not a finer version of the first.

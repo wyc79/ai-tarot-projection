@@ -32,18 +32,18 @@ const fileFetch = async (url) => {
 const SCRIPT = [
   { answer: "yeah - whether I keep bracing for a fight nobody's having",
     opening: { has_topic: true, topic: "bracing for a fight nobody's having", stakes: "low" } },
-  { answer: "dunno", gate: { disclosure_depth: 1, user_level: "name", stakes: "low" } },
-  { answer: "it looks tired I guess", gate: { disclosure_depth: 2, user_level: "name", stakes: "low" } },
+  { answer: "dunno", gate: { disclosure_depth: 1, user_level: "name", has_life_content: false, stakes: "low" } },
+  { answer: "it looks tired I guess", gate: { disclosure_depth: 2, user_level: "name", has_life_content: false, stakes: "low" } },
   { answer: "my brother, and I haven't called him since March",
-    gate: { disclosure_depth: 4, user_level: "consequences", stakes: "low" } },
-  { answer: "money, mostly", gate: { disclosure_depth: 2, user_level: "name", stakes: "low" } },
+    gate: { disclosure_depth: 4, user_level: "consequences", has_life_content: true, stakes: "low" } },
+  { answer: "money, mostly", gate: { disclosure_depth: 2, user_level: "name", has_life_content: true, stakes: "low" } },
   { answer: "if I spend it I have to admit I'm staying",
-    gate: { disclosure_depth: 4, user_level: "intentions", stakes: "low" } },
-  { answer: "walking off, leaving the full ones", gate: { disclosure_depth: 3, user_level: "name", stakes: "low" } },
+    gate: { disclosure_depth: 4, user_level: "intentions", has_life_content: true, stakes: "low" } },
+  { answer: "walking off, leaving the full ones", gate: { disclosure_depth: 3, user_level: "name", has_life_content: false, stakes: "low" } },
   // The eighth answer exists so the fixture reaches the closing beat. Without
   // it the canonical session ended unclosed and --prompt=close had no turn to
   // print, which is how run B's failure mode sat in our own fixture unnoticed.
-  { answer: "lighter, maybe", gate: { disclosure_depth: 2, user_level: "evaluate", stakes: "low" } },
+  { answer: "lighter, maybe", gate: { disclosure_depth: 2, user_level: "evaluate", has_life_content: true, stakes: "low" } },
 ];
 
 function scriptedClient(prompts) {

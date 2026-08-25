@@ -9,7 +9,8 @@ const SEED = "moon-4f2a91";
 
 /** A gate carrying both axes. */
 const at = (depth, level, stakes = "low") =>
-  ({ disclosure_depth: depth, user_level: level, stakes, reading_of_them: "noted" });
+  ({ disclosure_depth: depth, user_level: level, has_life_content: depth > 2, stakes,
+     reading_of_them: "noted" });
 
 /**
  * Drive a session with reader turns that are real questions rather than

@@ -42,6 +42,16 @@ export function gateSchema(pack) {
         type: "string",
         description: "One sentence: what they actually disclosed, in their own words where possible.",
       },
+      has_life_content: {
+        type: "boolean",
+        description:
+          "Did this answer contain anything about their life at all? True needs " +
+          "one of: a person, a place, a time, an event, a feeling they own, or a " +
+          "sentence that refers back to themselves -- 'like me', 'reminds me of', " +
+          "'I hate that'. Describing the picture, however vividly and however " +
+          "long, is false. This is the difference between someone reading a card " +
+          "and someone using one.",
+      },
       user_level: {
         type: "string",
         enum: pack.levels.map((l) => l.id),
@@ -54,7 +64,7 @@ export function gateSchema(pack) {
           "not where they were invited to land.",
       },
     },
-    required: ["disclosure_depth", "user_level", "stakes", "reading_of_them"],
+    required: ["disclosure_depth", "has_life_content", "user_level", "stakes", "reading_of_them"],
     additionalProperties: false,
   };
 }

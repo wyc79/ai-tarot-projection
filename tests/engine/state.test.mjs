@@ -7,7 +7,10 @@ import {
 
 const POSITIONS = [{ id: "situation" }, { id: "obstacle" }, { id: "advice" }];
 const gate = (depth, stakes = "low") =>
-  ({ disclosure_depth: depth, stakes });
+  ({ disclosure_depth: depth, has_life_content: true, stakes });
+/** Everything they said was about the picture. */
+const cardOnly = (depth = 2) =>
+  ({ disclosure_depth: depth, has_life_content: false, stakes: "low" });
 
 const fresh = () => createSession({ packId: "smith-waite-1909", seed: "moon-4f2a91", positions: POSITIONS });
 
@@ -148,4 +151,40 @@ test("readings land on the ledger, and closing ends the session", () => {
   close(s, "this week, notice when you say stuck");
   assert.equal(s.closed, true);
   assert.match(s.closing_reflection, /this week/);
+});
+
+// -- grounding (c145c7) ---------------------------------------------------
+
+test("a card nothing of theirs landed on does not earn an early flip", () => {
+  const s = fresh();
+  flipCard(s, "a");
+  recordExchange(s, { question: "what do you see?", answer: "a woman in blue", gate: cardOnly(2) });
+  // The judge would have to break its own cap to send a 4 here, but if it did,
+  // an answer with nothing of theirs in it still does not buy the next card.
+  assert.equal(flipDecision(s, cardOnly(4)).flip, false);
+  assert.match(flipDecision(s, cardOnly(4)).reason, /ungrounded/);
+});
+
+test("but it flips eventually, and the reason records that it was ungrounded", () => {
+  const s = fresh();
+  flipCard(s, "a");
+  for (let i = 0; i < 2; i += 1) {
+    recordExchange(s, { question: "and then?", answer: "the pillars", gate: cardOnly(2) });
+  }
+  recordExchange(s, { question: "and then?", answer: "the moon at her feet", gate: cardOnly(2) });
+  const decision = flipDecision(s, cardOnly(2));
+  assert.equal(decision.flip, true, "a resistant user is never stalled");
+  assert.match(decision.reason, /moving on rather than stalling/);
+  assert.match(decision.reason, /ungrounded, nothing of theirs landed/);
+});
+
+test("one grounded answer on the card is enough to restore the early exits", () => {
+  const s = fresh();
+  flipCard(s, "a");
+  recordExchange(s, { question: "what do you see?", answer: "a woman in blue", gate: cardOnly(2) });
+  recordExchange(s, { question: "when?", answer: "my sister, last March", gate: gate(4) });
+  const decision = flipDecision(s, gate(4));
+  assert.equal(decision.flip, true);
+  assert.match(decision.reason, /early/);
+  assert.ok(!/ungrounded/.test(decision.reason));
 });
