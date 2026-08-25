@@ -5,6 +5,7 @@ import {
   createSession, flipCard, flipDecision, recordExchange,
 } from "../../web/js/engine/state.js";
 import { startReading } from "../../web/js/engine/reading.js";
+import { scanSession } from "../../scripts/scan.mjs";
 import { fakeClient, realPack } from "./helpers.mjs";
 
 const POSITIONS = [{ id: "situation" }, { id: "obstacle" }, { id: "advice" }];
@@ -162,4 +163,112 @@ test("the tempo rule reaches every turn, and one few-shot shows it", async () =>
   const shot = pack.fewShots.find((f) => f.demonstrates.startsWith("the dwell"));
   assert.ok(shot, "nothing in the pack demonstrates staying put");
   assert.equal(shot.hedged, true, "and it demonstrates the softening at the same time");
+});
+
+// -- (b) the eager discloser ---------------------------------------------
+
+/**
+ * Drive a session with real reader turns rather than placeholders, so the
+ * scanner has something to read. Mirrors the helper in scaffolding.test.mjs.
+ */
+async function play({ script, close = "This week, notice the one moment you nearly said it." }) {
+  const pack = await realPack();
+  let asked = 0;
+  const client = fakeClient({
+    gates: script.map((s) => s.gate),
+    opening: { has_topic: false, topic: "", stakes: "low" },
+    reply: (turn) => (turn === "close" ? close
+      : turn === "opening" ? "Anything particular you want to look at?"
+      : script[Math.min(asked++, script.length - 1)].asks),
+  });
+  const reading = startReading({ pack, client, seed: "river-89c1fb" });
+  await reading.begin();
+  await reading.say("just curious");
+  for (const { answer } of script) {
+    if (reading.session.closed) break;
+    await reading.say(answer);
+  }
+  return { pack, session: reading.session, client };
+}
+
+test("someone who discloses early and hedges it gets dwelt on, not moved past", async () => {
+  const { pack, session } = await play({
+    script: [
+      { asks: "What does it look like it's pointing at for you?",
+        answer: "the cups are all full of flowers", gate: at({ depth: 2, life: false }) },
+      { asks: "Whose repurposing is that, in your world?",
+        answer: "i guess so? i used to have a different major",
+        gate: at({ depth: 3, life: true, level: "consequences", hedged: true }) },
+      { asks: "Could be nothing — how long ago did you switch?",
+        answer: "eighteen months, and nobody's asked me about it since",
+        gate: at({ depth: 4, life: true, level: "consequences" }) },
+      { asks: "The obstacle card is The Lovers. What do you see in it?",
+        answer: "two people not looking at each other", gate: at({ depth: 2, life: false }) },
+    ],
+  });
+  const situation = session.exchanges.filter((e) => e.position === "situation");
+  assert.equal(situation.length, 3, "the hedge bought a turn and the answer to it bought another");
+  const lovers = session.cards[1];
+  assert.ok(lovers, "and the card did eventually turn");
+  assert.match(lovers.flip_reason, /dwelt on first/);
+  assert.ok(!scanSession(session, pack).some((f) => f.code === "flip_on_disclosure"));
+  assert.ok(!scanSession(session, pack).some((f) => f.code === "built_on_hedge"),
+            "the follow-up softened rather than settling it");
+});
+
+// -- (c) the regretful sharer --------------------------------------------
+
+test("someone who wishes they had not said it is let out, and the reading still closes", async () => {
+  const { pack, session, client } = await play({
+    script: [
+      { asks: "What does it look like it's pointing at for you?",
+        answer: "kids handing each other flowers", gate: at({ depth: 2, life: false }) },
+      { asks: "Whose handing-over is that one?",
+        answer: "my sister, in April", gate: at({ depth: 4, life: true, level: "consequences" }) },
+      // Immediate regret. The dwell releases rather than holding them there.
+      { asks: "What happened in April?", answer: "dunno, it's fine",
+        gate: at({ depth: 1, life: false }) },
+      { asks: "The obstacle card is The Lovers. What do you see?",
+        answer: "two people", gate: at({ depth: 2, life: false }) },
+      { asks: "Does one of them look like they're leaving, or arriving?",
+        answer: "leaving I think", gate: at({ depth: 2, life: false }) },
+      { asks: "What else is in there?", answer: "a tree", gate: at({ depth: 1, life: false }) },
+      { asks: "The advice card is The Fool. What's he doing?",
+        answer: "walking", gate: at({ depth: 2, life: false }) },
+      { asks: "Where does it look like he's going?", answer: "off the edge",
+        gate: at({ depth: 2, life: false }) },
+    ],
+  });
+  const situation = session.exchanges.filter((e) => e.position === "situation");
+  assert.equal(situation.length, 3, "the deflection released the dwell rather than extending it");
+  assert.match(session.cards[1].flip_reason, /moving on rather than stalling/);
+  assert.ok(!/dwelt on first/.test(session.cards[1].flip_reason),
+            "nobody gets credit for a dwell that was refused");
+  assert.equal(session.closed, true, "unconditional closing is untouched by any of this");
+  assert.equal(client.calls.chat.at(-1).turn, "close");
+  assert.ok(!scanSession(session, pack).some((f) => f.code === "unclosed"));
+});
+
+test("the frozen river session fails the tempo check it was written for", async () => {
+  const pack = await realPack();
+  const session = await river();
+  const codes = scanSession(session, pack).map((f) => f.code);
+  assert.ok(codes.includes("flip_on_disclosure"),
+            "the card turned over on the turn they first said something of their own");
+
+  // The hedge flag postdates the transcript, so the judge's reading of "i guess
+  // so?" has to be supplied. With it, the trailing turn fails too.
+  session.exchanges[2].gate.hedged = true;
+  assert.ok(scanSession(session, pack).some((f) => f.code === "built_on_hedge"),
+            '"You weren\'t sure at first, but repurposed turned out to be you"');
+});
+
+test("river's resolution beat is the shape the anchor judge now rejects", async () => {
+  const { beatIsTerritory } = await import("../../web/js/engine/anchor.js");
+  const session = await river();
+  assert.equal(beatIsTerritory(session.anchor.resolution_beat), false,
+               "it decided the finding from one sentence they said once");
+  assert.equal(beatIsTerritory(
+    "where the old major stands in the new one — still feeding it, or genuinely left behind"),
+               true);
 });
