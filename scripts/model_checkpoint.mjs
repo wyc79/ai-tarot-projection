@@ -123,7 +123,17 @@ for (const label of ["a", "b"]) {
     process.exit(1);
   }
   process.stdout.write(`running ${label}: chat=${model} judge=${JUDGE} seed=${SEED}\n`);
-  const session = await runOnce(pack, model);
+  let session;
+  try {
+    session = await runOnce(pack, model);
+  } catch (error) {
+    // A stack trace is the wrong shape for this: the failures worth reporting
+    // here are a bad key or a model id the provider does not have.
+    console.error(`\n${error.code ?? "error"}: ${error.message}`);
+    if (error.hint) console.error(`  ${error.hint}`);
+    if (error.code === "unknown_model") console.error(`  model was: ${model}`);
+    process.exit(1);
+  }
   await writeFile(path.join(OUT, `${label}-${model}.md`), toMarkdown(pack, session));
   await writeFile(path.join(OUT, `${label}-${model}.json`), toJson(session));
   runs.push({ label, model, session });
