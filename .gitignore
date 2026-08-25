@@ -227,3 +227,7 @@ worker/.wrangler/
 
 # checkpoint transcripts: real sessions, kept out of git
 checkpoint/
+
+# Reference papers: read locally, not redistributed. The Semetsky article is
+# paywalled and republishing it from a public repo is not our call to make.
+references/
