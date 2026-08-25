@@ -1,7 +1,22 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { RelayError, makeLlmClient } from "../../web/js/llmClient.js";
-import { GATE_SCHEMA } from "../../web/js/engine/schemas.js";
+
+/**
+ * A stand-in for a judge schema. This file tests the client, not the engine:
+ * the engine's gate schema is now built from pack data, and loading a pack here
+ * would couple the transport tests to the deck.
+ */
+const GATE_SCHEMA = {
+  type: "object",
+  properties: {
+    disclosure_depth: { type: "integer", enum: [1, 2, 3, 4] },
+    stakes: { type: "string", enum: ["low", "high", "crisis"] },
+    reading_of_them: { type: "string" },
+  },
+  required: ["disclosure_depth", "stakes", "reading_of_them"],
+  additionalProperties: false,
+};
 
 const KEY = "sk-canary-do-not-store-me";
 

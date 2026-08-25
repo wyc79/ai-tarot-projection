@@ -19,12 +19,12 @@
  * @typedef {{card_id: string, position: string, user_projection: string,
  *            ai_reading: string, flipped_at: number, flip_reason: string}} DrawnCard
  * @typedef {{q: string, a: string, disclosure_depth: number, position: string,
- *            question_type: "projection"|"life"}} Exchange
+ *            question_type: "projection"|"life", question_level: string}} Exchange
  * @typedef {{disclosure_depth: number, stakes: "low"|"high"|"crisis",
  *            reading_of_them: string}} Gate
  */
 
-import { questionType } from "./questions.js";
+import { questionLevel, questionType } from "./questions.js";
 
 export const STATE_VERSION = 1;
 
@@ -151,9 +151,12 @@ export function recordExchange(session, { question, answer, gate }) {
     a: answer,
     disclosure_depth: gate.disclosure_depth,
     position: card.position,
-    // What they were asked, so a depth in this transcript can be read back
-    // months later without guessing which rubric produced it.
+    // What they were asked, on both axes: what it pointed them at, and how far
+    // it reached. The first tells you which depth rubric produced this number;
+    // the second is what the scaffolding check compares against the level the
+    // answer before it landed on.
     question_type: questionType(question),
+    question_level: questionLevel(question),
     // The whole verdict, not just the depth: re-running a transcript after a
     // prompt change is only useful if you can see what the judge thought then.
     gate: { ...gate },

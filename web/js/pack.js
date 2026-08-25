@@ -7,7 +7,7 @@
  * works at http://localhost:8787/ and at https://user.github.io/ai-tarot/.
  */
 
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 /**
  * @param {string} packDir  pack root, relative to the document
@@ -45,6 +45,10 @@ export async function loadPack(packDir = "data", { fetchImpl = fetch } = {}) {
     id: deck.pack_id,
     name: deck.name,
     positions: deck.positions,
+    // The scaffolding ladder, low to high. Array order is the ordering: the
+    // engine does index arithmetic on it and knows nothing else about levels.
+    levels: deck.levels,
+    level: (id) => deck.levels.find((l) => l.id === id),
     persona,
     fewShots,
     cards: deck.cards,

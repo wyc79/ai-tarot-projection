@@ -456,7 +456,7 @@ test("the arc position's weighted moves reach the prompt from pack data", async 
   const { client } = await run({
     gates: [gate(4), gate(3)], answers: ["something real", "and more"],
   });
-  assert.match(systemFor(client, "invite"), /moves weighted here: externalize, name/);
+  assert.match(systemFor(client, "invite"), /moves weighted here: externalize, their-words/);
   assert.match(client.calls.chat.at(-1).system, /moves weighted here: explore, exception/);
 });
 

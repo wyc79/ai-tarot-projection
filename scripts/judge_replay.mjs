@@ -19,7 +19,7 @@
 import { readFile } from "node:fs/promises";
 import { makeLlmClient } from "../web/js/llmClient.js";
 import { JUDGE_SYSTEM, judgeMessages } from "../web/js/engine/prompts.js";
-import { GATE_SCHEMA } from "../web/js/engine/schemas.js";
+import { gateSchema } from "../web/js/engine/schemas.js";
 import { questionType } from "../web/js/engine/questions.js";
 import { arg, loadPackFromDisk, preflightRelay, reportError, requireKey } from "./harness.mjs";
 
@@ -37,6 +37,7 @@ if (!files.length) {
 
 await preflightRelay(RELAY, PROVIDER);
 const pack = await loadPackFromDisk();
+const GATE_SCHEMA = gateSchema(pack);
 const client = makeLlmClient({
   getKey: () => KEY,
   getConfig: () => ({ mode: "relay", relayBase: RELAY, provider: PROVIDER, judgeModel: JUDGE }),

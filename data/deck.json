@@ -1,5 +1,5 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "pack_id": "smith-waite-1909",
   "name": "Smith-Waite (1909)",
   "card_back": "Cards-jpg/CardBacks.jpg",
@@ -13,8 +13,9 @@
       "prompt_hint": "where things stand right now",
       "moves": [
         "externalize",
-        "name"
-      ]
+        "their-words"
+      ],
+      "ceiling": "evaluate"
     },
     {
       "id": "obstacle",
@@ -24,7 +25,8 @@
       "moves": [
         "explore",
         "exception"
-      ]
+      ],
+      "ceiling": "intentions"
     },
     {
       "id": "advice",
@@ -34,6 +36,59 @@
       "moves": [
         "re-author",
         "action"
+      ],
+      "ceiling": "plans"
+    }
+  ],
+  "levels": [
+    {
+      "id": "name",
+      "asks": "what it is",
+      "gloss": "Getting the thing into words at all. What it looks like, what they would call it. Nothing is asked about them yet.",
+      "exemplars": [
+        "What does it look like it's pointing at for you?",
+        "Where does your eye go first?",
+        "If that thing had a name, what would you call it?"
+      ]
+    },
+    {
+      "id": "consequences",
+      "asks": "what happened, and what happens next",
+      "gloss": "The thing in motion, in time. When it turned up, what it did, who was there. Answerable without interpreting anything.",
+      "exemplars": [
+        "When did that first turn up?",
+        "What happened after this?",
+        "Was there a week it wasn't running the show, and what was different about it?"
+      ]
+    },
+    {
+      "id": "evaluate",
+      "asks": "what it is like for them",
+      "gloss": "Their position on it. Not how it makes them feel -- whether it sits right, whether they are alright with it going on.",
+      "exemplars": [
+        "What's it like for you, seeing that happen?",
+        "Is that alright with you, the way it's been going?",
+        "How has it been, carrying that around?"
+      ]
+    },
+    {
+      "id": "intentions",
+      "asks": "why it matters to them",
+      "gloss": "What their position says about what they want and value. Only reachable once they have said something real to ask it about.",
+      "exemplars": [
+        "Do you know why this one gets to you the way it does?",
+        "What does it say about what matters to you, that this is the one you can't put down?",
+        "What were you hoping for, before it went this way?"
+      ]
+    },
+    {
+      "id": "plans",
+      "asks": "what they will do",
+      "gloss": "The closing step lives here, and almost nothing else does. Small, concrete, and theirs.",
+      "exemplars": [
+        "What's the one moment this week you could catch it happening?",
+        "What would the smallest first step look like?",
+        "What will you do differently the next time it turns up?"
       ]
     }
   ],

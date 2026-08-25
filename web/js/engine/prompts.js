@@ -13,6 +13,7 @@
 
 import { currentCard } from "./state.js";
 import { questionType } from "./questions.js";
+import { levelIndex, targetLevel } from "./levels.js";
 
 const RULES_ON_TURNING_CARDS = `
 ## You do not turn the cards
@@ -111,6 +112,85 @@ function firstSentence(text) {
   return line.length > 120 ? `${line.slice(0, 117)}...` : line;
 }
 
+/**
+ * Where the conversation is standing on the ladder, and how far the next
+ * question may reach.
+ *
+ * Read off the card currently face up, not the whole session: a card that has
+ * just been dealt has no answers yet, so the target falls to the bottom rung --
+ * which is the projection question the deal turn owes them anyway. The ladder
+ * then climbs again from whatever they say, and because the ceiling rises
+ * across the spread, each card can go further than the one before it.
+ */
+function ladderState(pack, session) {
+  const card = currentCard(session);
+  const position = card && pack.positions.find((p) => p.id === card.position);
+  const here = card ? session.exchanges.filter((e) => e.position === card.position) : [];
+  const last = here[here.length - 1] ?? null;
+  const userLevel = last?.gate?.user_level ?? null;
+  const deflected = last?.disclosure_depth === 1;
+  return {
+    userLevel,
+    deflected,
+    ceiling: position?.ceiling ?? null,
+    target: targetLevel(pack, { userLevel, ceiling: position?.ceiling ?? null, deflected }),
+    // Across the whole session, not just this card: the closing step is sized
+    // to how far the reading actually got, and a reading that never left the
+    // ground closes on something small rather than on a plan nobody made.
+    highest: session.exchanges
+      .map((e) => e.gate?.user_level)
+      .filter(Boolean)
+      .reduce((best, id) => (levelIndex(pack, id) > levelIndex(pack, best) ? id : best), null),
+  };
+}
+
+/**
+ * The ladder itself, from pack data, with a mark where they are standing.
+ *
+ * The exemplars shown are the target level's only. All five levels' worth is a
+ * page of questions to choose from, and a reader with a page of questions in
+ * front of it writes questions that sound chosen.
+ */
+function describeLadder(pack, session, turn) {
+  if (session.phase === "opening") return "";
+  const { userLevel, target, ceiling, deflected, highest } = ladderState(pack, session);
+  const rungs = pack.levels.map((level) => {
+    const mark = level.id === userLevel ? " <- they are here" : "";
+    return `  ${level.id} — ${level.asks}${mark}`;
+  }).join("\n");
+  const aim = pack.level(target);
+
+  return `
+## How far to reach
+
+${rungs}
+
+${userLevel
+  ? `Their last answer worked at **${userLevel}**.`
+  : "They have not answered on this card yet, so start at the bottom: ask what it is."}
+${deflected
+  ? "That was a deflection, so do not climb. Ask at the same height, more concretely — at the bottom rung that is the forced choice between two readings of the card."
+  : ""}
+This position tops out at **${ceiling}**.
+
+**Reach no further than ${target}: ${aim.asks}.** ${aim.gloss}
+
+Questions at that height sound like these — the shape, not the words:
+${aim.exemplars.map((e) => `  "${e}"`).join("\n")}
+
+This is a ceiling, not a quota. A question lower than it is fine whenever the
+lower one is the better question, and if they leap two rungs on their own in
+their next answer, go with them — you follow them up, you never march them up.${
+  turn === "close"
+    ? `\n\nThe closing step is the one thing exempt from that ceiling — a reading always
+gets its ending. But it is sized by the same reading of where they got to: they
+reached ${highest ?? "nothing much"} this session, so the step is ${
+  levelIndex(pack, highest) >= levelIndex(pack, "intentions")
+    ? "something they could do, because they told you what they were after"
+    : "something to notice, not something to carry out"}.`
+    : ""}`;
+}
+
 /** The depth of the most recent answer on the card currently face up. */
 function depthOnCurrentCard(session) {
   const card = currentCard(session);
@@ -175,6 +255,10 @@ function describeRecap(pack, session) {
   lines.push(`  arc position: ${position ? `${position.id} (${position.arc_role} — ${position.prompt_hint})` : "nothing dealt yet"}`);
   if (position) lines.push(`  moves weighted here: ${position.moves.join(", ")}`);
   lines.push(`  disclosure depth on this card: ${depth === null ? "they have not answered yet" : depth}`);
+  const ladder = ladderState(pack, session);
+  lines.push(`  they are standing at: ${ladder.userLevel ?? "nothing said on this card yet"}`);
+  lines.push(`  reach no further than: ${ladder.target}${ladder.ceiling ? ` (this position tops out at ${ladder.ceiling})` : ""}`);
+  lines.push(`  highest they have reached all session: ${ladder.highest ?? "nothing yet"}`);
   lines.push(`  safety: ${session.safety_state}`);
   return lines.join("\n");
 }
@@ -229,6 +313,7 @@ export function readerSystem({ pack, session, turn, handback = false }) {
     describeTopic(session),
     describeRecap(pack, session),
     describeCard(pack, session),
+    describeLadder(pack, session, turn),
   ];
 
   if (session.safety_state === "drop_frame") {
@@ -317,7 +402,16 @@ This is the last thing you say. Close the reading: name what moved across the
 three cards in their language, and turn it into one small concrete thing to
 notice or do in the coming week. Something they could actually catch themselves
 doing. Not a summary, not advice, not a list. Then stop — no offer to continue,
-no invitation to draw again.`,
+no invitation to draw again.
+
+**Size the step to how far they actually got**, which the record above names.
+If they got as far as saying why something matters to them, the step can be
+something to do. If they never got past what happened, it is something to
+notice — one moment to catch, nothing to carry out. A plan handed to someone who
+never made one is homework, and they will not do it.
+
+This turn happens whatever height they reached. There is no reading too shallow
+to close.`,
 };
 
 /**
@@ -414,6 +508,51 @@ because this time they were asked something else.
      something to type
      "my brother, and I haven't called him since March" · "I said yes and I knew
      while I was saying it that I meant no"
+
+---
+
+---
+
+**user_level** is the second axis, and it is not a finer version of the first.
+disclosure_depth is how much they revealed; this is what kind of operation they
+performed. A one-word answer and a paragraph can sit at the same level, and a
+depth-4 disclosure can sit at the bottom of this ladder.
+
+Report where they actually landed, not where they were invited to land. People
+jump levels unprompted all the time -- someone asked when a thing started will
+hand you why it matters in the same breath -- and the reader needs to know that
+happened.
+
+  name           they said what it is. A description, a word for it, what the
+                 picture looks like. Nothing about them yet.
+                 "a woman in a garden" · "it looks tired" · "dunno" · "treading
+                 water, I suppose"
+
+  consequences   the thing in time: when it turned up, what it did, what they
+                 did, who was there. Events, not appraisals.
+                 "my brother, and I haven't called him since March" · "it
+                 started after the move" · "I just stopped answering"
+
+  evaluate       their position on it. Whether it sits right, whether they are
+                 alright with it going on. Note this is not the same as naming
+                 an emotion -- "it makes me sad" is naming, "I'm tired of being
+                 the one who calls" is evaluating.
+                 "I hate that it's got this far" · "honestly it's fine, it's
+                 just not what I wanted" · "I don't think that's alright"
+
+  intentions     why it matters to them: what they were hoping for, what it says
+                 about what they value, what they were trying to protect.
+                 "if I spend it I have to admit I'm staying" · "I wanted him to
+                 ask me first" · "I've always thought you don't leave people"
+
+  plans          what they will do. Commitments and next steps, however small.
+                 "I'll call him Sunday" · "I'm going to stop pretending it's
+                 about money"
+
+Two things that catch people out. A deflection is name level, whatever it is
+deflecting from -- "dunno" after an intentions question is name, not intentions.
+And someone can evaluate without a single feeling word in the sentence; look at
+what the sentence does, not at its vocabulary.
 
 ---
 

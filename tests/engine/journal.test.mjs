@@ -147,8 +147,8 @@ test("state is persisted before it is announced, so listeners read the new state
 test("both stakes descriptions name advice-to-others, not just decisions", async () => {
   // From a real session: "financial advice" was judged low, and the reader
   // improvised the handback the gate should have asked for.
-  const { GATE_SCHEMA, OPENING_SCHEMA } = await import("../../web/js/engine/schemas.js");
-  for (const schema of [GATE_SCHEMA, OPENING_SCHEMA]) {
+  const { OPENING_SCHEMA, gateSchema } = await import("../../web/js/engine/schemas.js");
+  for (const schema of [gateSchema(await realPack()), OPENING_SCHEMA]) {
     assert.match(schema.properties.stakes.description, /advice of that kind\s*they intend to give someone else|advice they intend to give\s*someone else/);
   }
 });

@@ -13,7 +13,7 @@
  * Keeping those apart is what makes the flip rhythm testable without a model.
  */
 
-import { ANCHOR_SCHEMA, GATE_SCHEMA, OPENING_SCHEMA } from "./schemas.js";
+import { ANCHOR_SCHEMA, OPENING_SCHEMA, gateSchema } from "./schemas.js";
 import { saveToHistory } from "./journal.js";
 import {
   ANCHOR_SYSTEM, JUDGE_SYSTEM, OPENING_SYSTEM, anchorMessages, flipDirection,
@@ -108,7 +108,7 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
       const gate = await client.judge({
         system: JUDGE_SYSTEM,
         messages: judgeMessages(pack, session, { question: lastQuestion, answer }),
-        schema: GATE_SCHEMA,
+        schema: gateSchema(pack),
       });
       recordExchange(session, { question: lastQuestion, answer, gate });
       onEvent({ type: "gate", gate });

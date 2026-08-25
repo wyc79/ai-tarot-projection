@@ -1,4 +1,4 @@
-"""Validate a symbol pack against pack schema v1.
+"""Validate a symbol pack against the pack schema.
 
 Run against any pack dir, not just this one -- "fork it, drop in your own deck"
 only works if forks can check themselves:
@@ -12,7 +12,7 @@ import json
 import os
 import sys
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 REQUIRED_POSITIONS = ["situation", "obstacle", "advice"]
 MEANING_KEYS = REQUIRED_POSITIONS + ["general"]
 EXPECTED_CARDS = 78
@@ -66,6 +66,29 @@ def validate(pack_dir):
                 if shot.get("position") not in REQUIRED_POSITIONS:
                     problems.append("few_shot %d: unknown position %r" % (i, shot.get("position")))
 
+    # The scaffolding ladder. Order is meaning here: the engine steps up it by
+    # index, so a pack that lists the levels in the wrong order is a pack whose
+    # questions climb in the wrong direction.
+    levels = deck.get("levels")
+    level_ids = []
+    if not isinstance(levels, list) or len(levels) < 2:
+        problems.append("levels must be a list of at least 2, low to high")
+    else:
+        level_ids = [l.get("id") for l in levels]
+        if len(set(level_ids)) != len(level_ids):
+            problems.append("level ids must be unique, got %r" % (level_ids,))
+        for i, level in enumerate(levels):
+            for key in ("id", "asks", "gloss"):
+                if not nonempty_str(level.get(key)):
+                    problems.append("level %d: missing or empty %r" % (i, key))
+            exemplars = level.get("exemplars")
+            if not isinstance(exemplars, list) or not 2 <= len(exemplars) <= 3:
+                problems.append("level %r: exemplars must be 2 or 3 questions"
+                                % level.get("id"))
+            elif not all(nonempty_str(e) and e.strip().endswith("?") for e in exemplars):
+                problems.append("level %r: every exemplar is one question, ending in ?"
+                                % level.get("id"))
+
     positions = deck.get("positions")
     if not isinstance(positions, list) or len(positions) != len(REQUIRED_POSITIONS):
         problems.append("positions must be a list of %d" % len(REQUIRED_POSITIONS))
@@ -81,6 +104,17 @@ def validate(pack_dir):
             if not isinstance(moves, list) or not moves or not all(nonempty_str(m) for m in moves):
                 problems.append("position %r: moves must be a non-empty list of names"
                                 % p.get("id"))
+            if level_ids and p.get("ceiling") not in level_ids:
+                problems.append("position %r: ceiling %r is not one of the levels %r"
+                                % (p.get("id"), p.get("ceiling"), level_ids))
+        if level_ids:
+            # The arc and the staircase are the same shape: a later position may
+            # reach higher than an earlier one, never lower.
+            heights = [level_ids.index(p["ceiling"]) for p in positions
+                       if p.get("ceiling") in level_ids]
+            if heights != sorted(heights):
+                problems.append("position ceilings must not descend across the spread, got %r"
+                                % ([p.get("ceiling") for p in positions],))
 
     cards = deck.get("cards")
     if not isinstance(cards, list):

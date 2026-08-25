@@ -6,38 +6,58 @@
  * additionalProperties: false and a complete required list.
  */
 
-/** Per-turn flip gate. Runs on every user turn, including the first. */
-export const GATE_SCHEMA = {
-  type: "object",
-  properties: {
-    disclosure_depth: {
-      type: "integer",
-      enum: [1, 2, 3, 4],
-      description:
-        "How much they disclosed, judged against the kind of question they were " +
-        "answering -- the system prompt carries both scales and the message says " +
-        "which one applies. On a projection question, reading something into the " +
-        "picture is the disclosure; on a life question, describing the picture " +
-        "instead of answering is a 1. Judge what was disclosed, not how many " +
-        "words were used: a short answer can be a 4 and a long one a 2.",
+/**
+ * Per-turn flip gate. Runs on every user turn, including the first.
+ *
+ * A function of the pack rather than a constant, because user_level's enum is
+ * the pack's scaffolding ladder. The engine does not know what levels exist --
+ * it knows they are ordered and that a question may stand one rung above the
+ * answer before it.
+ */
+export function gateSchema(pack) {
+  return {
+    type: "object",
+    properties: {
+      disclosure_depth: {
+        type: "integer",
+        enum: [1, 2, 3, 4],
+        description:
+          "How much they disclosed, judged against the kind of question they were " +
+          "answering -- the system prompt carries both scales and the message says " +
+          "which one applies. On a projection question, reading something into the " +
+          "picture is the disclosure; on a life question, describing the picture " +
+          "instead of answering is a 1. Judge what was disclosed, not how many " +
+          "words were used: a short answer can be a 4 and a long one a 2.",
+      },
+      stakes: {
+        type: "string",
+        enum: ["low", "high", "crisis"],
+        description:
+          "low: ordinary reflection. high: medical, legal or financial consequence -- " +
+          "money decisions with real outcomes count, and so does advice of that kind " +
+          "they intend to give someone else. crisis: grief, self-harm, or anything " +
+          "where a tarot frame would be an insult.",
+      },
+      reading_of_them: {
+        type: "string",
+        description: "One sentence: what they actually disclosed, in their own words where possible.",
+      },
+      user_level: {
+        type: "string",
+        enum: pack.levels.map((l) => l.id),
+        description:
+          "The cognitive level their ANSWER operated at, not the question's. A " +
+          "separate axis from disclosure_depth: depth is how much they revealed, " +
+          "this is what kind of operation they performed. " +
+          pack.levels.map((l) => `${l.id} = ${l.asks}`).join("; ") + ". " +
+          "People jump levels on their own; report where they actually landed, " +
+          "not where they were invited to land.",
+      },
     },
-    stakes: {
-      type: "string",
-      enum: ["low", "high", "crisis"],
-      description:
-        "low: ordinary reflection. high: medical, legal or financial consequence -- " +
-        "money decisions with real outcomes count, and so does advice of that kind " +
-        "they intend to give someone else. crisis: grief, self-harm, or anything " +
-        "where a tarot frame would be an insult.",
-    },
-    reading_of_them: {
-      type: "string",
-      description: "One sentence: what they actually disclosed, in their own words where possible.",
-    },
-  },
-  required: ["disclosure_depth", "stakes", "reading_of_them"],
-  additionalProperties: false,
-};
+    required: ["disclosure_depth", "user_level", "stakes", "reading_of_them"],
+    additionalProperties: false,
+  };
+}
 
 /**
  * The opening turn, before anything is dealt. Runs the stakes check too, so the
