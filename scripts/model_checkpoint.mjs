@@ -90,6 +90,28 @@ function shapeReport(session) {
   }).join("\n");
 }
 
+// Preflight. Finding out the relay is down after the first model call is a
+// worse way to learn it than being told before anything is spent.
+try {
+  const health = await fetch(`${RELAY}/v1/health`);
+  const body = await health.json();
+  if (!body.ok) throw new Error("relay reported not ok");
+  if (!body.providers.includes(PROVIDER)) {
+    console.error(`The relay at ${RELAY} has no "${PROVIDER}" provider.\n` +
+                  `It offers: ${body.providers.join(", ")}\n` +
+                  `Pass --provider=<one of those>, or set PROVIDERS in .env.`);
+    process.exit(1);
+  }
+} catch {
+  console.error(
+    `No relay answering at ${RELAY}.\n\n` +
+    `Start one in another shell, with no trailing comment on the line\n` +
+    `(an interactive zsh passes "#" through as an argument):\n\n` +
+    `    DEV_LOG=1 python3 server/relay.py\n\n` +
+    `Then re-run this. Use --relay=<url> if it is not on port 8787.`);
+  process.exit(1);
+}
+
 const pack = await loadPack("data", { fetchImpl: fileFetch });
 await mkdir(OUT, { recursive: true });
 
