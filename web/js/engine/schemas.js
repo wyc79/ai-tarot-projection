@@ -14,16 +14,12 @@ export const GATE_SCHEMA = {
       type: "integer",
       enum: [1, 2, 3, 4],
       description:
-        "1 = a word, a shrug, a joke, a question back at you, or a refusal: " +
-        "'dunno', 'you tell me', 'haha maybe'. " +
-        "2 = a general statement true of almost anyone; no person, no place, no date: " +
-        "'change is hard', 'work has been stressful'. " +
-        "3 = a specific situation in their life, with edges you could ask about: " +
-        "'my job, four years in and I'm bored'. " +
-        "4 = a specific event with feeling or stakes attached, something it cost them " +
-        "to type: 'my brother, and I haven't called him since March'. " +
-        "Judge what was disclosed, not how many words were used: a short answer can be " +
-        "a 4 and a long one a 2.",
+        "How much they disclosed, judged against the kind of question they were " +
+        "answering -- the system prompt carries both scales and the message says " +
+        "which one applies. On a projection question, reading something into the " +
+        "picture is the disclosure; on a life question, describing the picture " +
+        "instead of answering is a 1. Judge what was disclosed, not how many " +
+        "words were used: a short answer can be a 4 and a long one a 2.",
     },
     stakes: {
       type: "string",

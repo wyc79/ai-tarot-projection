@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { finalQuestion, scanSession } from "../../scripts/scan.mjs";
+import { scanSession } from "../../scripts/scan.mjs";
+import { finalQuestion, questionType } from "../../web/js/engine/questions.js";
 
 /**
  * The six deal-turns of the 2026-08-25 checkpoint, verbatim. Three are correct
@@ -79,4 +80,19 @@ test("turn shape violations are reported per turn", () => {
     a: "ok", position: "advice", disclosure_depth: 2,
   });
   assert.deepEqual(codes(session).sort(), ["over_length", "two_questions"]);
+});
+
+test("the same predicate labels the exchange and checks the deal turn", () => {
+  // scan.mjs and the engine share questionType, so a turn the scanner calls a
+  // life question cannot be recorded as a projection exchange.
+  for (const q of ASKS_ABOUT_THE_CARD) assert.equal(questionType(q), "projection", q);
+  for (const q of ASKS_ABOUT_THEIR_LIFE) assert.equal(questionType(q), "life", q);
+});
+
+test("the stall fallback is a projection question even on a follow-up turn", () => {
+  // Classifying by turn kind would call this one a life question and score the
+  // answer as a dodge. It is the reader doing exactly what it was told to do.
+  assert.equal(
+    questionType("Does she look more like she's enjoying a peace she made, or like she's standing guard over it?"),
+    "projection");
 });

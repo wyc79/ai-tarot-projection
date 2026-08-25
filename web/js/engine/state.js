@@ -1,5 +1,7 @@
 /**
- * Session state and the rules that move it. No DOM, no fetch, no imports.
+ * Session state and the rules that move it. No DOM, no fetch, and the only
+ * import is the question classifier next door, which is the same kind of
+ * thing: a pure function over strings.
  *
  * Everything here is synchronous and testable without a network: the LLM's
  * judgement arrives as a plain gate object, and this module decides what that
@@ -16,10 +18,13 @@
  * @typedef {{theme: string, user_phrases: string[], resolution_beat: string}} Anchor
  * @typedef {{card_id: string, position: string, user_projection: string,
  *            ai_reading: string, flipped_at: number, flip_reason: string}} DrawnCard
- * @typedef {{q: string, a: string, disclosure_depth: number, position: string}} Exchange
+ * @typedef {{q: string, a: string, disclosure_depth: number, position: string,
+ *            question_type: "projection"|"life"}} Exchange
  * @typedef {{disclosure_depth: number, stakes: "low"|"high"|"crisis",
  *            reading_of_them: string}} Gate
  */
+
+import { questionType } from "./questions.js";
 
 export const STATE_VERSION = 1;
 
@@ -146,6 +151,9 @@ export function recordExchange(session, { question, answer, gate }) {
     a: answer,
     disclosure_depth: gate.disclosure_depth,
     position: card.position,
+    // What they were asked, so a depth in this transcript can be read back
+    // months later without guessing which rubric produced it.
+    question_type: questionType(question),
     // The whole verdict, not just the depth: re-running a transcript after a
     // prompt change is only useful if you can see what the judge thought then.
     gate: { ...gate },

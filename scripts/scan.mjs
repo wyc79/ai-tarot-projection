@@ -17,28 +17,7 @@
  */
 
 import { readFile } from "node:fs/promises";
-
-/** The last question in a turn. It is the one they actually answer. */
-export function finalQuestion(text) {
-  const sentences = String(text ?? "").trim().split(/(?<=[.?!])\s+/);
-  for (let i = sentences.length - 1; i >= 0; i -= 1) {
-    if (sentences[i].includes("?")) return sentences[i];
-  }
-  return "";
-}
-
-// Four ways a question can be about the card in front of them. Any one is
-// enough; the point is to catch a question that is about none of them.
-const ABOUT_THE_CARD = [
-  // names the object: "who in that picture", "the figure on the left"
-  /\b(picture|image|card|figure|scene|drawing|deck)\b/i,
-  // asks after it in the third person: "what does it look like", "what is he doing"
-  /\b(?:what|who|which|where|how)\b[^?]*?\b(?:does|do|is|are|did|would|has|have)\s+(?:it|he|she|they|this|that)\b/i,
-  // predicates appearance on it: "he looks like", "they seem about to"
-  /\b(?:it|he|she|they|this|that)\s+(?:\w+\s+){0,1}(?:look|looks|looking|feel|feels|seem|seems|doing|about to)\b/i,
-  // points them at their own looking: "what do you see", "where does your eye go"
-  /\b(?:you\s+(?:see|notice|make of)|your eye)\b/i,
-];
+import { finalQuestion, questionType } from "../web/js/engine/questions.js";
 
 /** Reader turns in order: every question asked, then the closing beat. */
 export function readerTurns(session) {
@@ -95,7 +74,7 @@ export function scanSession(session) {
     const sentences = sentencesIn(turn.text);
     const closing = turn.position === "close";
 
-    if (deals.has(turn.index) && question && !ABOUT_THE_CARD.some((re) => re.test(question))) {
+    if (deals.has(turn.index) && question && questionType(turn.text) !== "projection") {
       add(turn, "deal_turn_life_question",
           "dealt a card and then asked about their life; nothing was left to project onto");
     }

@@ -6,9 +6,9 @@ import { declines, fakeClient, gate, realPack, wants } from "./helpers.mjs";
 
 const SEED = "moon-4f2a91";
 
-async function run({ gates, answers, seed = SEED, storage = null, opening = declines }) {
+async function run({ gates, answers, seed = SEED, storage = null, opening = declines, reply }) {
   const pack = await realPack();
-  const client = fakeClient({ gates, opening });
+  const client = fakeClient({ gates, opening, ...(reply ? { reply } : {}) });
   const events = [];
   const reading = startReading({
     pack, client, storage, seed, onEvent: (e) => events.push(e),
@@ -563,4 +563,32 @@ test("a gate carrying an old flip_ready flag cannot move the decision", async ()
     answers: ["dunno", "still dunno"],
   });
   assert.equal(reading.session.cards.length, 1, "depth 1 twice does not earn a card");
+});
+
+// -- question_type (checkpoint fix 4) -------------------------------------
+
+test("each exchange records which kind of question it answered", async () => {
+  const { reading } = await run({
+    gates: [gate(4), gate(2), gate(2), gate(2)],
+    answers: ["my brother, since March", "money", "dunno", "lighter maybe"],
+    // The reader's turns are canned, so script the two kinds explicitly.
+    reply: (turn) => (turn === "respond"
+      ? "So that is where it started. What happened next?"
+      : "The card turns over. What does it look like it is pointing at for you?"),
+  });
+  const kinds = reading.session.exchanges.map((e) => e.question_type);
+  assert.deepEqual(kinds, [undefined, "projection", "projection", "life", "life"],
+                   "the opening exchange has no card and no kind");
+});
+
+test("the judge is told which scale to use before it is shown the question", async () => {
+  const { client } = await run({
+    gates: [gate(2)], answers: ["dunno"],
+    reply: () => "What does it look like it is pointing at for you?",
+  });
+  const judged = client.calls.judge.find((c) => c.schema.properties.disclosure_depth);
+  const content = judged.messages[0].content;
+  assert.match(content, /Kind of question: PROJECTION/);
+  assert.ok(content.indexOf("Kind of question") < content.indexOf("The reader asked"),
+            "the rubric is selected before the question is read");
 });

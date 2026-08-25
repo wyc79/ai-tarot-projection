@@ -12,6 +12,7 @@
  */
 
 import { currentCard } from "./state.js";
+import { questionType } from "./questions.js";
 
 const RULES_ON_TURNING_CARDS = `
 ## You do not turn the cards
@@ -345,10 +346,48 @@ speak to the user; you return the object and nothing else.
 Judge what they actually disclosed, not how many words they used. A short answer
 can be deep ("my brother, and I haven't called him") and a long one can be empty.
 
-disclosure_depth is about self-revelation, on a scale of 1 to 4:
+disclosure_depth is a verdict on the answer **relative to the question it was
+answering**, and there are two kinds of question. You are told which one this
+was. The same sentence can be a 3 after one kind and a 1 after the other, and
+getting that backwards is the single most expensive mistake you can make here:
+it is what stalls a reading on a card that was already read.
 
-  1  a word, a shrug, a joke, a question back at you, or a refusal to answer
-     "dunno" · "you tell me" · "haha maybe" · "what do you think?"
+---
+
+**PROJECTION QUESTION** — they were asked what they see in the card.
+
+What they choose to see is the disclosure. Describing the picture is the answer
+working, not the answer dodging.
+
+  1  they did not engage with the picture at all
+     "dunno" · "no idea" · "you tell me" · "what does it mean?"
+
+  2  a flat inventory of what is objectively there, with no angle on it
+     "a woman in a garden" · "five guys with sticks" · "a man walking"
+
+  3  a reading with an angle: they give the picture a state, a motive, or a
+     story that is not printed on it. This is projection, and it is what the
+     question was for
+     "it looks tired" · "he's walking away from something" · "nobody's actually
+     aiming at anyone"
+
+  4  they close the gap to themselves without being asked -- the picture and
+     their own life in the same breath
+     "that's me in March" · "she's guarding a garden nobody's trying to get into,
+     which, yeah"
+
+---
+
+**LIFE QUESTION** — they were asked about themselves.
+
+Here the card is not the subject. An answer that describes the picture is a
+retreat back into it: the same words that earned a 3 a turn ago earn a 1 now,
+because this time they were asked something else.
+
+  1  a deflection, a shrug, a joke, a question back -- or a description of the
+     card instead of an answer
+     "dunno" · "haha maybe" · "walking off, leaving the full ones behind" (when
+     what was asked was what their first step would be)
 
   2  a general statement that would be true of almost anyone: no person, no
      place, no date, nothing you could ask a follow-up about
@@ -357,13 +396,12 @@ disclosure_depth is about self-revelation, on a scale of 1 to 4:
   3  a specific situation in their life, with edges
      "my job, four years in and I'm bored" · "my flatmate and I aren't speaking"
 
-  4  a specific event with feeling or stakes attached — something it cost them
+  4  a specific event with feeling or stakes attached -- something it cost them
      something to type
-     "my brother, and I haven't called him since March" · "I said yes and I
-     knew while I was saying it that I meant no"
+     "my brother, and I haven't called him since March" · "I said yes and I knew
+     while I was saying it that I meant no"
 
-Two answers can sit at the same length and different depths. Judge the
-disclosure, never the word count.
+---
 
 stakes is about consequence, and you are deliberately quick to escalate:
   high    medical, legal, or financial decisions with real outcomes
@@ -412,8 +450,12 @@ export function openingMessages({ question, answer }) {
 export function judgeMessages(pack, session, { question, answer }) {
   const entry = currentCard(session);
   const card = entry ? pack.card(entry.card_id) : null;
+  const kind = questionType(question);
   const context = [
     card ? `Card on the table: ${card.name} in the ${entry.position} position.` : "",
+    // Named before the question is quoted, because it selects the rubric and a
+    // judge that reads the question first will have already started scoring.
+    `Kind of question: ${kind.toUpperCase()} — use the ${kind} scale.`,
     `The reader asked: ${question || "(the reading had not started)"}`,
     `They answered: ${answer}`,
   ].filter(Boolean).join("\n");
