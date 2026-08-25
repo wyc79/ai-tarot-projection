@@ -483,7 +483,7 @@ test("few-shots reach the prompt as exchanges, without their maintainer labels",
   const { client, pack } = await run({ gates: [gate(3)], answers: ["hm"] });
   const system = systemFor(client, "invite");
   assert.match(system, /## How this sounds/);
-  assert.ok(pack.fewShots.length >= 3 && pack.fewShots.length <= 5);
+  assert.ok(pack.fewShots.length >= 3 && pack.fewShots.length <= 6);
   for (const shot of pack.fewShots) {
     assert.ok(system.includes(shot.reader), `few-shot missing: ${shot.demonstrates}`);
     assert.ok(!system.includes(shot.demonstrates), "the technique label must not reach the model");

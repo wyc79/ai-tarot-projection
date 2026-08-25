@@ -15,6 +15,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadPack } from "../web/js/pack.js";
 import { startReading } from "../web/js/engine/reading.js";
+import { turnKindOf } from "../web/js/engine/prompts.js";
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const SEED = "moon-4f2a91";
@@ -103,21 +104,10 @@ const record = {
 };
 
 if (wantPrompt) {
-  const turnKinds = ["opening", "invite", "respond", "bridge", "close"];
-  const marker = {
-    opening: /Nothing has been dealt yet, and nothing will be dealt/,
-    invite: /has just turned over and they have not spoken/,
-    respond: /No card turns over on this turn/,
-    bridge: /Two things, in one short turn/,
-    close: /This is the last thing you say/,
-  }[wantPrompt];
-  if (!marker) {
-    console.error(`--prompt= must be one of ${turnKinds.join(", ")}`);
-    process.exit(1);
-  }
-  const found = prompts.find((p) => marker.test(p.system));
+  const found = prompts.find((p) => turnKindOf(p.system) === wantPrompt);
   if (!found) {
-    console.error(`no ${wantPrompt} turn in this session`);
+    const seen = [...new Set(prompts.map((p) => turnKindOf(p.system)))];
+    console.error(`no ${wantPrompt} turn in this session. It ran: ${seen.join(", ")}`);
     process.exit(1);
   }
   console.log(found.system);

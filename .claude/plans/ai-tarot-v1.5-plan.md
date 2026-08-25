@@ -201,7 +201,7 @@ Fix queue from the checkpoint (do these before playtests):
     arm's closing demonstrates the form)
   - Externalizing language template (canonical example, use as a pattern): ask "how does this
     problem affect X" - never "you're not X"
-- 3-5 few-shot exchanges in the pack (poor man's distillation); iterate against seeded sessions
+- 3-6 few-shot exchanges in the pack (poor man's distillation); iterate against seeded sessions
 - Recap block: every chat() turn carries a session record assembled from state - anchor with the
   user's phrases verbatim, each card with a one-line record, arc position, depth, safety_state.
   Declared to outrank the conversation history, which is suggestion where this is constraint
@@ -277,6 +277,8 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-25): few-shots raised from 3-5 to 3-6 so the mirror observation
+  has a demonstration of its own; the other five each show a different move.
 - v1.5 (2026-08-25): renamed from ai-tarot-v1-plan.md, which is deleted -- exactly one plan
   file lives in .claude/plans/, and any commit touching it updates this section.
 - v1.5 (2026-08-25): A/B checkpoint results + fix queue, model decision (flash default), persona additions from Semetsky/Clinton/White-Epston, question_type in schema, unconditional closing, flip-ownership defect logged

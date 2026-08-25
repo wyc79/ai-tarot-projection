@@ -320,6 +320,20 @@ doing. Not a summary, not advice, not a list. Then stop — no offer to continue
 no invitation to draw again.`,
 };
 
+/**
+ * Which turn instruction a system prompt ends with.
+ *
+ * readerSystem appends one of TURN_INSTRUCTIONS verbatim, so this is exact.
+ * It exists because the test helpers and the fixture script each kept their own
+ * table of marker regexes against these strings, and both drifted: the fixture's
+ * bridge marker had not matched anything for some time, so --prompt=bridge
+ * printed "no bridge turn in this session" for a session with two of them.
+ */
+export function turnKindOf(system) {
+  return Object.keys(TURN_INSTRUCTIONS).find((kind) => system.endsWith(TURN_INSTRUCTIONS[kind]))
+    ?? "unknown";
+}
+
 /** The transcript so far, as provider-neutral messages. */
 export function readerMessages(pack, session, { stageDirection = null } = {}) {
   const messages = [];
