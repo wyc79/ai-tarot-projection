@@ -61,7 +61,10 @@ function scriptedClient(prompts) {
       if (schema.properties.theme) {
         return {
           theme: "bracing for a fight nobody's having",
-          user_phrases: ["bracing for a fight nobody's having", "haven't called him since March"],
+          user_phrases: [
+            { phrase: "bracing for a fight nobody's having", source: "life" },
+            { phrase: "haven't called him since March", source: "life" },
+          ],
           resolution_beat: "put down one thing that is not being attacked",
         };
       }

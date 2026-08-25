@@ -15,7 +15,9 @@
  * The judge now reports depth against a labelled rubric -- the thing it is
  * actually good at -- and the thresholds live here.
  *
- * @typedef {{theme: string, user_phrases: string[], resolution_beat: string}} Anchor
+ * @typedef {{phrase: string, source: "card"|"life"}} AnchorPhrase
+ * @typedef {{theme: string, user_phrases: AnchorPhrase[], resolution_beat: string,
+ *            grounded: boolean}} Anchor
  * @typedef {{card_id: string, position: string, user_projection: string,
  *            ai_reading: string, flipped_at: number, flip_reason: string}} DrawnCard
  * @typedef {{q: string, a: string, disclosure_depth: number, position: string,
@@ -198,10 +200,18 @@ export function recordReading(session, text, { offset = 0 } = {}) {
 
 export function commitAnchor(session, anchor) {
   if (session.anchor) return session; // committed once, then elaborated only
+  // Tolerate a bare string: transcripts written before phrases carried a source
+  // still load, and they load as what they were, which was untagged.
+  const phrases = (anchor.user_phrases ?? []).map((p) =>
+    (typeof p === "string" ? { phrase: p, source: "card" } : { phrase: p.phrase, source: p.source }));
   session.anchor = {
     theme: anchor.theme,
-    user_phrases: [...anchor.user_phrases],
+    user_phrases: phrases,
     resolution_beat: anchor.resolution_beat,
+    // Derived here rather than asked of the judge, so it cannot disagree with
+    // the tags it just wrote. An anchor built entirely out of the picture is an
+    // anchor about nobody, and the rest of the reading needs to know that.
+    grounded: phrases.some((p) => p.source === "life"),
   };
   return session;
 }

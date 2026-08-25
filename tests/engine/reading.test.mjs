@@ -412,7 +412,9 @@ test("the recap carries the anchor's phrases verbatim, marked as verbatim", asyn
   const pack = await realPack();
   const client = fakeClient({
     gates: [gate(4), gate(2)], opening: declines,
-    anchor: { theme: "treading water", user_phrases: ["treading water", "can't stop kicking"], resolution_beat: "r" },
+    anchor: { theme: "treading water", resolution_beat: "r",
+              user_phrases: [{ phrase: "treading water", source: "life" },
+                             { phrase: "can't stop kicking", source: "life" }] },
   });
   const reading = startReading({ pack, client, seed: SEED });
   await reading.begin();
@@ -420,7 +422,7 @@ test("the recap carries the anchor's phrases verbatim, marked as verbatim", asyn
   await reading.say("treading water");
   await reading.say("still kicking");
   const system = client.calls.chat.at(-1).system;
-  assert.match(system, /their exact words: "treading water", "can't stop kicking"/);
+  assert.match(system, /their exact words: "treading water" \(life\), "can't stop kicking" \(life\)/);
   assert.match(system, /verbatim\. Reuse them as they are/);
 });
 

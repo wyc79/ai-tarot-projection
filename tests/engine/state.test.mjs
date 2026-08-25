@@ -137,10 +137,39 @@ test("the anchor is committed once and then left alone", () => {
 
 test("the anchor copies the phrase list rather than aliasing it", () => {
   const s = fresh();
-  const phrases = ["stuck"];
+  const phrases = [{ phrase: "stuck", source: "life" }];
   commitAnchor(s, { theme: "t", user_phrases: phrases, resolution_beat: "r" });
-  phrases.push("mutated later");
-  assert.deepEqual(s.anchor.user_phrases, ["stuck"]);
+  phrases.push({ phrase: "mutated later", source: "life" });
+  assert.deepEqual(s.anchor.user_phrases, [{ phrase: "stuck", source: "life" }]);
+});
+
+test("an anchor built only out of the picture knows it is not grounded", () => {
+  const s = fresh();
+  commitAnchor(s, {
+    theme: "judging between good and bad",
+    user_phrases: [{ phrase: "the black and white pillow at the back", source: "card" },
+                   { phrase: "she is going to announce", source: "card" }],
+    resolution_beat: "find out what any of this is about for them",
+  });
+  assert.equal(s.anchor.grounded, false, "c145c7's anchor, and nobody noticed");
+});
+
+test("one life phrase is enough to ground it", () => {
+  const s = fresh();
+  commitAnchor(s, {
+    theme: "t",
+    user_phrases: [{ phrase: "a woman in a garden", source: "card" },
+                   { phrase: "my brother, since March", source: "life" }],
+    resolution_beat: "r",
+  });
+  assert.equal(s.anchor.grounded, true);
+});
+
+test("a phrase list from before phrases were tagged still loads", () => {
+  const s = fresh();
+  commitAnchor(s, { theme: "t", user_phrases: ["stuck"], resolution_beat: "r" });
+  assert.deepEqual(s.anchor.user_phrases, [{ phrase: "stuck", source: "card" }]);
+  assert.equal(s.anchor.grounded, false, "untagged is not evidence of grounding");
 });
 
 test("readings land on the ledger, and closing ends the session", () => {

@@ -131,7 +131,9 @@ function renderGate(gate, decision) {
 function renderAnchor(anchor) {
   $("anchor").innerHTML = `
     <div><span class="label">theme</span> ${anchor.theme}</div>
-    <div><span class="label">their words</span> ${anchor.user_phrases.map((p) => `“${p}”`).join(", ")}</div>
+    <div><span class="label">their words</span> ${anchor.user_phrases
+      .map((p) => `<span class="${p.source === "life" ? "ok" : ""}">“${p.phrase}”</span>`).join(", ")}
+      ${anchor.grounded ? "" : `<b class="bad">ungrounded</b>`}</div>
     <div><span class="label">lands on</span> ${anchor.resolution_beat}</div>`;
 }
 

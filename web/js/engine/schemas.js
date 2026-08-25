@@ -112,8 +112,27 @@ export const ANCHOR_SCHEMA = {
     },
     user_phrases: {
       type: "array",
-      items: { type: "string" },
-      description: "Exact words and images the user used. The reader reuses these rather than paraphrasing.",
+      items: {
+        type: "object",
+        properties: {
+          phrase: {
+            type: "string",
+            description: "Exact words the user used. The reader reuses these rather than paraphrasing.",
+          },
+          source: {
+            type: "string",
+            enum: ["card", "life"],
+            description:
+              "card: they were describing the picture -- 'the black and white pillar', " +
+              "'a woman in a garden'. life: the phrase is about them or their world -- " +
+              "a person, a place, an event, a feeling they own. The difference decides " +
+              "what the theme can be built out of, so do not guess it generously.",
+          },
+        },
+        required: ["phrase", "source"],
+        additionalProperties: false,
+      },
+      description: "Their exact words, each tagged by what it was about.",
     },
     resolution_beat: {
       type: "string",

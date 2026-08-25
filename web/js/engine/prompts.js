@@ -244,10 +244,18 @@ function describeRecap(pack, session) {
   if (session.anchor) {
     lines.push("anchor:");
     lines.push(`  theme: ${session.anchor.theme}`);
-    const phrases = session.anchor.user_phrases.map((phrase) => `"${phrase}"`).join(", ");
+    const phrases = session.anchor.user_phrases
+      .map((p) => `"${p.phrase}" (${p.source})`).join(", ");
     lines.push(`  their exact words: ${phrases || "(none recorded)"}`);
     lines.push("  (verbatim. Reuse them as they are; a tidier synonym is a different word.)");
     lines.push(`  should land on: ${session.anchor.resolution_beat}`);
+    if (!session.anchor.grounded) {
+      lines.push("  GROUNDED: no. Every word above came from the picture, not from them.");
+      lines.push("    Nothing is known about this person yet, and the theme is a placeholder.");
+      lines.push("    The first follow-up on this card is an ownership offer, not another");
+      lines.push("    projection question — take a phrase they used and ask whose it is.");
+      lines.push("    Do not talk as though the session has a subject. It does not yet.");
+    }
   } else {
     lines.push("anchor: not committed yet (it is built from the first card)");
   }
@@ -618,6 +626,24 @@ not replace it with something the card found more interesting.
 Build it out of their vocabulary, not yours. If they said "treading water", the
 theme says treading water; it does not say "career stagnation". A theme they
 would not recognise as their own words is a failed anchor.
+
+**Tag every phrase honestly.** A phrase is "life" only if it is about them or
+their world — a person, a place, a thing that happened, a feeling they own.
+Describing the picture is "card", however vivid and however much it sounds like
+a metaphor for something. "The black and white pillar behind her" is card.
+"Judging between good and bad" is card, if all they were doing was reading the
+image.
+
+**The theme is built from the life phrases.** If there are any, it is about what
+those phrases are about, and the card phrases are the language it is said in.
+
+**If there are none, say so and plan accordingly.** A session where everything
+said so far was about the picture has no theme yet, and inventing one out of the
+card's plot is the failure this instruction exists to prevent — a "narrative
+plan" about what a figure in a drawing is about to do is a plan about nobody.
+In that case the resolution beat is not about the cards at all: it is about
+finding out what actually matters to this person, so that the rest of the
+reading goes looking for them instead of further into the deck.
 
 The resolution beat is where the third card should land — a plausible place for
 this to come to rest, given what they have said so far. It is a plan, not a
