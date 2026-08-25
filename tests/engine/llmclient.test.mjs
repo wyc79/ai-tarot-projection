@@ -254,12 +254,30 @@ test("a stream that ends without message_stop still yields what it sent", async 
 });
 
 test("hitting the token ceiling is reported, not silently returned as a short turn", async () => {
-  const truncated = `data: ${JSON.stringify({ type: "message_delta", delta: { stop_reason: "max_tokens" } })}\n`;
+  const truncated = `data: ${JSON.stringify({ type: "message_delta", delta: { stop_reason: "max_tokens" }, usage: { output_tokens: 2048 } })}\n`;
   const { client } = harness({ respond: () => sseResponse([delta("this trails off"), truncated]) });
   await assert.rejects(client.chat({ system: "s", messages: [] }), (e) => {
     assert.equal(e.code, "response_truncated");
+    // A model that generated 2048 tokens and 15 characters was thinking, not
+    // writing. Without the count that diagnosis is a guess.
+    assert.match(e.message, /2048 generated tokens/);
     return true;
   });
+});
+
+test("the token ceiling has exactly one owner", async () => {
+  // A default in chat() shadowed the adapter's and pinned reader turns to a
+  // ceiling a thinking model spends before it writes a word. Raising the
+  // adapter's did nothing, which is the sort of fix that looks applied.
+  const { client, calls } = harness({
+    config: { provider: "deepseek" },
+    respond: (i) => (i === 0 ? sseResponse([STOP]) : judgeReply(JSON.stringify(GATE))),
+  });
+  await client.chat({ system: "s", messages: [] });
+  await client.judge({ system: "s", messages: [], schema: GATE_SCHEMA });
+  assert.equal(calls[0].body.payload.max_tokens, 8192, "a reader turn is sized for the thinking");
+  assert.equal(calls[1].body.payload.max_tokens, calls[0].body.payload.max_tokens,
+               "a judge call reasons its way to a small object too");
 });
 
 test("judge calls are pinned to temperature 0 where the provider still allows it", async () => {

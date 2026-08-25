@@ -23,9 +23,11 @@
  *  - stop_reason "refusal" comes back as HTTP 200, so the status code alone
  *    does not tell you the call succeeded.
  *  - max_tokens is a ceiling on everything the model generates, thinking
- *    included. A judge call returns a small object but may reason its way there
- *    first, so the ceiling is sized for the reasoning, not for the JSON. Unused
- *    budget is not billed; a truncated structured answer costs the whole call.
+ *    included, so it is sized for the reasoning and not for the answer -- a
+ *    four-sentence reader turn and a small judge object both sit behind however
+ *    much the model wants to think first. This is the only place that number is
+ *    set: a caller-side default silently shadows it. Unused budget is not
+ *    billed; a truncated answer costs the whole call.
  */
 
 export const ANTHROPIC = {
@@ -45,7 +47,7 @@ export const ANTHROPIC = {
   },
 
   /** A reader turn: streamed, short, low effort -- this is voice, not analysis. */
-  chatPayload({ model, system, messages, maxTokens = 4096, effort = "low", features = {} }) {
+  chatPayload({ model, system, messages, maxTokens = 8192, effort = "low", features = {} }) {
     const payload = { model, max_tokens: maxTokens, stream: true, system, messages };
     if (features.thinking) payload.thinking = { type: "adaptive" };
     if (features.effort) payload.output_config = { effort };
@@ -60,7 +62,7 @@ export const ANTHROPIC = {
    * prompt and readText() has to cope with a model that wrapped its JSON in a
    * code fence.
    */
-  judgePayload({ model, system, messages, schema, maxTokens = 4096, effort = "medium", features = {} }) {
+  judgePayload({ model, system, messages, schema, maxTokens = 8192, effort = "medium", features = {} }) {
     const payload = { model, max_tokens: maxTokens, system, messages };
     if (features.thinking) payload.thinking = { type: "adaptive" };
     // A judge call is a classification, not a voice: pin it where the provider
@@ -90,6 +92,7 @@ export const ANTHROPIC = {
     let text = "";
     let done = false;
     let truncated = false;
+    let spent = 0;
     let error = null;
 
     for (const line of lines) {
@@ -102,6 +105,11 @@ export const ANTHROPIC = {
       } catch {
         continue; // a keepalive or a line we do not need to understand
       }
+      // message_delta is the only event that says what the turn cost, and the
+      // count includes thinking. "It stopped early" and "it stopped early
+      // having generated 2048 tokens and no words" are different bug reports.
+      if (event.usage?.output_tokens) spent = event.usage.output_tokens;
+
       if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
         text += event.delta.text;
       } else if (event.type === "message_delta" && event.delta?.stop_reason === "refusal") {
@@ -114,7 +122,7 @@ export const ANTHROPIC = {
         done = true;
       }
     }
-    return { text, rest, done, truncated, error };
+    return { text, rest, done, truncated, spent, error };
   },
 
   /** The concatenated text of a non-streamed response. */
