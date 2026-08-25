@@ -25,9 +25,27 @@ Tarot as a doorway, not divination. The cards are projective prompts that get pe
   releases it immediately - never trap someone who regrets sharing. The counted exits still fire,
   so a dwell delays a card by one exchange and never more; when the disclosure lands on the card's
   last available exchange the cap wins and the flip reason records that it cut one short
-- TEMPO: eagerness is not readiness. The reader sets the pace and the reading has time. An eager
-  answer is met with one more question inside it, not a scene change - the flip is the reward
-  mechanic, so flipping on a disclosure teaches that opening up ends the subject
+- SETTLE RULE (from lantern-be7743): the `own` move is not eligible until the card has footing
+  under it - two exchanges on this card, or one answer that already carried something of their
+  own (has_life_content). Never bridge from first contact. A "whose is that in your world" thrown
+  at the first sentence someone says about a picture reads as an agenda rather than an offer, and
+  what comes back is "couldnt think of any" - after which the bridge is spent and the card is
+  worse off than before. The engine reports settled/not on every turn; the scanner flags a
+  crossing that fired without it
+- ELABORATE MOVE: image rail, name level - ask what makes their read what it is ("what is it
+  about the rain that reads as positive to you?"). Not a stall: it is the material the bridge
+  rides on, and the crossing that follows quotes the strongest phrase in the answer. lantern's
+  elaboration got the richest answer of the session where the premature bridge had got nothing.
+  Weighted ahead of `own` on the situation position
+- TEMPO, as a trio: settle before bridging, bridge rather than staying in the picture, dwell once
+  a disclosure lands. Every transition earns its footing before it moves. Eagerness is not
+  readiness; the reader sets the pace and the reading has time. An eager answer is met with one
+  more question inside it, not a scene change - the flip is the reward mechanic, so flipping on a
+  disclosure teaches that opening up ends the subject
+- Consequence of the trio: three transitions do not fit in three exchanges. A card may run ONE
+  exchange past MAX_EXCHANGES, and only to dwell inside something they just said. A card nobody
+  disclosed on gets no grace and still moves on at three, so pure card-description sessions keep
+  their old tempo exactly
 - Co-interpretation (projection-first reading): card flips, AI speaks second
   1. Flip, show card name only. No caption describing the picture: a printed
      description is something to agree with, and agreeing is not projecting.
@@ -115,9 +133,18 @@ DECIDED: frontend is plain HTML/CSS/JS (no framework, no build step). Prompt ass
 - Provider registry separates which relay entry to name from which wire format to build, so several
   providers share one adapter. DeepSeek and OpenCode Zen both serve Anthropic-shaped endpoints and
   reuse it; default is deepseek / deepseek-v4-flash (confirmed by the model checkpoint - see M3).
-  Each declares features (thinking, effort, structuredOutput, temperature) so the newest Anthropic
-  parameters are not sent to gateways that have never heard of them, and judge() falls back to
-  schema-in-the-prompt where needed
+  Each declares features (thinking, effort, structuredOutput, temperature, promptCaching) so the
+  newest Anthropic parameters are not sent to gateways that have never heard of them, and judge()
+  falls back to schema-in-the-prompt where needed
+- Judge calls run with thinking OFF and effort at the minimum, wherever the feature flags say the
+  provider implements the parameter. A judge call is rubric classification; deliberation buys
+  variance in a call we want deterministic and latency in front of the person waiting. Chat turns
+  are unchanged - they still send thinking adaptive, for the reason in the adapter
+- OUTPUT BUDGET IS NOT THE CONTEXT WINDOW. max_tokens caps output, thinking spends from that same
+  output budget, and DeepSeek's 1M is context. lantern-be7743's judge call came back
+  response_truncated having generated nothing, on a 1M-context gateway. Judge ceiling is 4k where
+  thinking could be turned off and 8k where it could not - lowering it flat would have halved the
+  only headroom the provider that actually truncated has
 - Failures are classified, because they need different fixes: invalid_key, unknown_model,
   endpoint_not_found, provider_rate_limited, provider_unavailable, bad_payload, connection_failed,
   bad_provider_response, response_truncated
@@ -273,6 +300,13 @@ Internal machinery: the levels are never named to the user.
   itself the step, and climbing while crossing is two. The engine cannot know which rail the next
   question will run on, so the recap names both targets and the reader chooses. Scanner flags a
   crossing question that also climbed
+- RAIL SWITCHES LAUNCH FROM ESTABLISHED POSITIONS (from lantern-be7743): height is not the only
+  thing a crossing can get wrong. A switch to the life rail needs a launch point - two same-rail
+  exchanges on this card, or one self-referent answer - and before that there is nothing under
+  the question but one sentence about a picture. Symmetric with the level rule above and
+  independent of it: lantern's turn 2 crossed at the same height and still had nothing to ride
+  on. Scanner code rail_switch_unsettled, and it can fire alongside rail_switch_climb because
+  premature and too-high are different repairs
 - Step-down rule: a deflection drops user_level and the next question does not climb - it asks
   at the same height, more concretely. At the bottom rung that is the existing forced-choice
   fallback, wired as the step-down rather than duplicated
@@ -309,7 +343,7 @@ Internal machinery: the levels are never named to the user.
     arm's closing demonstrates the form)
   - Externalizing language template (canonical example, use as a pattern): ask "how does this
     problem affect X" - never "you're not X"
-- 3-8 few-shot exchanges in the pack (poor man's distillation); iterate against seeded sessions
+- 3-9 few-shots in the pack (poor man's distillation); iterate against seeded sessions
 - Recap block: every chat() turn carries a session record assembled from state - anchor with the
   user's phrases verbatim, each card with a one-line record, arc position, depth, safety_state.
   Declared to outrank the conversation history, which is suggestion where this is constraint
@@ -336,6 +370,14 @@ Internal machinery: the levels are never named to the user.
   worked, a real life referent came back, and the card flipped on that same turn because grounding
   had just unlocked the early flip. The fixture for the dwell rule, the hedge flag and
   territory-phrased beats
+- tests/fixtures/lantern-be7743.json is the third: the c145c7 fix overcorrecting. The ownership
+  bridge fired on the very first sentence about the card, read as agenda, and got "couldnt think
+  of any". The fixture for the settle rule, the elaborate move and rail_switch_unsettled. It is
+  RECONSTRUCTED from the markdown export rather than redacted from a session JSON, which was
+  never saved - the only fixture not produced by redact_session.mjs, and its README entry says so
+- Few-shots 3-9. A shot is normally one exchange; a shot may carry a run of turns (turns[], plus
+  an optional setup line) for the things that only exist across turns - a bridge that misses, the
+  step back with the permission said out loud, and the crossing that lands two turns later
 - Simulated user personas in scripts/personas/, for --user= runs of the A/B harness: bracer (has a
   topic, responsive to question quality), browser (no topic, would rather describe pictures),
   eager (discloses early and hedges it - what happens next is the whole test), regretful
@@ -417,6 +459,13 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-25): settle round on branch m3-settle, from the lantern-be7743 session - the
+  settle rule and the elaborate move (the tempo trio: settle, bridge, dwell), rail switches
+  launching from established positions with rail_switch_unsettled in the scanner, whiff recovery
+  in the persona and a multi-turn few-shot, and judge calls running thinking-off at a 4k ceiling.
+  lantern-be7743 frozen as a fixture, reconstructed rather than redacted. One consequence the
+  brief did not name: the dwell may run one exchange past the cap, or every card that grounds by
+  the elaboration path grounds on its last exchange.
 - v1.5 (2026-08-25): session transcripts committed as fixtures are redacted derivatives now,
   with the originals in gitignored checkpoint/ and the maps in gitignored redactions/.
 - v1.5 (2026-08-25): latency work on the same branch - the anchor revision moved off the
