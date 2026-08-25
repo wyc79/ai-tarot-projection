@@ -58,17 +58,35 @@ DECIDED: frontend is plain HTML/CSS/JS (no framework, no build step). Prompt ass
 - Session state + draw ledger in localStorage: same-device "session 2+" memory for free
 - Optional two-model split (BYOK config): cheap/fast model for the reader's conversational turns; stronger model for flip-gate classification and session-end distillation, where judgment quality matters
 - Abstractions: one llmClient module (relay mode with configurable base URL / direct mode), one storage module
+- Provider registry separates which relay entry to name from which wire format to build, so several
+  providers share one adapter. DeepSeek and OpenCode Zen both serve Anthropic-shaped endpoints and
+  reuse it; default is deepseek / deepseek-v4-flash. Each declares features (thinking, effort,
+  structuredOutput, temperature) so the newest Anthropic parameters are not sent to gateways that
+  have never heard of them, and judge() falls back to schema-in-the-prompt where needed
+- Failures are classified, because they need different fixes: invalid_key, unknown_model,
+  endpoint_not_found, provider_rate_limited, provider_unavailable, bad_payload, connection_failed,
+  bad_provider_response, response_truncated
 - Symbol pack = self-contained data dir; data/ is the pack root for smith-waite-1909 (deck.json + Cards-jpg/ images + persona prompt + few-shots). "Fork it, drop in your own deck" = point the loader at another pack dir.
 - Card art: existing JPEGs in data/Cards-jpg/ (78 cards + CardBacks.jpg, 300x527, ~52KB each, 3.4MB total) - within budget, keep as-is, no webp pipeline
 - GitHub Pages: project site (username.github.io/ai-tarot/), asset paths must be subpath-safe (relative paths, no leading /)
 
-## State schema (sketch)
+## State schema (as built)
 Per session:
+- session_id, seed, pack_id, started_at
+- phase: opening | reading (nothing is dealt until the opening question is answered)
+- topic: what they said they wanted to look at, in their words, or null if they declined
 - anchor: { theme, user_phrases[], resolution_beat } (narrative plan, not a static string)
 - cards: [{ card_id, position, user_projection, ai_reading, flipped_at }]
-- exchanges: [{ q, a, disclosure_depth }]
-- flip gate: structured LLM output per turn { reply, disclosure_depth, flip_ready, stakes }
-- safety_state: normal | drop_frame
+- exchanges: [{ q, a, disclosure_depth, position, gate }] - position is a card's position,
+  or "opening" (before the deal) or "off_frame" (after the frame is dropped)
+- flip gate: structured judge() output per turn { disclosure_depth, flip_ready, stakes,
+  reading_of_them }. No `reply` field: the reader's words come from chat(), streamed;
+  judge() returns JSON and nothing else. The two use separately configurable models
+- disclosure_depth is 1-4, rubric in the judge prompt: 1 deflection, 2 general statement,
+  3 specific situation, 4 specific event with feeling or stakes
+- safety_state: normal | drop_frame; handback_given so the high-stakes handback fires once
+- opening judge() output: { has_topic, topic, stakes } - stakes is classified before the
+  first card, so the frame can be dropped without dealing at all
 
 ## User memory (tier 3, v1.5)
 Three memory tiers: turn state (flip gate, exchanges) -> session state (anchor + ledger) -> user memory (persistent profile across sessions).
@@ -104,7 +122,13 @@ Three memory tiers: turn state (flip gate, exchanges) -> session state (anchor +
 - Card images: DONE - 78 cards + CardBacks.jpg in data/Cards-jpg/ (300x527 JPEG, ~52KB each, 3.4MB total). Keep JPEGs; skip the webp pipeline.
 - OPEN (owner: me, not the agent): record where the images came from -> LICENSE-ART.md with provenance links
 - Treat data/ as the self-contained smith-waite-1909 pack root; images stay in data/Cards-jpg/
-- Grab ekelen card_data.json; script to distill Waite descriptions into per-card imagery fallback lines + per-position meaning stubs -> data/deck.json (pack schema v1: card_id, name, image, imagery_line, meanings { situation, obstacle, advice, general })
+- Grab ekelen card_data.json; script to distill Waite descriptions into per-card imagery fallback lines + per-position meaning stubs -> data/deck.json
+- Pack schema has since grown to v4, all of it data rather than code:
+  - per card: card_id, name, image, imagery_line, details[], meanings { situation, obstacle, advice, general }
+  - details[] is what is visibly in the picture, authored by looking at all 78 images. Reader-only,
+    for recognising what the user points at - never narrated back at them
+  - top level: persona (persona.md), few_shots (few-shots.json), card_back
+  - positions[] carry moves[], the question-policy weighting for that arc position
 - Repo scaffold: frontend (plain HTML/CSS/JS, subpath-safe asset paths) + Python relay skeleton + /worker skeleton with wrangler.toml + RELAY.md contract stub; remove the .claude ignore line from .gitignore so the plan is versioned
 - Done when: deck.json validates (78 cards, all fields), backend serves the debug page showing one card image from the pack
 
@@ -119,13 +143,28 @@ Three memory tiers: turn state (flip gate, exchanges) -> session state (anchor +
 ### M3 - Reader quality (the make-or-break week)
 - Reader persona system prompt: co-interpretation flow (AI speaks second), position-aware bending, fallbacks (imagery pointing, forced choice), stake-scaled agency handback, drop-frame state, closing actionable step
 - 3-5 few-shot exchanges in the pack (poor man's distillation); iterate against seeded sessions
+- Recap block: every chat() turn carries a session record assembled from state - anchor with the
+  user's phrases verbatim, each card with a one-line record, arc position, depth, safety_state.
+  Declared to outrank the conversation history, which is suggestion where this is constraint
+- Fixed turn shape: one observation then one question, 1-2 sentences each. Two exceptions - the
+  turn that deals a card names it in a clause, and the closing turn ends on a step
+- Question policy in the persona, never named to the user: externalize, name, explore, exception,
+  re-author, action. Identity-landscape questions are gated behind disclosure depth; the per-position
+  weighting lives in pack data. A menu, not a protocol - running the moves on a schedule is the
+  clinical cadence this reader does not have
+- Judge determinism: labelled depth rubric with worked examples, and temperature 0 where the provider
+  still accepts sampling params (removed on current Anthropic models, which answer 400)
+- scripts/seeded_session.mjs is the canonical fixture: same seed, scripted model, diffable pacing
+- scripts/model_checkpoint.mjs runs one seeded session twice varying only the chat model
 - Playtest with 3-5 real tarot-curious non-dev people; log transcripts (with consent), fix the tells: over-explaining symbolism, clinical questions, hedging, assistant cadence
 - Done when: at least half of playtesters say something true about themselves unprompted by card 2, and no one calls it "a chatbot doing tarot"
 
 ### M4 - UI + polish (2-3 days)
 - Card table UI: draw-in, flip (CSS rotateY + backface-visibility), spread layout, mobile-first; plain CSS/JS, no animation libs unless clearly needed
 - Key management: paste key, localStorage vs session-only toggle, provider/model settings
-- Session journal export (Markdown), full/profile JSON export with warning line
+- Session journal export (Markdown) and per-session JSON: DONE early in M3, because playtesting
+  without transcripts loses the sessions worth reading. Every turn is saved to a capped history in
+  localStorage, unfinished readings included. Still M4: the profile/full export with warning line
 - User-provided cards mode
 - Done when: a stranger can complete a session on a phone without instructions
 
