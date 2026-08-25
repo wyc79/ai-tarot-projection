@@ -23,6 +23,7 @@ export const realPack = () => loadPack("data", { fetchImpl: fileFetch });
  */
 /** Which turn instruction the controller appended, by its distinctive first line. */
 const TURN_MARKERS = [
+  ["opening", /Nothing has been dealt yet, and nothing will be dealt this turn/],
   ["invite", /has just turned over and they have not spoken/],
   ["bridge", /Two things, in one short turn/],
   ["close", /This is the last thing you say/],
@@ -33,7 +34,9 @@ export function turnKind(system) {
   return TURN_MARKERS.find(([, re]) => re.test(system))?.[0] ?? "unknown";
 }
 
-export function fakeClient({ gates = [], anchor = null, reply = (turn) => `[${turn}]` }) {
+export function fakeClient({
+  gates = [], anchor = null, opening = null, reply = (turn) => `[${turn}]`,
+}) {
   const queue = [...gates];
   const calls = { chat: [], judge: [] };
   return {
@@ -47,6 +50,9 @@ export function fakeClient({ gates = [], anchor = null, reply = (turn) => `[${tu
     },
     async judge({ system, messages, schema }) {
       calls.judge.push({ system, messages, schema });
+      if (schema.properties.has_topic) {
+        return opening ?? { has_topic: false, topic: "", stakes: "low" };
+      }
       if (schema.properties.theme) {
         return anchor ?? { theme: "t", user_phrases: ["stuck"], resolution_beat: "r" };
       }
@@ -57,3 +63,7 @@ export function fakeClient({ gates = [], anchor = null, reply = (turn) => `[${tu
 
 export const gate = (depth, ready, stakes = "low") =>
   ({ disclosure_depth: depth, flip_ready: ready, stakes, reading_of_them: "noted" });
+
+/** Answer to the opening question. Declining is the default a test wants. */
+export const declines = { has_topic: false, topic: "", stakes: "low" };
+export const wants = (topic, stakes = "low") => ({ has_topic: true, topic, stakes });

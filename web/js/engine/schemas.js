@@ -25,8 +25,10 @@ export const GATE_SCHEMA = {
       type: "string",
       enum: ["low", "high", "crisis"],
       description:
-        "low: ordinary reflection. high: medical, legal or financial consequence. " +
-        "crisis: grief, self-harm, or anything where a tarot frame would be an insult.",
+        "low: ordinary reflection. high: medical, legal or financial consequence -- " +
+        "money decisions with real outcomes count, and so does advice of that kind " +
+        "they intend to give someone else. crisis: grief, self-harm, or anything " +
+        "where a tarot frame would be an insult.",
     },
     reading_of_them: {
       type: "string",
@@ -34,6 +36,39 @@ export const GATE_SCHEMA = {
     },
   },
   required: ["disclosure_depth", "flip_ready", "stakes", "reading_of_them"],
+  additionalProperties: false,
+};
+
+/**
+ * The opening turn, before anything is dealt. Runs the stakes check too, so the
+ * frame can be dropped before a single card is turned.
+ */
+export const OPENING_SCHEMA = {
+  type: "object",
+  properties: {
+    has_topic: {
+      type: "boolean",
+      description:
+        "Did they actually name something to look at? 'not really', 'just curious', " +
+        "'surprise me' and silence are all false. Do not count politeness as a topic.",
+    },
+    topic: {
+      type: "string",
+      description:
+        "What they want to look at, in their own words, compressed to a phrase. " +
+        "Empty string when has_topic is false. Never your paraphrase of their situation.",
+    },
+    stakes: {
+      type: "string",
+      enum: ["low", "high", "crisis"],
+      description:
+        "low: ordinary reflection. high: medical, legal or financial consequence -- " +
+        "money decisions with real outcomes count, including advice they intend to give " +
+        "someone else. crisis: grief, self-harm, abuse, or anything where a tarot frame " +
+        "would be an insult. When unsure between two, choose the higher.",
+    },
+  },
+  required: ["has_topic", "topic", "stakes"],
   additionalProperties: false,
 };
 

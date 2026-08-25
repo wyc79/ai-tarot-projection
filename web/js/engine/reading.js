@@ -13,15 +13,15 @@
  * Keeping those apart is what makes the flip rhythm testable without a model.
  */
 
-import { ANCHOR_SCHEMA, GATE_SCHEMA } from "./schemas.js";
+import { ANCHOR_SCHEMA, GATE_SCHEMA, OPENING_SCHEMA } from "./schemas.js";
 import { saveToHistory } from "./journal.js";
 import {
-  ANCHOR_SYSTEM, JUDGE_SYSTEM, anchorMessages, flipDirection, judgeMessages,
-  readerMessages, readerSystem,
+  ANCHOR_SYSTEM, JUDGE_SYSTEM, OPENING_SYSTEM, anchorMessages, flipDirection,
+  judgeMessages, openingMessages, readerMessages, readerSystem,
 } from "./prompts.js";
 import {
   close, commitAnchor, createSession, currentCard, flipCard, flipDecision,
-  recordExchange, recordReading, spreadComplete,
+  recordExchange, recordOffFrame, recordOpening, recordReading, spreadComplete,
 } from "./state.js";
 import { makeDeal } from "./draw.js";
 import { newSeed } from "./rng.js";
@@ -79,16 +79,31 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
   return {
     session,
 
-    /** Turn the first card immediately and hand it over. */
+    /**
+     * Ask what they came for before anything is dealt. A named topic becomes
+     * the ground the whole reading is bent toward; declining is a normal answer
+     * and costs them nothing.
+     */
     async begin() {
-      flipNext();
-      await readerTurn("invite", { stageDirection: flipDirection(pack, session) });
+      await readerTurn("opening");
       return session;
     },
 
     /** One user turn. Everything that follows from it happens here. */
     async say(answer) {
       if (session.closed) throw new Error("this reading is closed");
+
+      if (session.phase === "opening") return this.openWith(answer);
+
+      // The frame was dropped before a card was ever dealt. There is no reading
+      // to continue, only a conversation -- and it must not crash looking for a
+      // card that was deliberately never turned.
+      if (session.safety_state === "drop_frame" && !currentCard(session)) {
+        recordOffFrame(session, { question: lastQuestion, answer });
+        await readerTurn("respond");
+        persist();
+        return { dealt: false, offFrame: true };
+      }
 
       const gate = await client.judge({
         system: JUDGE_SYSTEM,
@@ -145,6 +160,30 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
         readingOffset: 1,
       });
       return { gate, decision, flipped: true };
+    },
+
+    /** The answer to the opening question. Deals the first card, or does not. */
+    async openWith(answer) {
+      const opening = await client.judge({
+        system: OPENING_SYSTEM,
+        messages: openingMessages({ question: lastQuestion, answer }),
+        schema: OPENING_SCHEMA,
+      });
+      recordOpening(session, { question: lastQuestion, answer, opening });
+      onEvent({ type: "opening", opening, topic: session.topic });
+
+      // Safety before the first card, not after it: if a tarot frame is the
+      // wrong thing here, nothing should be dealt at all.
+      if (session.safety_state === "drop_frame") {
+        onEvent({ type: "frame_dropped" });
+        await readerTurn("respond");
+        persist();
+        return { opening, dealt: false };
+      }
+
+      flipNext();
+      await readerTurn("invite", { stageDirection: flipDirection(pack, session) });
+      return { opening, dealt: true };
     },
   };
 }

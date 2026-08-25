@@ -29,12 +29,32 @@ export function toMarkdown(pack, session) {
     lines.push(`**What it was about:** ${session.anchor.theme}`, "");
   }
 
+  // The turn before anything was dealt belongs in the record too: what they
+  // said they came for is part of the reading, and sometimes the best part.
+  const opening = exchangesFor(session, "opening");
+  if (opening.length) {
+    lines.push("## Before the cards", "");
+    for (const exchange of opening) {
+      if (exchange.q) lines.push(exchange.q.trim(), "");
+      lines.push(`**You:** ${exchange.a.trim()}`, "");
+    }
+  }
+
   for (const entry of session.cards) {
     const card = pack.card(entry.card_id);
     const position = pack.positions.find((p) => p.id === entry.position);
     lines.push(`## ${position?.label ?? entry.position} — ${card.name}`, "");
     lines.push(`> ${card.imagery_line}`, "");
     for (const exchange of exchangesFor(session, entry.position)) {
+      if (exchange.q) lines.push(exchange.q.trim(), "");
+      lines.push(`**You:** ${exchange.a.trim()}`, "");
+    }
+  }
+
+  const offFrame = exchangesFor(session, "off_frame");
+  if (offFrame.length) {
+    lines.push("## After the frame was dropped", "");
+    for (const exchange of offFrame) {
       if (exchange.q) lines.push(exchange.q.trim(), "");
       lines.push(`**You:** ${exchange.a.trim()}`, "");
     }

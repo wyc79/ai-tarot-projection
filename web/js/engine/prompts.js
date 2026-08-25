@@ -13,6 +13,22 @@
 
 import { currentCard } from "./state.js";
 
+const RULES_ON_TURNING_CARDS = `
+## You do not turn the cards
+
+The table turns them. Every turn you are told exactly which card is face up and
+whether a new one has just been dealt; that is the whole truth of what has been
+revealed, and you have no other source for it.
+
+Never name a card you have not been given here. You do not know what is coming.
+Guessing produces a card that is not on the table, and they are looking at the
+table.
+
+Never say a card is about to turn, is turning, or has turned, unless this turn's
+instruction tells you one has. "The final card lands now" on a turn where
+nothing landed is the same mistake as naming the wrong card, and it makes the
+next real flip read as a correction.`;
+
 const RULES_WHEN_FRAME_DROPPED = `
 ## Right now: the frame is dropped
 
@@ -45,6 +61,10 @@ function describeSpread(pack) {
 
 function describeLedger(pack, session) {
   if (!session.cards.length) return "Nothing has been turned over yet.";
+  const remaining = session.positions.length - session.cards.length;
+  const note = remaining > 0
+    ? `\n\n${remaining} position${remaining > 1 ? "s" : ""} still to come. You do not know which cards those are.`
+    : "\n\nEvery position has been dealt. There is no further card.";
   return session.cards
     .map((entry) => {
       const card = pack.card(entry.card_id);
@@ -53,7 +73,27 @@ function describeLedger(pack, session) {
       if (entry.ai_reading) lines.push(`  you said: "${entry.ai_reading}"`);
       return lines.join("\n");
     })
-    .join("\n");
+    .join("\n") + note;
+}
+
+function describeTopic(session) {
+  if (session.phase === "opening") return "";
+  if (!session.topic) {
+    return `
+## They did not name a topic
+
+They were asked and did not have one, which is a perfectly ordinary way to sit
+down. Do not ask again and do not invent a subject for them — let the cards do
+the asking.`;
+  }
+  return `
+## What they said they wanted to look at
+
+"${session.topic}"
+
+This is the ground for the reading, in their words, and it was theirs before any
+card turned over. Steer toward it. When a card seems to point somewhere else,
+bend the card toward this — not this toward the card.`;
 }
 
 function describeAnchor(session) {
@@ -117,8 +157,10 @@ from this position's sense and the general one. Never recite either.`;
 export function readerSystem({ pack, session, turn, handback = false }) {
   const parts = [
     pack.persona,
+    RULES_ON_TURNING_CARDS,
     `\n## The spread\n\n${describeSpread(pack)}`,
     `\n## Turned over so far\n\n${describeLedger(pack, session)}`,
+    describeTopic(session),
     describeAnchor(session),
     describeCard(pack, session),
   ];
@@ -134,6 +176,19 @@ export function readerSystem({ pack, session, turn, handback = false }) {
 }
 
 const TURN_INSTRUCTIONS = {
+  opening: `
+## This turn
+
+Nothing has been dealt yet, and nothing will be dealt this turn.
+
+Ask whether there is something particular they want to look at before you turn
+anything over. Make declining genuinely easy — "not really, just curious" is a
+good answer and a lot of people arrive that way. Do not push, and do not offer
+a menu of topics.
+
+Two sentences at the outside. Do not explain the spread, do not describe the
+deck, and do not promise what the cards will do.`,
+
   invite: `
 ## This turn
 
@@ -147,10 +202,20 @@ yet — you have not earned the right to, because they have not told you anythin
   respond: `
 ## This turn
 
-They have just answered. Build on what they actually said — their words, their
-image, the thing they repeated — and add at most one sentence of traditional
-sense bent toward this card's position. Then ask one question that goes further
-in, not sideways. Four sentences at the outside.`,
+**No card turns over on this turn.** The card in front of them is the one named
+above, and it is still the one in front of them when you finish. Do not reach
+for the next one and do not hint that it is coming.
+
+They have just answered. Build on what they actually said, using their words and
+their image — and only what is actually there, never a repetition or an emphasis
+you did not see.
+
+At most one sentence of traditional sense, bent toward this card's position —
+and if you already spent that sentence on this card, do not spend it again in
+different words. Work with what they have given you instead.
+
+Then ask one question that goes further in rather than sideways, and end your
+turn on it. Four sentences at the outside.`,
 
   bridge: `
 ## This turn
@@ -216,6 +281,10 @@ When you are unsure between two levels of stakes, choose the higher one.`;
 export const ANCHOR_SYSTEM = `You are committing the narrative plan for a tarot
 reflection session, from the first card only. You never speak to the user.
 
+If they named a topic before the cards were dealt, the theme belongs to that
+topic. The first card elaborates what they already said they came for; it does
+not replace it with something the card found more interesting.
+
 Build it out of their vocabulary, not yours. If they said "treading water", the
 theme says treading water; it does not say "career stagnation". A theme they
 would not recognise as their own words is a failed anchor.
@@ -223,6 +292,27 @@ would not recognise as their own words is a failed anchor.
 The resolution beat is where the third card should land — a plausible place for
 this to come to rest, given what they have said so far. It is a plan, not a
 prediction, and the reader steers toward it rather than announcing it.`;
+
+export const OPENING_SYSTEM = `You are reading the first thing someone said in a
+tarot reflection session, before any card was dealt. They were asked whether
+there is something particular they want to look at. You never speak to the user.
+
+Decide two things.
+
+Did they actually name something? "Not really", "just curious", "surprise me",
+"you tell me" and any polite deflection are all no. A topic is something with
+edges — a person, a decision, a situation. If they named one, give it back in
+their own words, compressed, never rewritten into your vocabulary.
+
+And what are the stakes? You are deliberately quick to escalate, because this is
+the earliest point at which a reading can be the wrong thing to be doing.`;
+
+export function openingMessages({ question, answer }) {
+  return [{
+    role: "user",
+    content: `They were asked: ${question}\nThey answered: ${answer}`,
+  }];
+}
 
 /** What the judge sees: the transcript plus the answer under examination. */
 export function judgeMessages(pack, session, { question, answer }) {
@@ -242,6 +332,9 @@ export function anchorMessages(pack, session) {
   return [{
     role: "user",
     content: [
+      session.topic
+        ? `Before any card was dealt they said they wanted to look at: "${session.topic}"`
+        : "They did not name a topic before the cards were dealt.",
       `First card: ${card.name} in the ${entry.position} position.`,
       `They read it as: "${entry.user_projection}"`,
       session.exchanges

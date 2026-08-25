@@ -5,7 +5,7 @@ import { makeStorage, memoryBackend } from "../../web/js/storage.js";
 import {
   HISTORY_LIMIT, describeSession, loadHistory, saveToHistory, toJson, toMarkdown,
 } from "../../web/js/engine/journal.js";
-import { fakeClient, gate, realPack } from "./helpers.mjs";
+import { declines, fakeClient, gate, realPack } from "./helpers.mjs";
 
 async function finished(seed = "moon-4f2a91") {
   const pack = await realPack();
@@ -13,11 +13,13 @@ async function finished(seed = "moon-4f2a91") {
     pack,
     client: fakeClient({
       gates: [gate(2, false), gate(3, true), gate(3, true), gate(3, true)],
+      opening: declines,
       reply: (turn) => (turn === "close" ? "this week, notice the bracing" : `[${turn}]`),
     }),
     seed,
   });
   await reading.begin();
+  await reading.say("no, nothing in particular");
   for (const answer of ["it looks tired", "nobody is attacking me", "money", "not the money"]) {
     if (reading.session.closed) break;
     await reading.say(answer);
@@ -38,6 +40,7 @@ test("the markdown keepsake carries the cards, the user's words and the step", a
     assert.ok(md.includes(exchange.a), `missing the user's own words: ${exchange.a}`);
   }
   assert.match(md, /## The step\n\nthis week, notice the bracing/);
+  assert.match(md, /## Before the cards/, "what they came in with is part of the record");
 });
 
 test("positions are labelled in the order they were read", async () => {
@@ -54,8 +57,11 @@ test("the json export carries the seed and every flip-gate verdict", async () =>
   assert.equal(parsed.session.seed, "moon-4f2a91");
   for (const exchange of parsed.session.exchanges) {
     assert.equal(typeof exchange.gate.stakes, "string",
+                 "every turn is stakes-checked, the opening one included");
+  }
+  for (const exchange of parsed.session.exchanges.filter((e) => e.position !== "opening")) {
+    assert.equal(typeof exchange.gate.flip_ready, "boolean",
                  "re-running a transcript needs what the judge thought at the time");
-    assert.equal(typeof exchange.gate.flip_ready, "boolean");
   }
 });
 
@@ -120,7 +126,7 @@ test("state is persisted before it is announced, so listeners read the new state
   const seenAtEvent = {};
   const reading = startReading({
     pack, storage, seed: "moon-4f2a91",
-    client: fakeClient({ gates: [gate(3, true), gate(3, true), gate(3, true)] }),
+    client: fakeClient({ gates: [gate(3, true), gate(3, true), gate(3, true)], opening: declines }),
     onEvent: (e) => {
       if (e.type === "anchor" || e.type === "closed") {
         const saved = loadHistory(storage)[0];
@@ -129,10 +135,20 @@ test("state is persisted before it is announced, so listeners read the new state
     },
   });
   await reading.begin();
+  await reading.say("nothing in particular");
   for (const a of ["a", "b", "c"]) {
     if (reading.session.closed) break;
     await reading.say(a);
   }
   assert.equal(seenAtEvent.anchor.anchor, true, "the anchor event fired before the anchor was saved");
   assert.equal(seenAtEvent.closed.closed, true, "the closed event fired before the close was saved");
+});
+
+test("both stakes descriptions name advice-to-others, not just decisions", async () => {
+  // From a real session: "financial advice" was judged low, and the reader
+  // improvised the handback the gate should have asked for.
+  const { GATE_SCHEMA, OPENING_SCHEMA } = await import("../../web/js/engine/schemas.js");
+  for (const schema of [GATE_SCHEMA, OPENING_SCHEMA]) {
+    assert.match(schema.properties.stakes.description, /advice of that kind\s*they intend to give someone else|advice they intend to give\s*someone else/);
+  }
 });

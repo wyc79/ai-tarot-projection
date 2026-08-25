@@ -34,6 +34,10 @@ export function createSession({ packId, seed, positions, startedAt = Date.now() 
     seed: String(seed),
     started_at: startedAt,
     positions: positions.map((p) => p.id),
+    /** @type {"opening"|"reading"} nothing is dealt until they have been asked */
+    phase: "opening",
+    /** @type {string|null} what they said they wanted to look at, in their words */
+    topic: null,
     /** @type {Anchor|null} committed after the first card, then never contradicted */
     anchor: null,
     /** @type {DrawnCard[]} the ledger */
@@ -81,6 +85,41 @@ export function flipCard(session, cardId, flippedAt = Date.now()) {
     ai_reading: "",
     flipped_at: flippedAt,
   });
+  return session;
+}
+
+/**
+ * The turn before anything is dealt. Kept in the transcript like any other
+ * exchange, under its own position so it never counts toward a card's rhythm.
+ */
+export function recordOpening(session, { question, answer, opening }) {
+  session.exchanges.push({
+    q: question,
+    a: answer,
+    disclosure_depth: 0,
+    position: "opening",
+    gate: { ...opening },
+  });
+  session.topic = opening.has_topic && opening.topic.trim() ? opening.topic.trim() : null;
+  session.last_stakes = opening.stakes;
+  if (opening.stakes === "crisis") session.safety_state = "drop_frame";
+  session.phase = "reading";
+  return session;
+}
+
+/**
+ * A turn with no card in front of it. Happens when the frame was dropped before
+ * anything was dealt: the conversation continues, the reading does not.
+ */
+export function recordOffFrame(session, { question, answer, stakes = "crisis" }) {
+  session.exchanges.push({
+    q: question,
+    a: answer,
+    disclosure_depth: 0,
+    position: "off_frame",
+    gate: { stakes },
+  });
+  session.last_stakes = stakes;
   return session;
 }
 

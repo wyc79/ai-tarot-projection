@@ -13,7 +13,11 @@ Tarot as a doorway, not divination. The cards are projective prompts that get pe
 
 ## Core mechanics
 - 3-card spread (situation / obstacle / advice), optional 4th "advice earned" card later
-- First card flips immediately; each next card flips after ~2 question-answer exchanges
+- Before anything is dealt, ask whether there is something particular they want to look at.
+  A named topic becomes the ground the reading is bent toward and seeds the anchor; declining
+  is a normal answer and proceeds as before. Stakes are classified on that answer too, so the
+  frame can be dropped before a single card is turned
+- First card flips as soon as that is answered; each next card flips after ~2 question-answer exchanges
 - Depth-gated, not count-gated: rich answer can flip early, thin answer gets a softer follow-up instead of stalling
 - Co-interpretation (projection-first reading): card flips, AI speaks second
   1. Flip, show card name only. No caption describing the picture: a printed
