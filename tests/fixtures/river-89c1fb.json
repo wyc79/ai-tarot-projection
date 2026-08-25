@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "session": {
+    "schema_version": 1,
+    "session_id": "river-89c1fb-1787670866959",
+    "pack_id": "smith-waite-1909",
+    "seed": "river-89c1fb",
+    "started_at": 1787670866959,
+    "positions": [
+      "situation",
+      "obstacle",
+      "advice"
+    ],
+    "phase": "reading",
+    "topic": null,
+    "anchor": {
+      "theme": "i used to have a different trade and now doing something completely different",
+      "user_phrases": [
+        {
+          "phrase": "each cup is filled with flowers, probably repurposed from something else",
+          "source": "card"
+        },
+        {
+          "phrase": "i used to have a different trade and now doing something completely different",
+          "source": "life"
+        }
+      ],
+      "resolution_beat": "Steer the third card toward what the old trade is still feeding into the new path — that the change isn't a break, it's a repurposing, and something from the before is still alive in it.",
+      "grounded": true
+    },
+    "cards": [
+      {
+        "card_id": "cups-06-six",
+        "position": "situation",
+        "user_projection": "each cup is filled with flowers, probably repurposed from something else",
+        "ai_reading": "You weren't sure at first, but \"repurposed\" turned out to be you — the old trade and the new one. Second card, the obstacle, is The Lovers. Where does your eye go first?",
+        "flipped_at": 1787670877832,
+        "flip_reason": "the opening question was answered; the reading begins"
+      },
+      {
+        "card_id": "major-06-lovers",
+        "position": "obstacle",
+        "user_projection": "",
+        "ai_reading": "",
+        "flipped_at": 1787671042119,
+        "flip_reason": "depth 3 after 2 exchanges"
+      }
+    ],
+    "exchanges": [
+      {
+        "q": "Is there anything particular you'd like to look at before I turn anything over? And if the answer's nothing in mind, that's completely fine — plenty of people arrive just curious.",
+        "a": "just curious",
+        "disclosure_depth": 0,
+        "position": "opening",
+        "gate": {
+          "has_topic": false,
+          "topic": "",
+          "stakes": "low"
+        }
+      },
+      {
+        "q": "First card — the situation — is the Six of Cups. Where does your eye go first?",
+        "a": "each cup is filled with flowers, probably repurposed from something else",
+        "disclosure_depth": 2,
+        "position": "situation",
+        "question_type": "projection",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 2,
+          "has_life_content": false,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "They see the cups filled with flowers, probably repurposed from something else."
+        }
+      },
+      {
+        "q": "Repurposed — you went straight to the cups having a before. Is there something of yours that's been given a new job like that?",
+        "a": "i guess so?i used to have a different trade and now doing something completely different",
+        "disclosure_depth": 3,
+        "position": "situation",
+        "question_type": "life",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 3,
+          "stakes": "low",
+          "reading_of_them": "I used to have a different trade and now doing something completely different",
+          "has_life_content": true,
+          "user_level": "consequences"
+        }
+      }
+    ],
+    "safety_state": "normal",
+    "last_stakes": "low",
+    "handback_given": false,
+    "closing_reflection": null,
+    "closed": false
+  }
+}

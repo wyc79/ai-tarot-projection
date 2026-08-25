@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "session": {
+    "schema_version": 1,
+    "session_id": "thread-c145c7-1787667766782",
+    "pack_id": "smith-waite-1909",
+    "seed": "thread-c145c7",
+    "started_at": 1787667766782,
+    "positions": [
+      "situation",
+      "obstacle",
+      "advice"
+    ],
+    "phase": "reading",
+    "topic": null,
+    "anchor": {
+      "theme": "judging between good and bad, right and wrong — the black and white behind her, something she's holding, and what she's about to announce",
+      "user_phrases": [
+        "judging between good and bad, right and wrong?",
+        "the black and white pillow at the back?",
+        "the women is also holding something too",
+        "looks like she is going to announce, so judgement is done"
+      ],
+      "resolution_beat": "The third card should land on what happens once the judgement is done — the announcement she's about to make, and what changes when the weighing of good and bad gives way to something actually being said."
+    },
+    "cards": [
+      {
+        "card_id": "major-02-high-priestess",
+        "position": "situation",
+        "user_projection": "looks like judging between good and bad, right and wrong?",
+        "ai_reading": "The weighing gives way to the announcement, then. The obstacle card lands now — Three of Pentacles. Where does your eye go first in this one?",
+        "flipped_at": 1787667793898,
+        "flip_reason": "the opening question was answered; the reading begins"
+      },
+      {
+        "card_id": "pentacles-03-three",
+        "position": "obstacle",
+        "user_projection": "the men on the left standing on the bench",
+        "ai_reading": "You went straight to the man up on the bench, not the ones holding the plans below him. Does he look like he's building what they want, or what he wants?",
+        "flipped_at": 1787667997549,
+        "flip_reason": "depth 3 after 3 exchanges"
+      }
+    ],
+    "exchanges": [
+      {
+        "q": "Before anything turns over — is there something particular you'd like to look at? And if not, that's completely fine; some people just like seeing what comes up.",
+        "a": "nothing, just show me something",
+        "disclosure_depth": 0,
+        "position": "opening",
+        "gate": {
+          "has_topic": false,
+          "topic": "",
+          "stakes": "low"
+        }
+      },
+      {
+        "q": "The High Priestess lands in the situation — where things stand. What does she look like she's pointing at for you?",
+        "a": "looks like judging between good and bad, right and wrong?",
+        "disclosure_depth": 3,
+        "position": "situation",
+        "question_type": "projection",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 3,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "They see the High Priestess as weighing good versus bad, right versus wrong."
+        }
+      },
+      {
+        "q": "Judging between good and bad, right and wrong — that's a lot of weight to be carrying in the situation. When did that judging first turn up for you?",
+        "a": "the black and white pillow at the back? the women is also holding something too",
+        "disclosure_depth": 1,
+        "position": "situation",
+        "question_type": "life",
+        "question_level": "consequences",
+        "gate": {
+          "disclosure_depth": 1,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "They described the card's image instead of answering when the judging began."
+        }
+      },
+      {
+        "q": "The judging is built right into where she's sitting, then — the black and the white behind her, and something she's holding in her lap. Does she look like she's guarding what she's holding, or like she's about to show it to you?",
+        "a": "looks like she is going to announce, so judgement is done",
+        "disclosure_depth": 3,
+        "position": "situation",
+        "question_type": "projection",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 3,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "They read her as about to announce, resolving the judgement."
+        }
+      },
+      {
+        "q": "The weighing gives way to the announcement, then. The obstacle card lands now — Three of Pentacles. Where does your eye go first in this one?",
+        "a": "the men on the left standing on the bench",
+        "disclosure_depth": 2,
+        "position": "obstacle",
+        "question_type": "projection",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 2,
+          "stakes": "low",
+          "reading_of_them": "They pointed to the men on the left standing on the bench, describing the image without layering any interpretation onto it.",
+          "user_level": "name"
+        }
+      }
+    ],
+    "safety_state": "normal",
+    "last_stakes": "low",
+    "handback_given": false,
+    "closing_reflection": null,
+    "closed": false
+  }
+}
