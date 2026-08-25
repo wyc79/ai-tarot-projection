@@ -145,3 +145,21 @@ test("the reader is told not to build on something they hedged", async () => {
   assert.match(system, /Do not repeat it back as settled fact/);
   assert.match(system, /Make walking it back easy/);
 });
+
+test("the tempo rule reaches every turn, and one few-shot shows it", async () => {
+  const { readerSystem } = await import("../../web/js/engine/prompts.js");
+  const pack = await realPack();
+  const base = {
+    positions: ["situation", "obstacle", "advice"], exchanges: [], anchor: null,
+    safety_state: "normal", last_stakes: "low", phase: "reading", topic: null,
+    cards: [{ card_id: "cups-06-six", position: "situation", user_projection: "", ai_reading: "" }],
+  };
+  for (const turn of ["invite", "respond", "bridge", "close"]) {
+    const system = readerSystem({ pack, session: base, turn }).replace(/\s+/g, " ");
+    assert.match(system, /Eagerness is not readiness/, `the ${turn} turn lost the tempo rule`);
+    assert.match(system, /one more question inside it\*\*, not a scene change/);
+  }
+  const shot = pack.fewShots.find((f) => f.demonstrates.startsWith("the dwell"));
+  assert.ok(shot, "nothing in the pack demonstrates staying put");
+  assert.equal(shot.hedged, true, "and it demonstrates the softening at the same time");
+});
