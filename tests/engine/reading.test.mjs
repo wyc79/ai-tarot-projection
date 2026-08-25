@@ -297,7 +297,11 @@ test("declining is a real answer, not a subject to be invented for them", async 
   assert.equal(reading.session.topic, null);
   const system = systemFor(client, "invite");
   assert.match(system, /They did not name a topic/);
-  assert.match(system, /Do not ask again and do not invent a subject/);
+  assert.match(system.replace(/\s+/g, " "), /Do not ask again/);
+  // What replaced "do not invent a subject for them": not inventing one is
+  // still the rule, but the reader is no longer told to sit back and let the
+  // cards do the asking. It has something to go and do.
+  assert.match(system.replace(/\s+/g, " "), /a turn written as though you do is a turn about the deck/);
 });
 
 test("the anchor is told the topic, so the first card cannot change the subject", async () => {
@@ -625,4 +629,20 @@ test("card meaning is reveal-on-request, not seasoning", async () => {
             "the seasoning allowance is still in the prompt somewhere");
   assert.ok(!/At most one sentence of traditional sense/i.test(
     client.calls.chat.map((c) => c.system).join("\n")));
+});
+
+test("a session with no topic is told the first card has a job", async () => {
+  const { client } = await run({ gates: [gate(2)], answers: ["a woman in a garden"] });
+  const system = systemFor(client, "invite").replace(/\s+/g, " ");
+  assert.match(system, /This card's job is to find the ground/);
+  assert.match(system, /Never talk as though the session has a subject when it does not/);
+});
+
+test("a session with a topic is not told to go looking for one", async () => {
+  const { client } = await run({
+    gates: [gate(2)], answers: ["a woman in a garden"], opening: wants("my brother"),
+  });
+  const system = systemFor(client, "invite").replace(/\s+/g, " ");
+  assert.ok(!/This card's job is to find the ground/.test(system));
+  assert.match(system, /What they said they wanted to look at/);
 });

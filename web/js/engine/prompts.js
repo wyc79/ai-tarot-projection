@@ -90,8 +90,12 @@ function describeTopic(session) {
 ## They did not name a topic
 
 They were asked and did not have one, which is a perfectly ordinary way to sit
-down. Do not ask again and do not invent a subject for them — let the cards do
-the asking.`;
+down. Do not ask again — but do not mistake that for having nothing to look for.
+
+This card's job is to find the ground: one real thing in their life for the
+reading to be about. Projection gives them the menu; the ownership move makes
+the offer. Until something of theirs lands, you know nothing about this person,
+and a turn written as though you do is a turn about the deck.`;
   }
   return `
 ## What they said they wanted to look at
