@@ -11,7 +11,7 @@
  * transcript as a stage direction in the user role.
  */
 
-import { currentCard } from "./state.js";
+import { currentCard, settleOnCurrentCard } from "./state.js";
 import { questionType } from "./questions.js";
 import { levelIndex, targetLevel } from "./levels.js";
 
@@ -63,10 +63,16 @@ piece of honesty into a disclaimer they stop hearing.`;
  */
 function describeFewShots(pack) {
   if (!pack.fewShots?.length) return "";
-  const shots = pack.fewShots.map((shot) =>
-    [`— ${shot.card}, in the ${shot.position}.`,
-     `They said: "${shot.user}"`,
-     `You said: "${shot.reader}"`].join("\n")).join("\n\n");
+  const shots = pack.fewShots.map((shot) => {
+    // Normally one exchange. A few things only exist across turns -- a bridge
+    // that misses and the crossing that lands two turns later -- so a shot may
+    // carry a run of them, with a stage line for what happened before it.
+    const turns = shot.turns ?? [{ user: shot.user, reader: shot.reader }];
+    return [`— ${shot.card}, in the ${shot.position}.`,
+      shot.setup ? `(${shot.setup})` : "",
+      ...turns.flatMap((t) => [`They said: "${t.user}"`, `You said: "${t.reader}"`]),
+    ].filter(Boolean).join("\n");
+  }).join("\n\n");
   return `
 ## How this sounds
 
@@ -93,9 +99,10 @@ They were asked and did not have one, which is a perfectly ordinary way to sit
 down. Do not ask again — but do not mistake that for having nothing to look for.
 
 This card's job is to find the ground: one real thing in their life for the
-reading to be about. Projection gives them the menu; the ownership move makes
-the offer. Until something of theirs lands, you know nothing about this person,
-and a turn written as though you do is a turn about the deck.`;
+reading to be about. Projection gives them the menu, elaboration gives it edges,
+and the ownership move makes the offer — in that order, and never all on one
+turn. Until something of theirs lands, you know nothing about this person, and a
+turn written as though you do is a turn about the deck.`;
   }
   return `
 ## What they said they wanted to look at
@@ -234,8 +241,9 @@ function describeRecap(pack, session) {
     if (!session.anchor.grounded) {
       lines.push("  GROUNDED: no. Every word above came from the picture, not from them.");
       lines.push("    Nothing is known about this person yet, and the theme is a placeholder.");
-      lines.push("    The first follow-up on this card is an ownership offer, not another");
-      lines.push("    projection question — take a phrase they used and ask whose it is.");
+      lines.push("    Finding the ground is what this card is for, and the ownership offer is");
+      lines.push("    how you cross — take a phrase they used and ask whose it is — but not");
+      lines.push("    before this card has something under it to cross from; see the bridge line.");
       lines.push("    Do not talk as though the session has a subject. It does not yet.");
     }
   } else {
@@ -267,6 +275,24 @@ function describeRecap(pack, session) {
   lines.push(`  arc position: ${position ? `${position.id} (${position.arc_role} — ${position.prompt_hint})` : "nothing dealt yet"}`);
   if (position) lines.push(`  moves weighted here: ${position.moves.join(", ")}`);
   lines.push(`  disclosure depth on this card: ${depth === null ? "they have not answered yet" : depth}`);
+  if (entry) {
+    const settle = settleOnCurrentCard(session);
+    if (settle.settled) {
+      lines.push(`  bridge to their life: earned — ${settle.selfReferent
+        ? "something of theirs is already on this card"
+        : `${settle.spent} answers on this card`}`);
+    } else if (settle.spent === 0) {
+      lines.push("  bridge to their life: not yet — they have not spoken about this card.");
+      lines.push("    This turn asks about the picture and nothing else.");
+    } else {
+      lines.push("  bridge to their life: NOT YET — one answer on this card, and nothing of");
+      lines.push("    theirs in it. A bridge thrown across that has nothing to ride on, and it");
+      lines.push("    reads as an agenda: you wanted their life and asked the moment there was");
+      lines.push("    a noun to hang it on. Stay in the picture and elaborate — ask what makes");
+      lines.push("    their read what it is. Cross next turn, on the strongest phrase in the");
+      lines.push("    answer that gets you.");
+    }
+  }
   const lastAnswer = session.exchanges[session.exchanges.length - 1];
   if (lastAnswer?.gate?.hedged) {
     lines.push("  THEY HEDGED THAT: it came with a way to take it back — \"i guess\", a");

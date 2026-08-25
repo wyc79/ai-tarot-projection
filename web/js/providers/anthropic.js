@@ -14,12 +14,14 @@
  * payload builders take a `features` object. With everything off they emit the
  * plain Messages shape that any compatible endpoint has to accept.
  *
- *  - Thinking is sent explicitly as adaptive rather than left off. On Opus 5,
- *    omitting it means adaptive anyway; on Opus 4.8 and 4.7, omitting it means
- *    no thinking, and a model with thinking off may write its reasoning into
- *    the visible reply -- which in a four-sentence reader voice is not subtle.
- *    Latency and cost are managed with effort instead. (Pre-4.6 models want
- *    {type: "enabled", budget_tokens: N} instead and will reject this.)
+ *  - On a reader turn, thinking is sent explicitly as adaptive rather than left
+ *    off. On Opus 5, omitting it means adaptive anyway; on Opus 4.8 and 4.7,
+ *    omitting it means no thinking, and a model with thinking off may write its
+ *    reasoning into the visible reply -- which in a four-sentence reader voice
+ *    is not subtle. Latency and cost are managed with effort instead. (Pre-4.6
+ *    models want {type: "enabled", budget_tokens: N} and will reject this.)
+ *    On a judge call it is sent explicitly as disabled, for the opposite
+ *    reason: see JUDGE_TOKENS below.
  *  - stop_reason "refusal" comes back as HTTP 200, so the status code alone
  *    does not tell you the call succeeded.
  *  - max_tokens is a ceiling on everything the model generates, thinking
@@ -29,6 +31,24 @@
  *    set: a caller-side default silently shadows it. Unused budget is not
  *    billed; a truncated answer costs the whole call.
  */
+
+/**
+ * The judge's ceiling, in two sizes, because the ceiling is on output and
+ * thinking is output.
+ *
+ * The object it returns is a few hundred tokens. Everything above that is
+ * deliberation, and a judge call is rubric classification -- deliberation buys
+ * variance in a call we want deterministic, and latency in front of the person
+ * waiting. So thinking is turned off where the provider implements the
+ * parameter, and 4k is headroom for the JSON.
+ *
+ * Where it cannot be turned off, the model thinks whether or not that is
+ * useful and spends this same budget doing it: lantern-be7743's judge call
+ * came back response_truncated having generated nothing, on a gateway with a
+ * 1M context. Context is input. This is not.
+ */
+const JUDGE_TOKENS = 4096;
+const JUDGE_TOKENS_STILL_THINKING = 8192;
 
 export const ANTHROPIC = {
   id: "anthropic",
@@ -62,16 +82,24 @@ export const ANTHROPIC = {
   },
 
   /**
-   * A judge call: not streamed, nothing but the object.
+   * A judge call: not streamed, thinking off, nothing but the object.
    *
    * With native structured output the schema is enforced by the API. Without it
    * -- every Anthropic-compatible gateway so far -- the schema goes in the
    * prompt and readText() has to cope with a model that wrapped its JSON in a
    * code fence.
    */
-  judgePayload({ model, system, messages, schema, maxTokens = 8192, effort = "medium", features = {} }) {
-    const payload = { model, max_tokens: maxTokens, system, messages };
-    if (features.thinking) payload.thinking = { type: "adaptive" };
+  judgePayload({ model, system, messages, schema, maxTokens, effort = "low", features = {} }) {
+    // features.thinking means the provider implements the parameter, which is
+    // what makes turning it off something we can actually do rather than hope.
+    const thinkingOff = Boolean(features.thinking);
+    const payload = {
+      model,
+      max_tokens: maxTokens ?? (thinkingOff ? JUDGE_TOKENS : JUDGE_TOKENS_STILL_THINKING),
+      system,
+      messages,
+    };
+    if (thinkingOff) payload.thinking = { type: "disabled" };
     // A judge call is a classification, not a voice: pin it where the provider
     // still allows pinning. Current Anthropic models removed sampling params
     // entirely and answer 400, so this is off for them by configuration.

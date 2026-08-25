@@ -495,7 +495,8 @@ test("the arc position's weighted moves reach the prompt from pack data", async 
   const { client } = await run({
     gates: [gate(4), gate(3)], answers: ["something real", "and more"],
   });
-  assert.match(systemFor(client, "invite"), /moves weighted here: own, externalize, their-words/);
+  assert.match(systemFor(client, "invite"),
+               /moves weighted here: elaborate, own, externalize, their-words/);
   assert.match(client.calls.chat.at(-1).prompt, /moves weighted here: exception, externalize/);
 });
 
@@ -532,13 +533,18 @@ test("the staircase reaches the prompt, as a ceiling rather than a schedule", as
   assert.match(system, /when they drop .* you drop with them/);
 });
 
+/** A shot is one exchange, or a run of them for the ones that need turns. */
+const readerTurnsOf = (shot) => (shot.turns ?? [shot]).map((t) => t.reader);
+
 test("few-shots reach the prompt as exchanges, without their maintainer labels", async () => {
   const { client, pack } = await run({ gates: [gate(3)], answers: ["hm"] });
   const system = systemFor(client, "invite");
   assert.match(system, /## How this sounds/);
-  assert.ok(pack.fewShots.length >= 3 && pack.fewShots.length <= 8);
+  assert.ok(pack.fewShots.length >= 3 && pack.fewShots.length <= 9);
   for (const shot of pack.fewShots) {
-    assert.ok(system.includes(shot.reader), `few-shot missing: ${shot.demonstrates}`);
+    for (const turn of readerTurnsOf(shot)) {
+      assert.ok(system.includes(turn), `few-shot missing: ${shot.demonstrates}`);
+    }
     assert.ok(!system.includes(shot.demonstrates), "the technique label must not reach the model");
   }
 });
@@ -546,13 +552,15 @@ test("few-shots reach the prompt as exchanges, without their maintainer labels",
 test("every few-shot obeys the turn shape: one observation, one question, and short", async () => {
   const pack = await realPack();
   for (const shot of pack.fewShots) {
-    const questions = (shot.reader.match(/\?/g) ?? []).length;
-    const sentences = shot.reader.split(/(?<=[.?!])\s+/).filter(Boolean);
-    const isClosing = shot.position === "advice" && questions === 0;
-    assert.ok(questions <= 1, `${shot.demonstrates}: ${questions} questions`);
-    assert.ok(sentences.length <= 3, `${shot.demonstrates}: ${sentences.length} sentences`);
-    if (!isClosing) {
-      assert.match(shot.reader.trim(), /\?$/, `${shot.demonstrates}: does not end on its question`);
+    for (const reader of readerTurnsOf(shot)) {
+      const questions = (reader.match(/\?/g) ?? []).length;
+      const sentences = reader.split(/(?<=[.?!])\s+/).filter(Boolean);
+      const isClosing = shot.position === "advice" && questions === 0;
+      assert.ok(questions <= 1, `${shot.demonstrates}: ${questions} questions`);
+      assert.ok(sentences.length <= 3, `${shot.demonstrates}: ${sentences.length} sentences`);
+      if (!isClosing) {
+        assert.match(reader.trim(), /\?$/, `${shot.demonstrates}: does not end on its question`);
+      }
     }
   }
 });

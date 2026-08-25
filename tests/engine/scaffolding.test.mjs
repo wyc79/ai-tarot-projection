@@ -49,14 +49,17 @@ const systemFor = (client, turn) => client.calls.chat.findLast((c) => c.turn ===
 // how the first draft of this fixture "found" a jump that was its own.
 
 test("a reading that climbs one rung at a time scans clean", async () => {
-  // The shape all the rules jointly ask for: ask the card, cross to their life
-  // at the same height, spend a turn inside whatever they hand you, then move
-  // on. The dwell turn is the third line of each card and is the reason this
-  // fixture is nine answers rather than six.
+  // The shape all the rules jointly ask for, and it is four answers a card now
+  // rather than three: read the picture, elaborate the read so the crossing has
+  // something to ride on, cross at the same height, then spend a turn inside
+  // whatever they hand you. Settle, bridge, dwell. The last card is the
+  // exception -- it closes at two, because it has nowhere to advance to.
   const { pack, session } = await play({
     script: [
       { asks: "What does it look like it's pointing at for you?",
         answer: "a woman on her own in a garden", gate: at(2, "name") },
+      { asks: "What is it about her that reads as on her own to you?",
+        answer: "nobody else is there and she isn't looking for anyone", gate: at(2, "name") },
       { asks: "Whose being on their own is that, in your world?",
         answer: "mine, since the move in March", gate: at(3, "consequences") },
       { asks: "What happened after the move?",
@@ -64,6 +67,8 @@ test("a reading that climbs one rung at a time scans clean", async () => {
 
       { asks: "The obstacle card is the Five of Wands. What do you see in it?",
         answer: "nobody's actually aiming", gate: at(2, "name") },
+      { asks: "What is it about them that reads as not aiming to you?",
+        answer: "they're all going past each other", gate: at(2, "name") },
       { asks: "Whose not-aiming is that one?",
         answer: "my brother and me, we never actually row", gate: at(4, "consequences") },
       { asks: "What happened the last time it nearly did?",
@@ -71,10 +76,8 @@ test("a reading that climbs one rung at a time scans clean", async () => {
 
       { asks: "The advice card is The Fool. What does he look like he's about to do?",
         answer: "walking off", gate: at(2, "name") },
-      { asks: "Whose walking off is that one, in your world?",
-        answer: "I hate that it got this far", gate: at(3, "evaluate") },
-      { asks: "What happened the last time you left something?",
-        answer: "I didn't go back", gate: at(3, "consequences") },
+      { asks: "What is it about him that reads as walking off to you?",
+        answer: "he isn't looking where his feet are going", gate: at(2, "name") },
     ],
   });
   assert.equal(session.closed, true);

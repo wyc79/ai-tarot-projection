@@ -60,19 +60,56 @@ test("a deflection releases the dwell rather than trapping them in it", () => {
   assert.ok(!/dwelt/.test(decision.reason));
 });
 
-test("the dwell never outlasts the hard cap", () => {
+test("a card may run one exchange past the cap, but only to dwell", () => {
+  // Two descriptive answers is the settle rule's price, so the earliest a
+  // bridge can land a disclosure is the card's third exchange -- and the dwell
+  // it earns has to come out of a fourth. Without the grace, every card that
+  // grounds by the elaboration path is cut short on arrival.
   const s = fresh();
   flipCard(s, "cups-06-six");
   say(s, at({ depth: 2, life: false }));
   say(s, at({ depth: 2, life: false }));
   const late = at({ depth: 4, life: true, level: "consequences" });
   say(s, late);
-  const decision = flipDecision(s, late);
-  assert.equal(decision.flip, true, "three exchanges is three exchanges");
+  const held = flipDecision(s, late);
+  assert.equal(held.flip, false, "the disclosure landed on the last exchange and buys one more");
+  assert.match(held.reason, /one exchange inside it/);
+
+  const dwelt = at({ depth: 4, life: true, level: "consequences" });
+  say(s, dwelt);
+  const decision = flipDecision(s, dwelt);
+  assert.equal(decision.flip, true, "and one more is all it buys");
+  assert.match(decision.reason, /dwelt on first/);
+});
+
+test("the grace runs out when the dwell turn is itself held at arm's length", () => {
+  // A hedged answer does not satisfy a dwell, so this is where the cut-short
+  // branch still lives: they said it, then put a question mark on the turn that
+  // was supposed to stay inside it.
+  const s = fresh();
+  flipCard(s, "cups-06-six");
+  say(s, at({ depth: 2, life: false }));
+  say(s, at({ depth: 2, life: false }));
+  say(s, at({ depth: 4, life: true, level: "consequences" }));
+  const backed = at({ depth: 3, life: true, level: "consequences", hedged: true });
+  say(s, backed);
+  const decision = flipDecision(s, backed);
+  assert.equal(decision.flip, true, "four exchanges is where it stops either way");
   assert.match(decision.reason, /moving on rather than stalling/);
-  // The cap and the dwell want opposite things here and the cap wins. Worth
-  // its own reason: they opened up just as the card ran out of room.
   assert.match(decision.reason, /cutting a fresh disclosure short/);
+});
+
+test("a card nobody disclosed on gets no grace at all", () => {
+  const s = fresh();
+  flipCard(s, "cups-06-six");
+  say(s, at({ depth: 2, life: false }));
+  say(s, at({ depth: 2, life: false }));
+  const third = at({ depth: 2, life: false });
+  say(s, third);
+  const decision = flipDecision(s, third);
+  assert.equal(decision.flip, true, "three descriptive exchanges is still three");
+  assert.match(decision.reason, /moving on rather than stalling/);
+  assert.ok(!/cutting a fresh disclosure short/.test(decision.reason));
 });
 
 // -- the fixture ----------------------------------------------------------
@@ -112,8 +149,12 @@ test("a hedged answer does not buy progress toward the early exits", () => {
   // And it does not satisfy the dwell either: the follow-up has to land.
   const stillHedged = at({ depth: 3, life: true, level: "consequences", hedged: true });
   say(s, stillHedged);
-  const decision = flipDecision(s, stillHedged);
-  assert.equal(decision.flip, true, "but the hard cap still counts it, so nothing stalls");
+  assert.equal(flipDecision(s, stillHedged).flip, false, "one more, on the dwell's grace");
+
+  const andAgain = at({ depth: 3, life: true, level: "consequences", hedged: true });
+  say(s, andAgain);
+  const decision = flipDecision(s, andAgain);
+  assert.equal(decision.flip, true, "but the hard cap still counts them, so nothing stalls");
   assert.match(decision.reason, /moving on rather than stalling/);
 });
 

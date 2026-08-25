@@ -55,16 +55,31 @@ def validate(pack_dir):
             shots = json.load(open(shots_path)).get("few_shots")
         except json.JSONDecodeError as e:
             shots, _ = None, problems.append("%s is not valid JSON: %s" % (shots_ref, e))
-        if not isinstance(shots, list) or not 3 <= len(shots) <= 8:
-            problems.append("few_shots must hold 3 to 8 exchanges, got %r"
+        if not isinstance(shots, list) or not 3 <= len(shots) <= 9:
+            problems.append("few_shots must hold 3 to 9 shots, got %r"
                             % (len(shots) if isinstance(shots, list) else shots))
         else:
             for i, shot in enumerate(shots):
-                for key in ("demonstrates", "position", "card", "user", "reader"):
+                for key in ("demonstrates", "position", "card"):
                     if not nonempty_str(shot.get(key)):
                         problems.append("few_shot %d: missing or empty %r" % (i, key))
                 if shot.get("position") not in REQUIRED_POSITIONS:
                     problems.append("few_shot %d: unknown position %r" % (i, shot.get("position")))
+                # One exchange, or a run of them for the shots that only make
+                # sense across turns. Not both, so there is one place to read.
+                turns = shot.get("turns")
+                if turns is None:
+                    turns = [shot]
+                elif not isinstance(turns, list) or not turns:
+                    problems.append("few_shot %d: turns must be a non-empty list" % i)
+                    turns = []
+                elif "user" in shot or "reader" in shot:
+                    problems.append("few_shot %d: has both turns[] and a bare user/reader" % i)
+                for j, turn in enumerate(turns):
+                    for key in ("user", "reader"):
+                        if not nonempty_str(turn.get(key)):
+                            problems.append("few_shot %d turn %d: missing or empty %r"
+                                            % (i, j, key))
 
     # The scaffolding ladder. Order is meaning here: the engine steps up it by
     # index, so a pack that lists the levels in the wrong order is a pack whose

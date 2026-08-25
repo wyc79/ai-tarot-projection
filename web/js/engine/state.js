@@ -41,6 +41,12 @@ export const TARGET_EXCHANGES = 2;
 export const MAX_EXCHANGES = 3;
 /** Exchanges to spend inside a fresh disclosure before the card may turn. */
 export const DWELL_MIN = 1;
+/** Exchanges to spend on a card before the bridge to their life is eligible. */
+export const SETTLE_MIN = 2;
+/** How far past the hard cap a card may run, and only to stay inside a
+ *  disclosure. The cap exists so nobody is stuck on a card they have nothing to
+ *  say about; someone who has just said something is not that person. */
+export const DWELL_GRACE = 1;
 
 export function createSession({ packId, seed, positions, startedAt = Date.now() }) {
   return {
@@ -142,6 +148,37 @@ export function dwellOnCurrentCard(session) {
   if (arrival === -1) return { arrived: false, spent: 0, satisfied: true };
   const spent = here.slice(arrival + 1).filter((e) => !e.gate?.hedged).length;
   return { arrived: true, spent, satisfied: spent >= DWELL_MIN };
+}
+
+/**
+ * Whether the card has enough footing under it to bridge to their life yet.
+ *
+ * The pre-disclosure sibling of the dwell rule, and it exists for the same
+ * reason in the opposite direction. A first read of a card is one sentence, and
+ * a bridge thrown across it -- "whose offer is that in your world?" after "the
+ * sky is offering rain to the pond" -- has nothing to ride on. It reads as an
+ * agenda, because it is one: the reader wanted their life and asked for it the
+ * moment there was a noun to hang the question on.
+ *
+ * lantern-be7743 is the failing fixture. Its turn-2 bridge got "couldnt think
+ * of any", and the elaboration question that followed the whiff -- what is it
+ * about the rain that reads as positive -- got the richest answer of the
+ * session. The material the bridge needed was one turn away in the picture.
+ *
+ * Two ways to earn it. Two exchanges on this card, which is the elaboration
+ * path; or one answer that already had something of theirs in it, in which case
+ * they crossed on their own and there is nothing left to earn.
+ */
+export function settleOnCurrentCard(session) {
+  const card = currentCard(session);
+  if (!card) return { spent: 0, selfReferent: false, settled: false };
+  const here = session.exchanges.filter((e) => e.position === card.position);
+  const selfReferent = here.some((e) => e.gate?.has_life_content === true);
+  return {
+    spent: here.length,
+    selfReferent,
+    settled: selfReferent || here.length >= SETTLE_MIN,
+  };
 }
 
 /**
@@ -358,18 +395,28 @@ export function flipDecision(session, gate) {
   const dwell = dwellOnCurrentCard(session);
   const dwelt = dwell.arrived && dwell.satisfied ? ", dwelt on first" : "";
   if (!dwell.satisfied && gate.disclosure_depth > 1) {
-    if (count < MAX_EXCHANGES) {
+    // One exchange past the cap, and only here. Three transitions now have to
+    // fit on one card -- settle before bridging, bridge, then dwell -- and
+    // three of them do not fit in three exchanges. Without the grace, every
+    // card that grounds by the elaboration path grounds on its last exchange
+    // and gets cut short, which puts the flip-on-disclosure shape back on the
+    // map that the previous round took off it.
+    //
+    // It buys nothing for a card nobody disclosed on: no arrival, no dwell, no
+    // grace, and a card of pure description still moves on at three.
+    if (count < MAX_EXCHANGES + DWELL_GRACE) {
       return {
         flip: false,
         reason: "they just told you something of their own; one exchange inside it "
           + "before the reading moves on",
       };
     }
-    // The disclosure arrived on the card's last available exchange, so the cap
-    // and the dwell want opposite things and the cap wins -- a card that cannot
-    // be satisfied is worse than a dwell cut short. Recorded as its own reason,
-    // because "they opened up just as we ran out of room" is a thing worth
-    // being able to count across sessions.
+    // They disclosed, and then held the follow-up at arm's length -- a hedged
+    // answer does not satisfy a dwell, so the grace above ran out with the
+    // dwell still open. The cap wins: a card that cannot be satisfied is worse
+    // than a dwell cut short. Recorded as its own reason, because "they opened
+    // up just as we ran out of room" is worth being able to count across
+    // sessions.
     return {
       flip: true,
       reason: `${count} exchanges on one card; moving on rather than stalling `

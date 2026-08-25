@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "session": {
+    "schema_version": 1,
+    "session_id": "lantern-be7743-1787701212000",
+    "pack_id": "smith-waite-1909",
+    "seed": "lantern-be7743",
+    "started_at": 1787701212000,
+    "positions": [
+      "situation",
+      "obstacle",
+      "advice"
+    ],
+    "phase": "reading",
+    "topic": null,
+    "anchor": null,
+    "cards": [
+      {
+        "card_id": "cups-01-ace",
+        "position": "situation",
+        "user_projection": "something in the sky is offering rain to the pond, positively though",
+        "ai_reading": "You saw the offer before anything else, and you read it as a positive one — the sky giving, not the sky demanding.\n\nWhose offer is that in your world — one you're making, or one being made to you?",
+        "flipped_at": 1787701221000,
+        "flip_reason": "the opening question was answered; the reading begins"
+      }
+    ],
+    "exchanges": [
+      {
+        "q": "Before I turn anything over — is there something particular you'd like to look at, or are you just curious where the cards take it?",
+        "a": "nothing",
+        "disclosure_depth": 0,
+        "position": "opening",
+        "gate": {
+          "has_topic": false,
+          "topic": "",
+          "stakes": "low"
+        }
+      },
+      {
+        "q": "The situation card is the Ace of Cups. What does it look like it's pointing at for you?",
+        "a": "something in the sky is offering rain to the pond, positively though",
+        "disclosure_depth": 2,
+        "position": "situation",
+        "question_type": "projection",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 2,
+          "has_life_content": false,
+          "hedged": false,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "They read the sky as offering rain to the pond, and read the offer as a positive one."
+        }
+      },
+      {
+        "q": "You saw the offer before anything else, and you read it as a positive one — the sky giving, not the sky demanding.\n\nWhose offer is that in your world — one you're making, or one being made to you?",
+        "a": "couldnt think of any",
+        "disclosure_depth": 1,
+        "position": "situation",
+        "question_type": "life",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 1,
+          "has_life_content": false,
+          "hedged": false,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "They could not think of anything the offer connected to."
+        }
+      }
+    ],
+    "safety_state": "normal",
+    "last_stakes": "low",
+    "handback_given": false,
+    "closing_reflection": null,
+    "closed": false
+  }
+}

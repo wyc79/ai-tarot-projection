@@ -12,6 +12,7 @@
       "arc_role": "setup",
       "prompt_hint": "where things stand right now",
       "moves": [
+        "elaborate",
         "own",
         "externalize",
         "their-words"
