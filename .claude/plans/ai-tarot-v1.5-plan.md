@@ -89,19 +89,23 @@ Per session:
 - topic: what they said they wanted to look at, in their words, or null if they declined
 - anchor: { theme, user_phrases[], resolution_beat } (narrative plan, not a static string)
 - cards: [{ card_id, position, user_projection, ai_reading, flipped_at }]
-- exchanges: [{ q, a, disclosure_depth, position, question_type, gate }] - position is a card's
-  position, or "opening" (before the deal) or "off_frame" (after the frame is dropped).
-  question_type: projection | life - NEW, from the A/B run: depth is answer-relative-to-question,
+- exchanges: [{ q, a, disclosure_depth, position, question_type, question_level, gate }] - position
+  is a card's position, or "opening" (before the deal) or "off_frame" (after the frame is dropped).
+  question_type: projection | life - from the A/B run: depth is answer-relative-to-question,
   and the judge rubric branches on it (a card-description answer to a projection question is rich;
   the same words answering a life question are a deflection)
-- flip gate: structured judge() output per turn { disclosure_depth, flip_ready, stakes,
+  question_level: which scaffolding level the question stood at (see M3.5). A parallel axis to
+  question_type, not a finer one - a projection ask can target any level
+- flip gate: structured judge() output per turn { disclosure_depth, user_level, stakes,
   reading_of_them }. No `reply` field: the reader's words come from chat(), streamed;
-  judge() returns JSON and nothing else. The two use separately configurable models
-- FLIP OWNERSHIP (open defect from the A/B run): flip_ready was false on every gate row of both
-  runs yet all cards flipped - the engine's depth/count rule and the judge's flag currently
-  disagree on who decides. Resolve to ONE owner (recommended: engine decides from
-  disclosure_depth + exchange count; drop flip_ready from the gate or make it advisory-only),
-  and log the actual flip reason per flip
+  judge() returns JSON and nothing else. The two use separately configurable models.
+  user_level is the scaffolding level the ANSWER operated at (see M3.5) - a separate axis
+  from disclosure_depth: depth is how much they revealed, level is what kind of operation
+  they performed. The gate schema is built from pack data, since the level enum is the pack's
+- FLIP OWNERSHIP (resolved on m3-fixes): flip_ready was false on every gate row of both
+  runs yet all cards flipped - the engine's depth/count rule and the judge's flag
+  disagreed on who decides. ONE owner: the engine decides from disclosure_depth +
+  exchange count, flip_ready is gone from the gate, and every card records the flip reason
 - disclosure_depth is 1-4, rubric in the judge prompt: 1 deflection, 2 general statement,
   3 specific situation, 4 specific event with feeling or stakes - branched by question_type
 - safety_state: normal | drop_frame; handback_given so the high-stakes handback fires once
@@ -187,6 +191,42 @@ Fix queue from the checkpoint (do these before playtests):
 7. A/B harness: scripted user answers break when arms diverge (B's hang was this). Replace
    with an LLM-simulated user persona (consistent character, answers generated live per arm),
    or restrict cross-arm comparison to protocol-compliance and voice metrics
+### M3.5 - Scaffolded question targeting
+Michael White's scaffolding map (via Vygotsky's ZPD) as the axis the question policy runs on.
+Internal machinery: the levels are never named to the user.
+- Five ordered levels, low to high: name (what it is) - consequences (what happened, what
+  happens next) - evaluate (what it is like for them) - intentions (why it matters to them) -
+  plans (what they will do)
+- This UNIFIES three mechanisms rather than adding a fourth: action-landscape questions are
+  levels 1-2, identity-landscape questions are 3-4, the closing actionable step is 5. The
+  persona's old `explore` move was that ladder discovered by hand with two of its five rungs;
+  it is gone as a move
+- target_level = min(user_level + 1, position ceiling). One rung above is answerable; two is a
+  question they must invent an answer to. Written into the recap block every turn
+- A CEILING ON DISTANCE, NOT A QUOTA: people jump levels unprompted, and when they do the
+  reader meets them there. Follow them up, never march them up
+- Step-down rule: a deflection drops user_level and the next question does not climb - it asks
+  at the same height, more concretely. At the bottom rung that is the existing forced-choice
+  fallback, wired as the step-down rather than duplicated
+- Position ceilings in pack data (positions[].ceiling): situation caps at evaluate, obstacle at
+  intentions, advice opens plans. The staircase and the setup -> tension -> resolution arc are
+  the same shape, and the validator enforces that ceilings never descend across the spread
+- All new knowledge is pack data: levels[] with what each asks, a gloss, and 2-3 question
+  exemplars per level. The engine knows the ordering rule and the +1 arithmetic, nothing else
+- A card just dealt has no answers, so the target falls to the bottom rung by construction:
+  projection-first and the ladder agree without either knowing about the other
+- The closing step is the one question exempt from the ceiling, and is sized to the highest
+  level reached: something to do if they reached intentions, something to notice if they never
+  got past consequences. Closing stays unconditional and is never skipped
+- Scanner: level_jump (a question more than one rung above their last level) and level_flat (a
+  reading whose questions never left one rung). The level trace becomes a primary A/B metric,
+  since depth traces are not comparable across arms
+- Regression fixtures: a clean climb, a mid-session deflection stepping down, and a
+  low-altitude reading that still closes on a small noticing
+- FIRST MEASUREMENT (2026-08-25 transcripts): neither arm ever asked above consequences. Both
+  oscillated name -> consequences -> name; B jumped name -> plans in one step on the advice
+  card. evaluate and intentions were never touched by either model
+
 - Reader persona system prompt: co-interpretation flow (AI speaks second), position-aware bending, fallbacks (imagery pointing, forced choice), stake-scaled agency handback, drop-frame state, closing actionable step
 - Persona additions (from Semetsky 2006 / Clinton 2024 / White & Epston):
   - Correction wins (see Safety) - never treat disagreement as confirmation
@@ -257,13 +297,22 @@ The tarot app is one shell around a generic reflection engine. Structure the rep
 
 ## Resume framing
 "Designed an LLM agent with structured disclosure-gating, projection-first co-interpretation, familiarity-staged user memory (认识->了解->预判), and narrative-coherence state (anchor/ledger with real-time narrative steering), shipped as a BYOK web app with a stateless Python relay (no data at rest) on a reusable reflection engine."
-Keyword alignment for Game x AI Native tracks (e.g. miHoYo): agent framework, 记忆系统 / staged cognition accumulation, 叙事调控, roleplay persona design, knowledge-as-data iteration (packs updated without touching the engine).
+Keyword alignment for Game x AI Native tracks (e.g. miHoYo): agent framework, 记忆系统 / staged cognition accumulation, 叙事调控, roleplay persona design, knowledge-as-data iteration (packs updated without touching the engine), scaffolded question targeting with a ZPD movement rule (White/Vygotsky) - it speaks the 分级能力框架 dialect.
 Writeup notes: journal export framed as the session's therapeutic document (White & Epston tradition); question policy "informed by narrative therapy techniques (externalization, landscape questions, unique outcomes)" - inspiration for a reflection tool, never a therapeutic claim, and never named in-product.
 
 ## References (borrow candidates - prompts, meanings, assets)
 Design validation + prompt language:
 - Clinton, E. (2024). "Divining the self: Applying tarot as a projective technique in counseling" (JMU, open access: commons.lib.jmu.edu/edspec202029/97) - academic version of this exact concept: secular projective use, client's interpretation over card tradition, no tarot expertise required, narrative-therapy connection. Borrow: its manual's projection prompts ("what do you think is happening here / what are they feeling / when have you felt this way") for few-shots and fallbacks; its introduction-script framing for onboarding copy; one post-session debrief question before the closing action step; the four-card temporal spread (past/present/future/lesson - lesson = our earned epilogue card) as a second spread in the pack. Citation chain for the writeup: Clark 1995, Pepinsky 1947, Wood & Pignatelli 2019, Semetsky 2005 (13/15 found single-session projective readings meaningful).
 - Semetsky, I. (2006). "Tarot as a projective technique" (Spirituality and Health International 7) - cited for technique, not metaphysics: the spread as bounded container (M4 UI thesis), mediated communication via the layout as resistance reduction (keep the card the third object), story weaving corrected (the client weaves; the reader communicates the client's not-yet-verbal story back - the mirror observation). ALSO the source of the correction-wins anti-pattern: her own case study treats client disagreement as confirmation; our Safety rule exists to prevent exactly that. Her Figure 2 needed US Games' permission for the 1971 deck - reinforces our 1909 PD scans decision.
+- White, M. (2007). "Maps of Narrative Practice" (Norton) - the scaffolding conversations map, which
+  is the source of M3.5's five distancing levels and the one-step movement rule. Borrowed: the level
+  ordering, the phrasings the pack's exemplars adapt ("what happened after this...", "what's it like
+  for you to see this...", "do you know why this makes you feel..."), and the principle that a
+  question two steps out is one the person must invent an answer to.
+- Ramey, H. L., Young, K., & Tarulli, D. (2010). "Scaffolding and concept formation in narrative
+  therapy" (Journal of Marital and Family Therapy) - Vygotsky's ZPD as the mechanism under White's
+  map; the empirical account of how the distancing levels move in real sessions. Cited for the
+  claim that the levels are ordered and that movement, not altitude, is what does the work.
 - Narrative therapy primer (EBSCO Research Starters; White & Epston, Norton 1990/2007) - externalizing conversations with the canonical language template ("how does this problem affect your motivation?" vs "you're not motivated"); therapist "decentered, yet significant" as the reader's posture; therapeutic documents as the frame for the journal export.
 Repos studied; may borrow prompt language and card-meaning text (keep MIT attribution if lifting text):
 - https://github.com/benbenzhangai/claude-tarot-skill - MIT. Reflective philosophy overlaps ours; borrowed: position-aware interpretation, stake-scaled guardrails, closing actionable steps, user-provided cards mode. Its SKILL.md + references/card_meanings.md are prompt-borrowing candidates.
@@ -277,6 +326,11 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-25): M3.5 scaffolded question targeting on branch m3-scaffolding - level enum,
+  target_level rule, ceilings and exemplars in pack data (schema v4 -> v5), step-down rule,
+  scanner metric, three regression fixtures. State schema updated for user_level and
+  question_level, and the flip-ownership entry marked resolved since the gate shape changed
+  with it. References gain White 2007 and Ramey/Young/Tarulli 2010.
 - v1.5 (2026-08-25): fix queue 1-5 landed on branch m3-fixes, plus judge_replay.mjs (6)
   and the simulated-user harness (7). Both of those need a live key to say anything;
   the scripted mode stays as the free single-arm regression fixture.
