@@ -234,6 +234,3 @@ references/
 
 # Redaction maps: these are what would let someone reverse a fixture.
 redactions/
-
-# Hand-off script for the one-time history scrub; delete after running.
-scrub-history.sh

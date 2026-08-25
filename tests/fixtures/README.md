@@ -17,6 +17,11 @@ this.
 Both fixtures produce byte-identical scanner findings before and after, which is
 the test that the redaction did not quietly change what they are fixtures for.
 
+Commits predating this policy still carry the earlier wording in files that
+quoted it -- the pack's few-shots, the judge rubric, a couple of tests. Left
+alone deliberately. The rule applies from here; it is not a claim about the
+whole history.
+
 - `thread-c145c7.json` — 2026-08-25. Needed no substitutions: there is no life
   content in it at all, which is the defect it exists to document. No topic named, and the reader never found
   one: every user answer is pure card description, and the reader answered card
