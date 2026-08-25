@@ -11,3 +11,11 @@ records has changed.
   on none of them. It is the fixture for the grounding round: point-don't-name,
   the rail-crossing rule, depth honesty for card-only answers, and anchor
   hygiene each cite one of its turns.
+
+- `river-89c1fb.json` — 2026-08-25. The opposite failure to c145c7's, and caused
+  by its fix. The ownership move worked: an offer at the same level got a real
+  life referent back on the second exchange ("i used to have a different major
+  and now doing something completely different"). Grounding then unlocked the
+  early flip, and The Lovers turned over on that very turn. The reward for
+  opening up was the subject changing. It is the fixture for the dwell rule,
+  the hedge flag ("i guess so?"), and territory-phrased resolution beats.
