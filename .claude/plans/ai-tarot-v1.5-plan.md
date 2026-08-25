@@ -1,4 +1,4 @@
-# AI Tarot - v1 Plan
+# AI Tarot - v1.5 Plan
 
 ## Concept
 Tarot as a doorway, not divination. The cards are projective prompts that get people (especially therapy-avoidant people) to open up and reflect. The AI is a warm reader that guides the conversation; it never predicts. Tarot is one swappable "symbol pack" on top of a generic reflection engine.
@@ -26,9 +26,14 @@ Tarot as a doorway, not divination. The cards are projective prompts that get pe
   2. AI asks the user to read it first ("what does this card feel like it's pointing at for you?")
   3. User's projection is the disclosure; AI builds on their words, adds light traditional flavor
   4. Rhythm per card: flip -> user projection -> AI follow-up -> next flip
+  - HARD RULE (from the A/B run): the turn that deals a card MUST ask the projection question.
+    Life questions wait until the projection is in. Pro-tier models drift on this; it is a
+    protocol violation, not cleverness, and the scanner checks for it
+- Closing is unconditional: after the advice-card exchange, at most one follow-up, then the
+  closing beat fires regardless of depth. A session can never hang unclosed (B run proved it can)
 - Fallbacks: "I don't know tarot" -> point at imagery; one-word answers -> forced choice between two contrasting meanings drawn from the position's meaning space
 - Position-aware meanings (from claude-tarot-skill): pack stores per-position meaning hints per card (meanings: { situation, obstacle, advice } + general fallback); same card reads differently by position, and the AI bends the user's projection toward the position's role in the arc
-- Closing actionable step: session's last beat converts the resolution into one small concrete real-world reflection or action ("this week, notice when X happens"); makes the session feel complete
+- Closing actionable step: session's last beat converts the resolution into one small concrete real-world reflection or action ("this week, notice when X happens"); makes the session feel complete. It should tie to something the user said they value, and quietly reinforce that whatever was found came from them, not the cards
 - User-provided cards mode: skip the draw, interpret cards the user names (physical-deck users); same engine
 - Seeded draws (from magicli_tarot): deterministic card sequence for reproducible playtests and prompt-version comparisons; date-seeded "daily card" is a possible later ritual hook
 - Session coherence:
@@ -38,8 +43,13 @@ Tarot as a doorway, not divination. The cards are projective prompts that get pe
 
 ## Safety
 - Reflective framing only, no predictive claims
+- Correction wins, always: when the user disputes an observation, the correction is accepted and
+  the anchor updates with their words. Disagreement is NEVER treated as confirmation or resistance
+  (the unfalsifiable cold-reading move demonstrated in Semetsky 2006's own case study is the
+  anti-pattern this rule exists to prevent)
 - Stake-scaled guardrails (from claude-tarot-skill): flip gate classifies stakes (low | high | crisis); high (medical/legal/financial) keeps the tarot frame but explicitly hands agency back ("the cards can help you think, but this needs a professional / real information")
 - Explicit "drop the frame" state: if user discloses crisis-level content (grief, self-harm), AI exits tarot voice, responds plainly, points to real resources. Reachable from turn one.
+- Onboarding carries one quiet line that this is reflection, not therapy or crisis support, with a pointer to real help (Clinton 2024)
 
 ## Architecture (v1: plain web frontend + dumb relays)
 DECIDED: frontend is plain HTML/CSS/JS (no framework, no build step). Prompt assembly lives in frontend JS - packs are static files the frontend fetches, so assembly works identically everywhere. Two deployment targets share one llmClient:
@@ -56,13 +66,15 @@ DECIDED: frontend is plain HTML/CSS/JS (no framework, no build step). Prompt ass
 - Dev-mode logging (Python relay only): since every call passes through the relay with the fully assembled prompt in the body, a DEV_LOG=1 .env flag logs full request/response bodies (auth header redacted) for M3 iteration and consented playtest transcripts. Default off. The Worker has no logging code path at all - hosted users' conversations are unloggable by construction. Frontend debug panel shows the assembled prompt pre-send.
 - Open-relay protection on the Worker: origin checks + per-IP rate limits (+ lightweight app token if abused)
 - Session state + draw ledger in localStorage: same-device "session 2+" memory for free
-- Optional two-model split (BYOK config): cheap/fast model for the reader's conversational turns; stronger model for flip-gate classification and session-end distillation, where judgment quality matters
+- Two-model split (BYOK config): remains a config option, not a quality requirement - the
+  2026-08-25 checkpoint showed flash-tier is past the quality bar for chat turns
 - Abstractions: one llmClient module (relay mode with configurable base URL / direct mode), one storage module
 - Provider registry separates which relay entry to name from which wire format to build, so several
   providers share one adapter. DeepSeek and OpenCode Zen both serve Anthropic-shaped endpoints and
-  reuse it; default is deepseek / deepseek-v4-flash. Each declares features (thinking, effort,
-  structuredOutput, temperature) so the newest Anthropic parameters are not sent to gateways that
-  have never heard of them, and judge() falls back to schema-in-the-prompt where needed
+  reuse it; default is deepseek / deepseek-v4-flash (confirmed by the model checkpoint - see M3).
+  Each declares features (thinking, effort, structuredOutput, temperature) so the newest Anthropic
+  parameters are not sent to gateways that have never heard of them, and judge() falls back to
+  schema-in-the-prompt where needed
 - Failures are classified, because they need different fixes: invalid_key, unknown_model,
   endpoint_not_found, provider_rate_limited, provider_unavailable, bad_payload, connection_failed,
   bad_provider_response, response_truncated
@@ -77,13 +89,21 @@ Per session:
 - topic: what they said they wanted to look at, in their words, or null if they declined
 - anchor: { theme, user_phrases[], resolution_beat } (narrative plan, not a static string)
 - cards: [{ card_id, position, user_projection, ai_reading, flipped_at }]
-- exchanges: [{ q, a, disclosure_depth, position, gate }] - position is a card's position,
-  or "opening" (before the deal) or "off_frame" (after the frame is dropped)
+- exchanges: [{ q, a, disclosure_depth, position, question_type, gate }] - position is a card's
+  position, or "opening" (before the deal) or "off_frame" (after the frame is dropped).
+  question_type: projection | life - NEW, from the A/B run: depth is answer-relative-to-question,
+  and the judge rubric branches on it (a card-description answer to a projection question is rich;
+  the same words answering a life question are a deflection)
 - flip gate: structured judge() output per turn { disclosure_depth, flip_ready, stakes,
   reading_of_them }. No `reply` field: the reader's words come from chat(), streamed;
   judge() returns JSON and nothing else. The two use separately configurable models
+- FLIP OWNERSHIP (open defect from the A/B run): flip_ready was false on every gate row of both
+  runs yet all cards flipped - the engine's depth/count rule and the judge's flag currently
+  disagree on who decides. Resolve to ONE owner (recommended: engine decides from
+  disclosure_depth + exchange count; drop flip_ready from the gate or make it advisory-only),
+  and log the actual flip reason per flip
 - disclosure_depth is 1-4, rubric in the judge prompt: 1 deflection, 2 general statement,
-  3 specific situation, 4 specific event with feeling or stakes
+  3 specific situation, 4 specific event with feeling or stakes - branched by question_type
 - safety_state: normal | drop_frame; handback_given so the high-stakes handback fires once
 - opening judge() output: { has_topic, topic, stakes } - stakes is classified before the
   first card, so the frame can be dropped without dealing at all
@@ -112,7 +132,7 @@ Three memory tiers: turn state (flip gate, exchanges) -> session state (anchor +
   - Full export shows a one-line warning at export time (plain-text conversations); optional passphrase encryption (WebCrypto AES-GCM) in v1.5
   - Single versioned JSON file either way ("schema_version": 1), profile and sessions[] as separate top-level keys; import accepts both shapes, file structure tells which
   - Import semantics: profile changes reader behavior; transcripts restore browsable history only
-  - "Save as journal entry" (from magicli_tarot): per-session Markdown export - cards, the user's own projections, the closing step; a readable keepsake, separate from the JSON data exports
+  - "Save as journal entry" (from magicli_tarot): per-session Markdown export - cards, the user's own projections, the closing step; a readable keepsake, separate from the JSON data exports. In narrative-therapy terms this is the therapeutic document of the session (White & Epston) - worth a line in the writeup
 - Retention: localStorage quota ~5MB and transcripts are what grows; keep full transcripts for last N sessions, older ones survive only via their distilled contribution to the profile; offer "export full history" before pruning
 - Storage: profile is another keyed object beside session in localStorage; design the storage module for it in v1 even though the feature ships v1.5
 
@@ -141,7 +161,46 @@ Three memory tiers: turn state (flip gate, exchanges) -> session state (anchor +
 - Done when: a scripted session runs end-to-end in a bare debug UI with seeded cards. Note: the full slice DoD (projection-first exchanges + closing reflection) additionally needs a stub reader prompt - that stub is M2's, the real reader is M3's.
 
 ### M3 - Reader quality (the make-or-break week)
+STATUS after the 2026-08-25 A/B checkpoint (seed moon-4f2a91, flash vs pro chat, flash judge):
+the voice/consistency bar is substantially met on seeded fixtures. Evidence: externalization
+landed verbatim in both arms ("you handed it to the woman in the picture rather than to
+yourself" -> produced the depth-4 disclosure both times), turn shape held on every turn,
+and the flash arm closed with a genuine mirror-synthesis of the user's own phrases plus a
+concrete step tied to what they value. MODEL DECISION: deepseek-v4-flash stays the default
+chat model - pro wrote marginally subtler questions but violated projection-first at the
+advice card and its session never closed; flash held protocol and finished. Two-model split
+stays config-only.
+
+Fix queue from the checkpoint (do these before playtests):
+1. Unconditional closing (see Core mechanics) - a session must never hang unclosed
+2. Projection-first compliance check in the scanner: the turn that deals a card must ask a
+   card-read question; flag deal-turns that ask life questions
+3. Flip ownership reconciliation (see State schema) - one owner, log the flip reason
+4. question_type (projection | life) on exchanges + branched depth rubric - cross-arm depth
+   traces are NOT comparable once conversations diverge; stop treating them as an invariant
+5. Scanner whitelist: the designed forced-choice fallback is a permitted "stacked or" on
+   low-depth fallback turns (both runs flagged a correct fallback as a violation)
+6. scripts/judge_replay.mjs - NEW: replay the judge N times on frozen identical transcript
+   inputs and diff, to separate true judge nondeterminism from context divergence (the A/B
+   summary's "judge moved" conclusion conflated the two; turn 7's 4-vs-1 was the judge being
+   right about two different questions)
+7. A/B harness: scripted user answers break when arms diverge (B's hang was this). Replace
+   with an LLM-simulated user persona (consistent character, answers generated live per arm),
+   or restrict cross-arm comparison to protocol-compliance and voice metrics
 - Reader persona system prompt: co-interpretation flow (AI speaks second), position-aware bending, fallbacks (imagery pointing, forced choice), stake-scaled agency handback, drop-frame state, closing actionable step
+- Persona additions (from Semetsky 2006 / Clinton 2024 / White & Epston):
+  - Correction wins (see Safety) - never treat disagreement as confirmation
+  - Observe before interpreting: interpretation boldness gated by depth, same logic as the
+    familiarity stages ("the psyche naked may need to be only observed at first, never
+    interpreted irrevocably")
+  - The card stays the third object in the room even at high depth: route through the layout
+    rather than drifting into plain Q&A once disclosure flows (mediated communication is what
+    reduces resistance)
+  - At high depth the observation half of the turn is a mirror: assemble the user's own stored
+    phrases into one narrative sentence rather than adding a new interpretation (the flash
+    arm's closing demonstrates the form)
+  - Externalizing language template (canonical example, use as a pattern): ask "how does this
+    problem affect X" - never "you're not X"
 - 3-5 few-shot exchanges in the pack (poor man's distillation); iterate against seeded sessions
 - Recap block: every chat() turn carries a session record assembled from state - anchor with the
   user's phrases verbatim, each card with a one-line record, arc position, depth, safety_state.
@@ -157,10 +216,13 @@ Three memory tiers: turn state (flip gate, exchanges) -> session state (anchor +
 - scripts/seeded_session.mjs is the canonical fixture: same seed, scripted model, diffable pacing
 - scripts/model_checkpoint.mjs runs one seeded session twice varying only the chat model
 - Playtest with 3-5 real tarot-curious non-dev people; log transcripts (with consent), fix the tells: over-explaining symbolism, clinical questions, hedging, assistant cadence
-- Done when: at least half of playtesters say something true about themselves unprompted by card 2, and no one calls it "a chatbot doing tarot"
+- Done when: fix queue items 1-5 land and hold on seeded fixtures, then at least half of playtesters say something true about themselves unprompted by card 2, and no one calls it "a chatbot doing tarot"
 
 ### M4 - UI + polish (2-3 days)
 - Card table UI: draw-in, flip (CSS rotateY + backface-visibility), spread layout, mobile-first; plain CSS/JS, no animation libs unless clearly needed
+- The table reads as a bounded, stable container the conversation keeps returning to - the chat
+  serves the table, not the reverse (Semetsky: the layout's boundedness is itself grounding;
+  the material is visibly "out of the head and on the table")
 - Key management: paste key, localStorage vs session-only toggle, provider/model settings
 - Session journal export (Markdown) and per-session JSON: DONE early in M3, because playtesting
   without transcripts loses the sessions worth reading. Every turn is saved to a capped history in
@@ -196,8 +258,13 @@ The tarot app is one shell around a generic reflection engine. Structure the rep
 ## Resume framing
 "Designed an LLM agent with structured disclosure-gating, projection-first co-interpretation, familiarity-staged user memory (认识->了解->预判), and narrative-coherence state (anchor/ledger with real-time narrative steering), shipped as a BYOK web app with a stateless Python relay (no data at rest) on a reusable reflection engine."
 Keyword alignment for Game x AI Native tracks (e.g. miHoYo): agent framework, 记忆系统 / staged cognition accumulation, 叙事调控, roleplay persona design, knowledge-as-data iteration (packs updated without touching the engine).
+Writeup notes: journal export framed as the session's therapeutic document (White & Epston tradition); question policy "informed by narrative therapy techniques (externalization, landscape questions, unique outcomes)" - inspiration for a reflection tool, never a therapeutic claim, and never named in-product.
 
 ## References (borrow candidates - prompts, meanings, assets)
+Design validation + prompt language:
+- Clinton, E. (2024). "Divining the self: Applying tarot as a projective technique in counseling" (JMU, open access: commons.lib.jmu.edu/edspec202029/97) - academic version of this exact concept: secular projective use, client's interpretation over card tradition, no tarot expertise required, narrative-therapy connection. Borrow: its manual's projection prompts ("what do you think is happening here / what are they feeling / when have you felt this way") for few-shots and fallbacks; its introduction-script framing for onboarding copy; one post-session debrief question before the closing action step; the four-card temporal spread (past/present/future/lesson - lesson = our earned epilogue card) as a second spread in the pack. Citation chain for the writeup: Clark 1995, Pepinsky 1947, Wood & Pignatelli 2019, Semetsky 2005 (13/15 found single-session projective readings meaningful).
+- Semetsky, I. (2006). "Tarot as a projective technique" (Spirituality and Health International 7) - cited for technique, not metaphysics: the spread as bounded container (M4 UI thesis), mediated communication via the layout as resistance reduction (keep the card the third object), story weaving corrected (the client weaves; the reader communicates the client's not-yet-verbal story back - the mirror observation). ALSO the source of the correction-wins anti-pattern: her own case study treats client disagreement as confirmation; our Safety rule exists to prevent exactly that. Her Figure 2 needed US Games' permission for the 1971 deck - reinforces our 1909 PD scans decision.
+- Narrative therapy primer (EBSCO Research Starters; White & Epston, Norton 1990/2007) - externalizing conversations with the canonical language template ("how does this problem affect your motivation?" vs "you're not motivated"); therapist "decentered, yet significant" as the reader's posture; therapeutic documents as the frame for the journal export.
 Repos studied; may borrow prompt language and card-meaning text (keep MIT attribution if lifting text):
 - https://github.com/benbenzhangai/claude-tarot-skill - MIT. Reflective philosophy overlaps ours; borrowed: position-aware interpretation, stake-scaled guardrails, closing actionable steps, user-provided cards mode. Its SKILL.md + references/card_meanings.md are prompt-borrowing candidates.
 - https://github.com/venom0666/magicli_tarot - CLI one-shot reader (Gemini); borrowed: seeded draws, reading export, multilingual output as pack variants.
@@ -209,7 +276,13 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 - Wikimedia Commons "Rider-Waite tarot deck" categories - canonical 1909 scans (Pam-A, Roses & Lilies, Holly Voley sets)
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
+## Plan changelog
+- v1.5 (2026-08-25): renamed from ai-tarot-v1-plan.md, which is deleted -- exactly one plan
+  file lives in .claude/plans/, and any commit touching it updates this section.
+- v1.5 (2026-08-25): A/B checkpoint results + fix queue, model decision (flash default), persona additions from Semetsky/Clinton/White-Epston, question_type in schema, unconditional closing, flip-ownership defect logged
+- v1: initial plan through the architecture decisions (dual dumb relays, client-side assembly)
+
 ## Open items (next working session)
-- Draft reader persona system prompt (kill the tells: over-explaining symbolism, clinical questions, hedging)
-- Finalize state schema + structured output format for the flip gate
-- Pick framework + write the llmClient/storage interfaces
+- Land M3 fix queue 1-5 on seeded fixtures; add judge_replay.mjs (6); decide on simulated-user harness (7)
+- Fold the persona additions into persona.md + one few-shot demonstrating the mirror observation
+- Then: playtests with real tarot-curious non-dev people
