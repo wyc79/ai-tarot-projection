@@ -118,13 +118,110 @@ export function scanSession(session, pack = null) {
     }
   }
 
-  if (pack) findings.push(...scanScaffolding(session, pack));
+  if (pack) findings.push(...scanScaffolding(session, pack), ...scanPremises(session, pack));
 
   if (!session.closed) {
     findings.push({
       index: session.exchanges.length, position: "end", code: "unclosed",
       message: "the reading stopped without a closing beat", text: "",
     });
+  }
+  return findings;
+}
+
+// Words that carry no scene content, so a match on one means nothing. Not a
+// general stopword list -- just enough that what is left is mostly things and
+// actions in the picture.
+const EMPTY_WORDS = new Set(`about above after again against also another around
+back because been before behind below beside between both came come does down each even
+ever every from geen gets give góing gone have here into just keep kind like
+look looked looking made make many more most much must near need never next
+front left right side under upon top bottom corner edge middle
+nothing only other over said same seem seems seen since some something
+still such take taken tell than that their them then there these they thing
+things this those through time turn turned under until upon very want wants
+were what when where which while will with without would your yours yourself`
+  .split(/\s+/).filter(Boolean));
+
+// Suffix stripping plus the handful of irregulars that actually turn up in
+// descriptions of pictures. Without "built -> build" the c145c7 obstacle turn's
+// "building what they want" does not match the pack's "being built to a plan",
+// which is the same assertion in a different tense.
+const IRREGULAR = {
+  built: "build", held: "hold", stood: "stand", sat: "sit", lay: "lie", lain: "lie",
+  worn: "wear", wore: "wear", hidden: "hide", hid: "hide", bound: "bind",
+  drawn: "draw", drew: "draw", woven: "weave", wove: "weave", spun: "spin",
+};
+const STEM = (word) => IRREGULAR[word] ?? word.replace(/(?:ing|ed|es|s)$/, "");
+
+/** Content words, stemmed, from any text. */
+function contentWords(text) {
+  return new Set(String(text ?? "").toLowerCase().match(/[a-z']{4,}/g)
+    ?.filter((w) => !EMPTY_WORDS.has(w)).map(STEM) ?? []);
+}
+
+/**
+ * Words the reader used that came from the pack rather than from them.
+ *
+ * details[] and the meanings exist so the reader can recognise what someone
+ * points at and answer them on it. They are not a description to hand back.
+ * c145c7's obstacle turn said "the ones holding the plans" and "building what
+ * they want" -- plans and building are both in the pack for that card, neither
+ * was ever said by the person, and the turn asserts both as facts about a
+ * picture only they could see.
+ *
+ * Naming the card is not an assertion about the scene, so the card's own name
+ * is exempt. So is anything they have already said: once someone offers a
+ * bench, the reader may talk about the bench.
+ *
+ * A heuristic over word stems, and it will have both kinds of error. A finding
+ * is a turn to go and read.
+ */
+function scanPremises(session, pack) {
+  const findings = [];
+  const said = new Set();
+  const positionOf = new Map(session.cards.map((c) => [c.position, c]));
+
+  // Every reader turn but one is stored twice: as the next exchange's question,
+  // and as the card's ai_reading. The one exception is the turn nobody answered
+  // -- the last thing the reader said before the session stopped -- which exists
+  // only on the card. That is where c145c7's worst turn is.
+  const answered = new Set(session.exchanges.map((e) => e.q).filter(Boolean));
+  const trailing = session.cards
+    .filter((c) => c.ai_reading && !answered.has(c.ai_reading))
+    .map((c) => ({ q: c.ai_reading, a: "", position: c.position }));
+
+  for (const [index, exchange] of [...session.exchanges, ...trailing].entries()) {
+    const entry = positionOf.get(exchange.position);
+    const card = entry && pack.card(entry.card_id);
+    if (card && exchange.q) {
+      // The imagery line is the one description the persona permits offering,
+      // and only to someone who has frozen. Offering it is the reader doing as
+      // it is told, so after a deflection its words do not count against it --
+      // the details and the meanings still do.
+      const previous = session.exchanges[index - 1];
+      const offering = previous?.disclosure_depth === 1;
+      const fromPack = new Set([
+        ...contentWords(card.imagery_line),
+        ...contentWords(card.details.join(" ")),
+        ...contentWords(pack.meaning(card, exchange.position)),
+        ...contentWords(card.meanings.general),
+      ]);
+      for (const word of contentWords(card.name)) fromPack.delete(word);
+      for (const word of said) fromPack.delete(word);
+      if (offering) for (const word of contentWords(card.imagery_line)) fromPack.delete(word);
+
+      const used = [...contentWords(exchange.q)].filter((w) => fromPack.has(w));
+      if (used.length) {
+        findings.push({
+          index, position: exchange.position, code: "unearned_card_vocabulary",
+          message: `asserted ${used.map((w) => `"${w}"`).join(", ")} about the picture; ` +
+                   `${used.length === 1 ? "it is" : "they are"} in the pack, not in anything they said`,
+          text: exchange.q,
+        });
+      }
+    }
+    for (const word of contentWords(exchange.a)) said.add(word);
   }
   return findings;
 }

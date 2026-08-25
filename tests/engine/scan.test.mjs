@@ -126,3 +126,48 @@ test("a forced choice between two things about their life is never the fallback"
   const session = afterAnswer(1, "Is it the money, or is it that calling him means staying?");
   assert.ok(codes(session).includes("stacked_or"));
 });
+
+// -- point, don't name (c145c7) ------------------------------------------
+
+test("the reader may point at a region but not name what is in it", async () => {
+  const { realPack } = await import("./helpers.mjs");
+  const pack = await realPack();
+  // c145c7's shape: they answer the deal turn, and the turn under test is the
+  // reader's reply to that answer -- so "bench" is already theirs and "plans"
+  // is not. Ordering matters here; the words available are the ones said
+  // before the question was asked.
+  const session = (reply) => ({
+    cards: [{ card_id: "pentacles-03-three", position: "obstacle", ai_reading: reply }],
+    exchanges: [{ q: "Where does your eye go first in this one?",
+                  a: "the men on the left standing on the bench",
+                  position: "obstacle", disclosure_depth: 2, gate: { has_life_content: false } }],
+    closing_reflection: "done.", closed: true,
+  });
+  const flagged = (reply) =>
+    scanSession(session(reply), pack).some((f) => f.code === "unearned_card_vocabulary");
+
+  // Verbatim. "plans" and "building" are both in the pack for this card and
+  // neither was ever said by the person.
+  assert.ok(flagged("You went straight to the man up on the bench, not the ones holding the plans below him. Does he look like he's building what they want, or what he wants?"));
+
+  // The clean form: same region, no claim about what is there. "bench" is
+  // allowed because they offered it first.
+  assert.ok(!flagged("You went to the one up on the bench, not the two below him. Is he up there because they put him there, or because he climbed up?"));
+});
+
+test("a word they used first is theirs, and the reader may use it back", async () => {
+  const { realPack } = await import("./helpers.mjs");
+  const pack = await realPack();
+  const session = {
+    cards: [{ card_id: "pentacles-03-three", position: "obstacle" }],
+    exchanges: [
+      { q: "What do you see in it?", a: "someone holding out plans to the other two",
+        position: "obstacle", disclosure_depth: 2, gate: { has_life_content: false } },
+      { q: "Whose plans are those, in your world?", a: "not mine",
+        position: "obstacle", disclosure_depth: 2, gate: { has_life_content: false } },
+    ],
+    closing_reflection: "done.", closed: true,
+  };
+  assert.ok(!scanSession(session, pack).some((f) => f.code === "unearned_card_vocabulary"),
+            "they said plans first; the reader is allowed to say it back");
+});

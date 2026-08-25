@@ -315,6 +315,12 @@ picture, do not count objects for them, and do not walk them through it. If they
 point at something that is not on this list, believe them and ask about it: they
 can see the card and you cannot.
 
+**Deictic only.** Use it to point — "the one up on the bench", "the two below
+him" — never to name what a thing is or what someone is doing with it. "The ones
+holding the plans" and "he's building what they want" are both facts off this
+list, asserted about a picture only they can see. Once they say a word for
+something, it is theirs and you can use it back.
+
 ### Traditional sense
 
 Seasoning only — one sentence of it at most, and only after they have spoken:
