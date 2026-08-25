@@ -277,6 +277,9 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-25): fix queue 1-5 landed on branch m3-fixes, plus judge_replay.mjs (6)
+  and the simulated-user harness (7). Both of those need a live key to say anything;
+  the scripted mode stays as the free single-arm regression fixture.
 - v1.5 (2026-08-25): few-shots raised from 3-5 to 3-6 so the mirror observation
   has a demonstration of its own; the other five each show a different move.
 - v1.5 (2026-08-25): renamed from ai-tarot-v1-plan.md, which is deleted -- exactly one plan
