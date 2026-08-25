@@ -483,7 +483,16 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   let total = 0;
   for (const file of files) {
     const parsed = JSON.parse(await readFile(file, "utf8"));
-    const session = parsed.session ?? parsed;
+    // Three shapes reach this: a journal export {session}, a bare session, and
+    // whatever someone pasted out of localStorage, which the storage module
+    // wraps as {v, data}. The last one used to arrive as a TypeError about
+    // reading 'map' of undefined.
+    const session = parsed.session ?? parsed.data ?? parsed;
+    if (!Array.isArray(session?.exchanges)) {
+      console.error(`${file}: not a session (no exchanges array)`);
+      total += 1;
+      continue;
+    }
     const findings = scanSession(session, pack);
     total += findings.length;
     console.log(formatFindings(file, findings));
