@@ -88,6 +88,13 @@ DECIDED: frontend is plain HTML/CSS/JS (no framework, no build step). Prompt ass
   - Direct mode kept as a third llmClient option (browser -> provider; anthropic-dangerous-direct-browser-access header for Anthropic; OpenAI-compatible base URL config covers Ollama/DeepSeek/etc.) - the maximally-paranoid path and CORS-permitting providers only
 - Self-host path: clone repo, fill .env, run the Python server; README instructions
 - Prompt iteration without redeploy (load-bearing for M3): packs, persona prompt, and few-shots are static data files assembled client-side - editing a prompt is a file save locally, a Pages deploy when hosted; relays are never touched
+- Prompt is assembled in two halves, and the split is load-bearing: readerSystem is the stable
+  prefix (persona, few-shots, standing rules, spread, topic - ~22 KB, identical every turn) and
+  readerTurnBlock is what changes (session record, card, ladder, turn instruction - ~3 KB), sent
+  in the last user message after the transcript. Anything that does not change belongs in the
+  prefix: it is what a provider can cache, whether it was told to with cache_control (the
+  promptCaching feature flag, on for Anthropic) or does prefix caching by itself. Putting a
+  per-turn value in readerSystem breaks caching silently, so it is worth checking
 - Dev-mode logging (Python relay only): since every call passes through the relay with the fully assembled prompt in the body, a DEV_LOG=1 .env flag logs full request/response bodies (auth header redacted) for M3 iteration and consented playtest transcripts. Default off. The Worker has no logging code path at all - hosted users' conversations are unloggable by construction. Frontend debug panel shows the assembled prompt pre-send.
 - Open-relay protection on the Worker: origin checks + per-IP rate limits (+ lightweight app token if abused)
 - Session state + draw ledger in localStorage: same-device "session 2+" memory for free
@@ -397,6 +404,9 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-25): latency work on the same branch - the anchor revision moved off the
+  critical path, the prompt split into a cacheable prefix and a per-turn block, and an
+  editing pass moving standing instructions out of the per-turn half (5.5 -> 3.1 KB a turn).
 - v1.5 (2026-08-25): tempo round on branch m3-dwell, from the river-89c1fb session - the dwell
   rule (a fresh disclosure blocks the flip that turn), the hedged flag, territory-phrased and
   rolling resolution beats, the persona tempo section, flip_on_disclosure and built_on_hedge in
