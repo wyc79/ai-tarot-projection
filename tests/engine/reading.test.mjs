@@ -355,24 +355,30 @@ test("every turn instruction still carries the rules it is supposed to", async (
     safety_state: "normal", last_stakes: "low", phase: "reading", topic: null,
     cards: [{ card_id: "major-00-fool", position: "situation", user_projection: "", ai_reading: "" }],
   };
+  // Patterns are matched against the prompt with its whitespace collapsed, so
+  // re-wrapping a paragraph does not read as losing the rule inside it. What is
+  // being guarded is that the rule is still there, not how it is set.
   const required = {
     opening: [/Nothing has been dealt yet/, /Make declining genuinely easy/],
-    invite: [/Name the\ncard and the position/, /Do not interpret it first/,
-             /the second one is the\nquestion/],
+    invite: [/Name the card and the position/, /Do not interpret it first/,
+             /the second one is the question/],
     respond: [/No card turns over on this turn/, /One observation, then one question/,
               /never a repetition or an emphasis you did not see/,
-              /do not spend it again/, /it is the last thing you\nwrite/],
+              /do not spend it again in different words/,
+              /No traditional meaning unless they asked/,
+              /it is the last thing you write/],
     bridge: [/The same shape, with the card named in the middle/,
              /in a clause, not a paragraph/, /Then one question/],
     close: [/one small concrete thing/, /Then stop/],
   };
+  const flat = (turn) => readerSystem({ pack, session: base, turn }).replace(/\s+/g, " ");
   // The shape itself is a standing rule, so it must reach every turn.
   for (const turn of Object.keys(required)) {
-    assert.match(readerSystem({ pack, session: base, turn }), /## The shape of every turn/,
+    assert.match(flat(turn), /## The shape of every turn/,
                  `the ${turn} turn lost the turn-shape rule`);
   }
   for (const [turn, patterns] of Object.entries(required)) {
-    const system = readerSystem({ pack, session: base, turn });
+    const system = flat(turn);
     for (const pattern of patterns) {
       assert.match(system, pattern, `the ${turn} turn lost: ${pattern}`);
     }
@@ -488,7 +494,7 @@ test("the staircase reaches the prompt, as a ceiling rather than a schedule", as
   }
   assert.match(system, /stands exactly one step above where they are standing/);
   assert.match(system, /ceiling on distance, never a quota/);
-  assert.match(system, /You follow\nthem up the staircase\. You never march them up it\./);
+  assert.match(system.replace(/\\s+/g, " "), /You follow them up the staircase\. You never march them up it\./);
   assert.match(system, /when they drop .* you drop with them/);
 });
 
@@ -604,4 +610,16 @@ test("the judge is told which scale to use before it is shown the question", asy
   assert.match(content, /Kind of question: PROJECTION/);
   assert.ok(content.indexOf("Kind of question") < content.indexOf("The reader asked"),
             "the rubric is selected before the question is read");
+});
+
+test("card meaning is reveal-on-request, not seasoning", async () => {
+  const { client } = await run({ gates: [gate(3)], answers: ["hm"] });
+  const system = systemFor(client, "invite");
+  assert.match(system, /If they ask, tell them/);
+  assert.match(system, /You do not volunteer this\. Ever\./);
+  // The allowance this replaces. It read as permission and was taken as one.
+  assert.ok(!/one sentence of traditional sense/i.test(system),
+            "the seasoning allowance is still in the prompt somewhere");
+  assert.ok(!/At most one sentence of traditional sense/i.test(
+    client.calls.chat.map((c) => c.system).join("\n")));
 });
