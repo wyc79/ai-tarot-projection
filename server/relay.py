@@ -263,6 +263,16 @@ class Server(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
+    def handle_error(self, request, client_address):
+        """A client hanging up is normal traffic, not an incident.
+
+        Node's fetch closes keep-alive sockets abruptly, and the default handler
+        prints a full traceback for it -- which buries the DEV_LOG output this
+        relay exists to produce. Real errors still print.
+        """
+        if not isinstance(sys.exc_info()[1], (ConnectionResetError, BrokenPipeError)):
+            super().handle_error(request, client_address)
+
 
 def main():
     port = PORT

@@ -59,17 +59,37 @@ const fileFetch = async (url) => {
   }
 };
 
-async function runOnce(pack, chatModel) {
+/**
+ * Write what exists so far. Called after every turn: these runs cost real money
+ * and take real minutes, and a run that dies on turn six should not also throw
+ * away the five turns that worked -- those are the ones worth reading.
+ */
+async function save(pack, label, model, session) {
+  const stem = path.join(OUT, `${label}-${model}`);
+  await writeFile(`${stem}.md`, toMarkdown(pack, session));
+  await writeFile(`${stem}.json`, toJson(session));
+}
+
+async function runOnce(pack, label, chatModel) {
   const client = makeLlmClient({
     getKey: () => KEY,
     getConfig: () => ({ mode: "relay", relayBase: RELAY, provider: PROVIDER,
                         chatModel, judgeModel: JUDGE }),
   });
   const reading = startReading({ pack, client, seed: SEED });
-  await reading.begin();
-  for (const answer of ANSWERS) {
-    if (reading.session.closed) break;
-    await reading.say(answer);
+  try {
+    await reading.begin();
+    await save(pack, label, chatModel, reading.session);
+    for (const [i, answer] of ANSWERS.entries()) {
+      if (reading.session.closed) break;
+      await reading.say(answer);
+      await save(pack, label, chatModel, reading.session);
+      process.stdout.write(`  turn ${i + 1}/${ANSWERS.length}\r`);
+    }
+  } catch (error) {
+    await save(pack, label, chatModel, reading.session);
+    error.partial = reading.session;
+    throw error;
   }
   return reading.session;
 }
@@ -125,13 +145,16 @@ for (const label of ["a", "b"]) {
   process.stdout.write(`running ${label}: chat=${model} judge=${JUDGE} seed=${SEED}\n`);
   let session;
   try {
-    session = await runOnce(pack, model);
+    session = await runOnce(pack, label, model);
   } catch (error) {
     // A stack trace is the wrong shape for this: the failures worth reporting
     // here are a bad key or a model id the provider does not have.
     console.error(`\n${error.code ?? "error"}: ${error.message}`);
     if (error.hint) console.error(`  ${error.hint}`);
     if (error.code === "unknown_model") console.error(`  model was: ${model}`);
+    const turns = error.partial?.exchanges.length ?? 0;
+    console.error(`\n${turns} completed turn${turns === 1 ? "" : "s"} saved to ` +
+                  `${path.join(OUT, `${label}-${model}.md`)}`);
     process.exit(1);
   }
   await writeFile(path.join(OUT, `${label}-${model}.md`), toMarkdown(pack, session));

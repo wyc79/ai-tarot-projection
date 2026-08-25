@@ -224,3 +224,6 @@ __marimo__/
 
 # wrangler dev local state
 worker/.wrangler/
+
+# checkpoint transcripts: real sessions, kept out of git
+checkpoint/
