@@ -52,6 +52,15 @@ export function gateSchema(pack) {
           "long, is false. This is the difference between someone reading a card " +
           "and someone using one.",
       },
+      hedged: {
+        type: "boolean",
+        description:
+          "Did they hold the answer at arm's length? Tentative markers -- 'i " +
+          "guess', 'maybe', 'sort of', 'kind of', 'i suppose', 'probably', a " +
+          "question mark on what is really a statement ('i guess so?'), or a " +
+          "trailing 'or something'. This is not about confidence in general; it " +
+          "is about this sentence being offered with a way to take it back.",
+      },
       user_level: {
         type: "string",
         enum: pack.levels.map((l) => l.id),
@@ -64,7 +73,7 @@ export function gateSchema(pack) {
           "not where they were invited to land.",
       },
     },
-    required: ["disclosure_depth", "has_life_content", "user_level", "stakes", "reading_of_them"],
+    required: ["disclosure_depth", "has_life_content", "hedged", "user_level", "stakes", "reading_of_them"],
     additionalProperties: false,
   };
 }

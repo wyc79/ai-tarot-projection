@@ -94,6 +94,25 @@ export function exchangesOnCurrentCard(session) {
 }
 
 /**
+ * The same count, minus the answers they held at arm's length.
+ *
+ * A hedged answer does not advance the card toward its early exits: someone
+ * saying "i guess so?" is checking whether it was safe, and treating that as
+ * progress is how a reading walks off with something the person had not decided
+ * to give it.
+ *
+ * The hard cap still counts every exchange. Otherwise a person who hedges
+ * everything is a person the reading can never move on from, which is the
+ * stalled meter this design has been avoiding since the first flip rule.
+ */
+export function countingExchangesOnCurrentCard(session) {
+  const card = currentCard(session);
+  if (!card) return 0;
+  return session.exchanges.filter(
+    (e) => e.position === card.position && !e.gate?.hedged).length;
+}
+
+/**
  * Has anything of their own life reached this card yet?
  *
  * A card can collect three answers, all of them about the picture, and look
@@ -258,6 +277,9 @@ export function flipDecision(session, gate) {
   if (count === 0) {
     return { flip: false, reason: "no answer on this card yet" };
   }
+  // Hedged answers do not buy progress toward the early exits; the cap below
+  // still counts them, so nothing stalls.
+  const earned = countingExchangesOnCurrentCard(session);
 
   // Nothing of theirs has reached this card. The early exits below are rewards
   // for a card that did its job, so they are switched off -- but only the early
@@ -302,10 +324,10 @@ export function flipDecision(session, gate) {
   // budget is tighter than the others' and depth stops being a condition --
   // the projection exchange, one follow-up at most, then the closing beat.
   // A reading that ends without one is worse than a reading that ends early.
-  if (nextPosition(session) === null && count >= TARGET_EXCHANGES) {
+  if (nextPosition(session) === null && earned >= TARGET_EXCHANGES) {
     return { flip: true, reason: `last card and ${count} exchanges; closing regardless of depth${ungrounded}` };
   }
-  if (grounded && gate.disclosure_depth >= DEPTH_ENOUGH && count >= TARGET_EXCHANGES) {
+  if (grounded && gate.disclosure_depth >= DEPTH_ENOUGH && earned >= TARGET_EXCHANGES) {
     return { flip: true, reason: `depth ${gate.disclosure_depth} after ${count} exchanges${dwelt}` };
   }
   if (count >= MAX_EXCHANGES) {

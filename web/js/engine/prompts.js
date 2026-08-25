@@ -289,6 +289,13 @@ function describeRecap(pack, session) {
   lines.push(`  arc position: ${position ? `${position.id} (${position.arc_role} — ${position.prompt_hint})` : "nothing dealt yet"}`);
   if (position) lines.push(`  moves weighted here: ${position.moves.join(", ")}`);
   lines.push(`  disclosure depth on this card: ${depth === null ? "they have not answered yet" : depth}`);
+  const lastAnswer = session.exchanges[session.exchanges.length - 1];
+  if (lastAnswer?.gate?.hedged) {
+    lines.push("  THEY HEDGED THAT: it came with a way to take it back — \"i guess\", a");
+    lines.push("    question mark on a statement. Do not repeat it back as settled fact and");
+    lines.push("    do not build on it. Make walking it back easy and ask again more gently,");
+    lines.push("    at the same height: \"could be nothing — what was the other one?\"");
+  }
   const ladder = ladderState(pack, session);
   lines.push(`  they are standing at: ${ladder.userLevel ?? "nothing said on this card yet"}`);
   lines.push(`  reach no further than: ${ladder.target}${ladder.ceiling ? ` (this position tops out at ${ladder.ceiling})` : ""}`);
@@ -567,6 +574,11 @@ spends three turns on the deck and calls it disclosure.
 
 That is the same judgement as **has_life_content**, and the two must agree: if
 has_life_content is false the depth is 1 or 2, always.
+
+**hedged** is separate from depth and does not lower it. "I guess so? I used to
+have a different major" is a real disclosure -- a 3, with life content -- offered
+with a way to take it back. Both things are true at once and the reader needs to
+know both: what they said, and that they are watching to see what you do with it.
 
 ---
 

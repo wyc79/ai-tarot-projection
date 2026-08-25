@@ -33,7 +33,7 @@ const SCRIPT = [
   { answer: "yeah - whether I keep bracing for a fight nobody's having",
     opening: { has_topic: true, topic: "bracing for a fight nobody's having", stakes: "low" } },
   { answer: "dunno", gate: { disclosure_depth: 1, user_level: "name", has_life_content: false, stakes: "low" } },
-  { answer: "it looks tired I guess", gate: { disclosure_depth: 2, user_level: "name", has_life_content: false, stakes: "low" } },
+  { answer: "it looks tired I guess", gate: { disclosure_depth: 2, user_level: "name", has_life_content: false, hedged: true, stakes: "low" } },
   { answer: "my brother, and I haven't called him since March",
     gate: { disclosure_depth: 4, user_level: "consequences", has_life_content: true, stakes: "low" } },
   // The dwell exchange: they have just said something of their own, so the card
@@ -47,7 +47,7 @@ const SCRIPT = [
   // The eighth answer exists so the fixture reaches the closing beat. Without
   // it the canonical session ended unclosed and --prompt=close had no turn to
   // print, which is how run B's failure mode sat in our own fixture unnoticed.
-  { answer: "lighter, maybe", gate: { disclosure_depth: 2, user_level: "evaluate", has_life_content: true, stakes: "low" } },
+  { answer: "lighter, maybe", gate: { disclosure_depth: 2, user_level: "evaluate", has_life_content: true, hedged: true, stakes: "low" } },
   // And the dwell on that one, before the closing beat. A disclosure on the
   // last card buys its turn like any other, so the advice card runs to three.
   { answer: "not carrying the phone around, mostly",
