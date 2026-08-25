@@ -22,6 +22,7 @@ import { loadPack } from "../web/js/pack.js";
 import { makeLlmClient } from "../web/js/llmClient.js";
 import { startReading } from "../web/js/engine/reading.js";
 import { toJson, toMarkdown } from "../web/js/engine/journal.js";
+import { formatFindings, scanSession } from "./scan.mjs";
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const arg = (name, fallback) =>
@@ -94,22 +95,6 @@ async function runOnce(pack, label, chatModel) {
   return reading.session;
 }
 
-/** The comparison worth making by eye: what the reader said, turn by turn. */
-function readerTurns(session) {
-  return [...session.exchanges.map((e) => e.q), session.closing_reflection]
-    .filter(Boolean).map((t) => t.trim());
-}
-
-function shapeReport(session) {
-  return readerTurns(session).map((turn, i) => {
-    const questions = (turn.match(/\?/g) ?? []).length;
-    const sentences = turn.split(/(?<=[.?!])\s+/).filter(Boolean).length;
-    const ors = /\bor\b[^.?!]*\?/i.test(turn);
-    return `  turn ${i + 1}: ${sentences} sentences, ${questions} question${questions === 1 ? "" : "s"}` +
-           `${ors ? ", STACKED OR" : ""}${sentences > 4 ? ", OVER LENGTH" : ""}`;
-  }).join("\n");
-}
-
 // Preflight. Finding out the relay is down after the first model call is a
 // worse way to learn it than being told before anything is spent.
 try {
@@ -162,24 +147,22 @@ for (const label of ["a", "b"]) {
   runs.push({ label, model, session });
 }
 
-const [a, b] = runs;
 const lines = [
   `seed ${SEED}, judge ${JUDGE}, provider ${PROVIDER}`,
   "",
-  `A  ${a.model}`,
-  `   cards: ${a.session.cards.map((c) => c.card_id).join(", ")}`,
-  `   depths: ${a.session.exchanges.map((e) => e.disclosure_depth).join(" ")}`,
-  `   turn shape:`,
-  shapeReport(a.session),
-  "",
-  `B  ${b.model}`,
-  `   cards: ${b.session.cards.map((c) => c.card_id).join(", ")}`,
-  `   depths: ${b.session.exchanges.map((e) => e.disclosure_depth).join(" ")}`,
-  `   turn shape:`,
-  shapeReport(b.session),
-  "",
-  "Same cards is expected: the seed fixes them. Different depths mean the judge",
-  "moved, which it should not have -- it was the same model both runs.",
+  ...runs.flatMap(({ label, model, session }) => [
+    `${label.toUpperCase()}  ${model}`,
+    `   cards: ${session.cards.map((c) => c.card_id).join(", ")}`,
+    `   depths: ${session.exchanges.map((e) => e.disclosure_depth).join(" ")}`,
+    `   closed: ${session.closed}`,
+    formatFindings("   protocol", scanSession(session)).replace(/\n/g, "\n   "),
+    "",
+  ]),
+  "Same cards is expected: the seed fixes them. The depth traces are NOT",
+  "comparable across arms: depth is a verdict on an answer relative to the",
+  "question it answered, so once the two conversations diverge the two traces",
+  "are scoring different questions. Compare protocol findings, which are",
+  "absolute. Use scripts/judge_replay.mjs to measure the judge itself.",
 ];
 const summary = lines.join("\n");
 await writeFile(path.join(OUT, "summary.txt"), summary);

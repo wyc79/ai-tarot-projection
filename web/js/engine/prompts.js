@@ -263,7 +263,10 @@ looks like it is pointing at for them. Two sentences, and the second one is the
 question.
 
 Do not interpret it first, and do not mention its traditional meaning at all
-yet — you have not earned the right to, because they have not told you anything.`,
+yet — you have not earned the right to, because they have not told you anything.
+
+The question is about the picture, not about them. Someone who knows nothing
+about this person should be able to answer it by looking at the card.`,
 
   respond: `
 ## This turn
@@ -294,7 +297,17 @@ position it landed in, in a clause, not a paragraph. **Then one question** about
 it, and stop.
 
 Do not interpret the new card. The naming is not a third thing to say about;
-it is a fact you drop in on the way to the question.`,
+it is a fact you drop in on the way to the question.
+
+**The question is about the new card**, and only about it: what it looks like,
+who in it they recognise, what the figure seems about to do. Not about what
+they just told you — you already answered that in the observation — and not
+about what they should do next. Someone who knows nothing about this person
+should be able to answer it by looking at the card.
+
+This is the turn most often got wrong, and it is got wrong by being clever:
+the observation opens something up, and the question chases that instead of
+the card that just landed. The chase costs them the projection.`,
 
   close: `
 ## This turn
