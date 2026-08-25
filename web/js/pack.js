@@ -7,11 +7,17 @@
  * works at http://localhost:8787/ and at https://user.github.io/ai-tarot/.
  */
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
-export async function loadPack(packDir = "data") {
+/**
+ * @param {string} packDir  pack root, relative to the document
+ * @param {object} [options]
+ * @param {typeof fetch} [options.fetchImpl]  swappable so tests can load a pack
+ *   from disk and exercise this loader rather than a stand-in for it
+ */
+export async function loadPack(packDir = "data", { fetchImpl = fetch } = {}) {
   const base = packDir.replace(/\/$/, "");
-  const response = await fetch(`${base}/deck.json`);
+  const response = await fetchImpl(`${base}/deck.json`);
   if (!response.ok) throw new Error(`no pack at ${base}/deck.json (${response.status})`);
 
   const deck = await response.json();
@@ -19,12 +25,20 @@ export async function loadPack(packDir = "data") {
     throw new Error(`pack schema ${deck.schema_version}, expected ${SCHEMA_VERSION}`);
   }
 
+  // The persona prompt is pack data, not code: editing it is a file save
+  // locally and a Pages deploy when hosted. No relay is involved either way.
+  const persona = await fetchImpl(`${base}/${deck.persona}`).then((r) => {
+    if (!r.ok) throw new Error(`pack declares ${deck.persona} but it is missing`);
+    return r.text();
+  });
+
   const byId = new Map(deck.cards.map((card) => [card.card_id, card]));
 
   return {
     id: deck.pack_id,
     name: deck.name,
     positions: deck.positions,
+    persona,
     cards: deck.cards,
     cardBackUrl: `${base}/${deck.card_back}`,
     card: (id) => byId.get(id),

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Tarot — pack browser</title>
+  <!-- Relative paths only: this page is served from / locally and from
+       /ai-tarot/ on Pages, and must work unchanged in both. -->
+  <link rel="stylesheet" href="css/debug.css">
+</head>
+<body>
+<main>
+  <h1>AI Tarot — pack browser</h1>
+  <p>Every card in the pack, with its imagery line and per-position meanings. <a href="index.html">Run a reading &rarr;</a></p>
+
+  <div class="row">
+    <span class="label">pack</span>
+    <span id="pack-name">loading…</span>
+  </div>
+
+  <div class="row">
+    <span class="label">relay</span>
+    <input id="relay-base" placeholder="relay base URL (blank = same origin)">
+    <button id="relay-check">check</button>
+    <span id="relay-status">…</span>
+  </div>
+
+  <div class="row">
+    <span class="label">card</span>
+    <select id="card-picker"></select>
+  </div>
+
+  <div class="card-layout">
+    <img id="card-image" alt="">
+    <div class="reading">
+      <h2 id="card-name"></h2>
+      <code id="card-id"></code>
+      <p class="imagery"><span class="label">imagery line</span><br><span id="imagery-line"></span></p>
+      <p><span class="label">general</span><br><span id="general"></span></p>
+      <div class="positions" id="positions"></div>
+    </div>
+  </div>
+</main>
+<script type="module" src="js/ui/pack-page.js"></script>
+</body>
+</html>

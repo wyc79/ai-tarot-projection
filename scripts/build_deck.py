@@ -130,10 +130,11 @@ def build():
 
     out.sort(key=lambda c: (c["card_id"].split("-")[0] != "major", c["card_id"]))
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "pack_id": "smith-waite-1909",
         "name": "Smith-Waite (1909)",
         "card_back": "Cards-jpg/CardBacks.jpg",
+        "persona": "persona.md",
         "positions": POSITIONS,
         "cards": out,
     }

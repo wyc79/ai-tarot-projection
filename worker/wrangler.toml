@@ -16,4 +16,4 @@ ALLOWED_ORIGINS = "*"
 RATE_LIMIT = "30"
 
 # Adding a provider is a config change here, not a code change.
-PROVIDERS = '''{"anthropic":{"url":"https://api.anthropic.com/v1/messages","auth":"x-api-key","headers":{"anthropic-version":"2023-06-01"}},"openai":{"url":"https://api.openai.com/v1/chat/completions","auth":"bearer"}}'''
+PROVIDERS = '''{"deepseek":{"url":"https://api.deepseek.com/anthropic/v1/messages","auth":"x-api-key"},"opencode":{"url":"https://opencode.ai/zen/v1/messages","auth":"x-api-key"},"anthropic":{"url":"https://api.anthropic.com/v1/messages","auth":"x-api-key","headers":{"anthropic-version":"2023-06-01"}}}'''
