@@ -222,9 +222,10 @@ test("every turn but the last is told to end on a question", async () => {
   });
   for (const call of client.calls.chat) {
     if (call.turn === "close") {
-      assert.doesNotMatch(call.system, /## This turn[\s\S]*end (?:your turn )?on (?:it|the question)/);
+      assert.doesNotMatch(call.prompt, /## This turn[\s\S]*end (?:your turn )?on (?:it|the question)/);
     } else {
-      assert.match(call.system, /Every turn ends with a question/);
+      assert.match(call.prompt.replace(/\s+/g, " "),
+                   /is one or two sentences, and it is the last thing you write/);
     }
   }
 });
@@ -250,9 +251,10 @@ test("the reader is given what is actually in the picture, not just the one line
 test("the detail list is framed for recognition, never for narration", async () => {
   const { client } = await run({ gates: [gate(2)], answers: ["hm"] });
   const system = systemFor(client, "invite");
-  assert.match(system, /so you can recognise whatever they point at/);
-  assert.match(system, /Do not tell them what is in the\npicture/);
-  assert.match(system, /believe them and ask about it/);
+  const flat = system.replace(/\s+/g, " ");
+  assert.match(flat, /for recognising what they point at/);
+  assert.match(flat, /not to recite, not to assert/);
+  assert.match(flat, /If they point at something that is not on your list, believe them/);
 });
 
 test("agency is handed back once, not every turn the subject comes up", async () => {
@@ -271,8 +273,9 @@ test("agency is handed back once, not every turn the subject comes up", async ()
 test("the reader knows the user was given no words about the picture", async () => {
   const { client, reading, pack } = await run({ gates: [gate(2)], answers: ["hm"] });
   const system = systemFor(client, "invite");
-  assert.match(system, /They have not been given any words about it/);
-  assert.match(system, /Only then, and never as an opening/);
+  const flat = system.replace(/\s+/g, " ");
+  assert.match(flat, /They have been given no words about the picture/);
+  assert.match(flat, /only to someone who has frozen: never as an opening/);
   // Still available to the reader, as the fallback the field is named for.
   const card = pack.card(reading.session.cards[0].card_id);
   assert.ok(system.includes(card.imagery_line));
@@ -650,8 +653,10 @@ test("the judge is told which scale to use before it is shown the question", asy
 test("card meaning is reveal-on-request, not seasoning", async () => {
   const { client } = await run({ gates: [gate(3)], answers: ["hm"] });
   const system = systemFor(client, "invite");
-  assert.match(system, /If they ask, tell them/);
-  assert.match(system, /You do not volunteer this\. Ever\./);
+  const flat = system.replace(/\s+/g, " ");
+  assert.match(flat, /If they ask, tell them/);
+  assert.match(flat, /volunteering it is not one of them/);
+  assert.match(flat, /Traditional sense, which you do not volunteer/);
   // The allowance this replaces. It read as permission and was taken as one.
   assert.ok(!/one sentence of traditional sense/i.test(system),
             "the seasoning allowance is still in the prompt somewhere");

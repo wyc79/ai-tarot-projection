@@ -167,10 +167,9 @@ function describeLadder(pack, session, turn) {
   if (session.phase === "opening") return "";
   const { userLevel, target, targetIfCrossing, rail, ceiling, deflected, highest } =
     ladderState(pack, session);
-  const rungs = pack.levels.map((level) => {
-    const mark = level.id === userLevel ? " <- they are here" : "";
-    return `  ${level.id} — ${level.asks}${mark}`;
-  }).join("\n");
+  const rungs = pack.levels
+    .map((level) => (level.id === userLevel ? `  ${level.id}  <- they are here` : `  ${level.id}`))
+    .join("\n");
   const aim = pack.level(target);
 
   return `
@@ -179,38 +178,17 @@ function describeLadder(pack, session, turn) {
 ${rungs}
 
 ${userLevel
-  ? `Their last answer worked at **${userLevel}**.`
+  ? `Their last answer worked at **${userLevel}**${deflected ? ", and it was a deflection — do not climb" : ""}.`
   : "They have not answered on this card yet, so start at the bottom: ask what it is."}
-${deflected
-  ? "That was a deflection, so do not climb. Ask at the same height, more concretely — at the bottom rung that is the forced choice between two readings of the card."
-  : ""}
 This position tops out at **${ceiling}**.
 
-**Reach no further than ${target}: ${aim.asks}.** ${aim.gloss}
-
-Questions at that height sound like these — the shape, not the words:
+**Reach no further than ${target}: ${aim.asks}.** Questions at that height sound
+like these — the shape, not the words:
 ${aim.exemplars.map((e) => `  "${e}"`).join("\n")}
 ${rail ? `
-### The other rail
-
-Your last question was about ${rail === "projection" ? "the card" : "their life"}. A question about ${rail === "projection" ? "their life" : "the card"} crosses to the other rail, and
-crossing is itself a step: it asks them to change what they are talking about.
-**If you cross, ask at ${targetIfCrossing} and no higher** — climbing and crossing in the
-same question is two steps, and two steps is a question they have to invent an
-answer to.
-
-The crossing question worth knowing is the one that offers the connection
-instead of assuming it. Not "when did that first turn up for you?", which
-assumes the thing is theirs and gets a description of the card back. Offer it
-and let them take it or not.` : ""}
-
-This is a ceiling, not a quota. A question lower than it is fine whenever the
-lower one is the better question, and if they leap two rungs on their own in
-their next answer, go with them — you follow them up, you never march them up.${
+Your last question was about ${rail === "projection" ? "the card" : "their life"}. **If you cross to ${rail === "projection" ? "their life" : "the card"}, ask at ${targetIfCrossing} and no higher** — crossing is itself the step.` : ""}${
   turn === "close"
-    ? `\n\nThe closing step is the one thing exempt from that ceiling — a reading always
-gets its ending. But it is sized by the same reading of where they got to: they
-reached ${highest ?? "nothing much"} this session, so the step is ${
+    ? `\n\nThe closing step is the one thing exempt from that ceiling. They reached ${highest ?? "nothing much"} this session, so it is ${
   levelIndex(pack, highest) >= levelIndex(pack, "intentions")
     ? "something they could do, because they told you what they were after"
     : "something to notice, not something to carry out"}.`
@@ -304,6 +282,14 @@ function describeRecap(pack, session) {
   return lines.join("\n");
 }
 
+/**
+ * The card in front of them, and nothing about how to use it.
+ *
+ * How to use it is in the persona, which is sent once and cached; this is sent
+ * every turn, so it carries only what changes. It used to carry both, which
+ * meant a page and a half of standing instructions was re-read on every turn of
+ * every session alongside the four lines that were actually new.
+ */
 function describeCard(pack, session) {
   const entry = currentCard(session);
   if (!entry) return "";
@@ -314,43 +300,16 @@ function describeCard(pack, session) {
 
 ${card.name}, in the ${position.label} position (${position.arc_role} — ${position.prompt_hint}).
 
-They can see the picture. They have not been given any words about it — no
-caption, no description, nothing to agree with — so whatever they say is theirs.
-
-If they freeze, this is the one line you may offer to get them looking:
-"${card.imagery_line}". Only then, and never as an opening.
-
-### What is actually in the picture
-
+In the picture, for recognising what they point at — not to recite, not to
+assert, and only ever to point with:
 ${card.details.map((d) => `- ${d}`).join("\n")}
 
-This list is here so you can recognise whatever they point at. They are looking
-at the card; you are not. When they mention something you can find above, you
-can meet them on it exactly — which is the difference between a reader who is
-paying attention and one who is performing.
+The one line you may offer if they freeze: "${card.imagery_line}"
 
-It is not a script and not a thing to recite. Do not tell them what is in the
-picture, do not count objects for them, and do not walk them through it. If they
-point at something that is not on this list, believe them and ask about it: they
-can see the card and you cannot.
-
-**Deictic only.** Use it to point — "the one up on the bench", "the two below
-him" — never to name what a thing is or what someone is doing with it. "The ones
-holding the plans" and "he's building what they want" are both facts off this
-list, asserted about a picture only they can see. Once they say a word for
-something, it is theirs and you can use it back.
-
-### Traditional sense
-
-You do not volunteer this. Ever. It has two ways into a turn and no others: as
-the two sides of a forced choice when they have gone quiet, phrased out of what
-they noticed rather than recited; or as a straight answer when they ask what the
-card means, which you give plainly and briefly and then hand back.
-
+Traditional sense, which you do not volunteer — the two sides of a forced
+choice, or a straight answer if they ask what it means:
 - in this position: ${card.meanings[entry.position]}
-- generally: ${card.meanings.general}
-
-Those two are also the two sides of the forced choice, when one is needed.`;
+- generally: ${card.meanings.general}`;
 }
 
 /**

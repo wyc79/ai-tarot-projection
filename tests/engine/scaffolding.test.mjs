@@ -138,7 +138,7 @@ test("mid-session, a deflection steps the next question back down", async () => 
   });
   const afterDeflection = systemFor(client, "respond");
   assert.match(afterDeflection, /Their last answer worked at \*\*name\*\*/);
-  assert.match(afterDeflection, /That was a deflection, so do not climb/);
+  assert.match(afterDeflection.replace(/\s+/g, " "), /it was a deflection — do not climb/);
   assert.match(afterDeflection, /Reach no further than name/);
   assert.match(afterDeflection, /forced choice/);
 });
