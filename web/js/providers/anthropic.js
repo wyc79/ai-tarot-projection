@@ -9,9 +9,12 @@
  * Three details worth not relearning the hard way:
  *  - Assistant prefill (the old trick for forcing JSON) is rejected on current
  *    models. Structured output goes through output_config.format instead.
- *  - Thinking is adaptive by default on these models. Disabling it can make the
- *    model narrate a tool call in visible text; lowering effort is the way to
- *    cut latency and cost.
+ *  - Thinking is sent explicitly as adaptive rather than left off. On Opus 5,
+ *    omitting it means adaptive anyway; on Opus 4.8 and 4.7, omitting it means
+ *    no thinking, and a model with thinking off may write its reasoning into
+ *    the visible reply -- which in a four-sentence reader voice is not subtle.
+ *    Latency and cost are managed with effort instead. (Pre-4.6 models want
+ *    {type: "enabled", budget_tokens: N} instead and will reject this.)
  *  - stop_reason "refusal" comes back as HTTP 200, so the status code alone
  *    does not tell you the call succeeded.
  */
@@ -40,6 +43,7 @@ export const ANTHROPIC = {
       stream: true,
       system,
       messages,
+      thinking: { type: "adaptive" },
       output_config: { effort },
     };
   },
@@ -51,6 +55,7 @@ export const ANTHROPIC = {
       max_tokens: maxTokens,
       system,
       messages,
+      thinking: { type: "adaptive" },
       output_config: {
         effort,
         format: { type: "json_schema", schema },

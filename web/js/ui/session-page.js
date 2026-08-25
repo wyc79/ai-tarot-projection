@@ -40,6 +40,22 @@ function saveConfig() {
 function setStatus(text, cls = "") {
   $("status").textContent = text;
   $("status").className = `label ${cls}`;
+  $("status-bar").className = `status-bar ${cls}`;
+}
+
+/**
+ * Errors go where the user is looking, not only into the status bar. The first
+ * version reported them into the settings panel, which start() collapses -- so
+ * a failed request looked exactly like no request at all.
+ */
+function reportError(error) {
+  // Drop the empty bubble left by a reader turn that never produced a token.
+  if (streamingLine && !streamingLine.textContent) streamingLine.remove();
+  streamingLine = null;
+  const code = error.code ?? error.name ?? "error";
+  setStatus(`${code}: ${error.message}`, "bad");
+  addLine("error", `${code}: ${error.message}`);
+  console.error(error);
 }
 
 // -- rendering ---------------------------------------------------------------
@@ -151,7 +167,7 @@ async function start() {
   try {
     await reading.begin();
   } catch (error) {
-    setStatus(`${error.code ?? "error"}: ${error.message}`, "bad");
+    reportError(error);
   }
 }
 
@@ -160,7 +176,7 @@ async function say(text) {
   try {
     await reading.say(text);
   } catch (error) {
-    setStatus(`${error.code ?? "error"}: ${error.message}`, "bad");
+    reportError(error);
   }
 }
 
