@@ -134,7 +134,7 @@ test("an abort is not disguised as a connection failure", async () => {
   await assert.rejects(client.chat({ system: "s", messages: [] }), (e) => e.name === "AbortError");
 });
 
-const GATE = { disclosure_depth: 2, flip_ready: true, stakes: "low", reading_of_them: "they said stuck" };
+const GATE = { disclosure_depth: 3, flip_ready: true, stakes: "low", reading_of_them: "they said stuck" };
 const judgeReply = (text) => new Response(JSON.stringify({
   stop_reason: "end_turn", content: [{ type: "text", text }],
 }), { status: 200 });
@@ -256,4 +256,29 @@ test("hitting the token ceiling is reported, not silently returned as a short tu
     assert.equal(e.code, "response_truncated");
     return true;
   });
+});
+
+test("judge calls are pinned to temperature 0 where the provider still allows it", async () => {
+  const { client, calls } = harness({
+    config: { provider: "deepseek" }, respond: () => judgeReply(JSON.stringify(GATE)),
+  });
+  await client.judge({ system: "s", messages: [], schema: GATE_SCHEMA });
+  assert.equal(calls[0].body.payload.temperature, 0);
+});
+
+test("temperature is not sent to models that answer 400 for it", async () => {
+  const { client, calls } = harness({
+    config: { provider: "anthropic" }, respond: () => judgeReply(JSON.stringify(GATE)),
+  });
+  await client.judge({ system: "s", messages: [], schema: GATE_SCHEMA });
+  assert.equal(calls[0].body.payload.temperature, undefined,
+               "current Anthropic models removed sampling params; sending one is a 400");
+});
+
+test("the reader's voice is never pinned, only the judge", async () => {
+  const { client, calls } = harness({
+    config: { provider: "deepseek" }, respond: () => sseResponse([STOP]),
+  });
+  await client.chat({ system: "s", messages: [] });
+  assert.equal(calls[0].body.payload.temperature, undefined);
 });

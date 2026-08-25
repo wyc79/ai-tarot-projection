@@ -16,8 +16,8 @@
 
 export const STATE_VERSION = 1;
 
-/** Depth 3 is a rich answer; it earns the next card early. */
-export const DEPTH_RICH = 3;
+/** The top of the 1-4 disclosure scale: a rich answer earns the next card early. */
+export const DEPTH_RICH = 4;
 /** The default rhythm: roughly two exchanges per card. */
 export const TARGET_EXCHANGES = 2;
 /** Hard cap. A thin answer gets one softer follow-up, then the reading moves on

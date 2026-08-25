@@ -47,8 +47,8 @@ test("the spread refuses a fourth card", () => {
 test("the first answer on a card is the projection; later ones are not", () => {
   const s = fresh();
   flipCard(s, "major-00-fool");
-  recordExchange(s, { question: "q1", answer: "the first thing I saw", gate: gate(2, false) });
-  recordExchange(s, { question: "q2", answer: "a later thought", gate: gate(2, false) });
+  recordExchange(s, { question: "q1", answer: "the first thing I saw", gate: gate(3, false) });
+  recordExchange(s, { question: "q2", answer: "a later thought", gate: gate(3, false) });
   assert.equal(currentCard(s).user_projection, "the first thing I saw");
   assert.equal(exchangesOnCurrentCard(s), 2);
 });
@@ -66,14 +66,14 @@ test("exchanges are counted per card, not per session", () => {
 test("no flip before the user has said anything", () => {
   const s = fresh();
   flipCard(s, "a");
-  assert.equal(flipDecision(s, gate(3, true)).flip, false);
+  assert.equal(flipDecision(s, gate(4, true)).flip, false);
 });
 
 test("a rich answer earns the next card after one exchange", () => {
   const s = fresh();
   flipCard(s, "a");
   answer(s, 3, false);
-  const decision = flipDecision(s, gate(3, false));
+  const decision = flipDecision(s, gate(4, false));
   assert.equal(decision.flip, true);
   assert.match(decision.reason, /early/);
 });
@@ -82,20 +82,20 @@ test("the default rhythm is two exchanges when the judge agrees", () => {
   const s = fresh();
   flipCard(s, "a");
   answer(s, 2, true);
-  assert.equal(flipDecision(s, gate(2, true)).flip, false, "one exchange is not the rhythm");
+  assert.equal(flipDecision(s, gate(3, true)).flip, false, "one exchange is not the rhythm");
   answer(s, 2, true);
-  assert.equal(flipDecision(s, gate(2, true)).flip, true);
+  assert.equal(flipDecision(s, gate(3, true)).flip, true);
 });
 
 test("a thin answer gets one softer follow-up, then moves on rather than stalling", () => {
   const s = fresh();
   flipCard(s, "a");
   answer(s, 0, false);
-  assert.equal(flipDecision(s, gate(0, false)).flip, false);
+  assert.equal(flipDecision(s, gate(1, false)).flip, false);
   answer(s, 0, false);
-  assert.equal(flipDecision(s, gate(0, false)).flip, false, "one softer follow-up is allowed");
+  assert.equal(flipDecision(s, gate(1, false)).flip, false, "one softer follow-up is allowed");
   answer(s, 0, false);
-  const decision = flipDecision(s, gate(0, false));
+  const decision = flipDecision(s, gate(1, false));
   assert.equal(decision.flip, true, "a gate the user cannot satisfy is a stalled meter");
   assert.match(decision.reason, /stalling/);
 });
@@ -105,7 +105,7 @@ test("crisis drops the frame, and the frame stays dropped", () => {
   flipCard(s, "a");
   answer(s, 2, true, "crisis");
   assert.equal(s.safety_state, "drop_frame");
-  assert.equal(flipDecision(s, gate(3, true)).flip, false, "no cards while the frame is dropped");
+  assert.equal(flipDecision(s, gate(4, true)).flip, false, "no cards while the frame is dropped");
   answer(s, 2, true, "low");
   assert.equal(s.safety_state, "drop_frame", "the session does not slide back into tarot");
 });

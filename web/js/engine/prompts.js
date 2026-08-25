@@ -332,11 +332,25 @@ speak to the user; you return the object and nothing else.
 Judge what they actually disclosed, not how many words they used. A short answer
 can be deep ("my brother, and I haven't called him") and a long one can be empty.
 
-disclosure_depth is about self-revelation:
-  0  deflecting, joking, one word, or asking you to tell them instead
-  1  generic and true of anyone — "change is hard", "work is stressful"
-  2  specific to their life — a person, a decision, a situation with edges
-  3  something true that cost them something to say
+disclosure_depth is about self-revelation, on a scale of 1 to 4:
+
+  1  a word, a shrug, a joke, a question back at you, or a refusal to answer
+     "dunno" · "you tell me" · "haha maybe" · "what do you think?"
+
+  2  a general statement that would be true of almost anyone: no person, no
+     place, no date, nothing you could ask a follow-up about
+     "change is hard" · "work has been stressful lately" · "I overthink things"
+
+  3  a specific situation in their life, with edges
+     "my job, four years in and I'm bored" · "my flatmate and I aren't speaking"
+
+  4  a specific event with feeling or stakes attached — something it cost them
+     something to type
+     "my brother, and I haven't called him since March" · "I said yes and I
+     knew while I was saying it that I meant no"
+
+Two answers can sit at the same length and different depths. Judge the
+disclosure, never the word count.
 
 flip_ready asks whether this card has been read for what it is worth. If there is
 an obvious unpulled thread in what they just said, it is not ready.

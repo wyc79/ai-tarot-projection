@@ -12,7 +12,7 @@ async function finished(seed = "moon-4f2a91") {
   const reading = startReading({
     pack,
     client: fakeClient({
-      gates: [gate(2, false), gate(3, true), gate(3, true), gate(3, true)],
+      gates: [gate(3, false), gate(4, true), gate(4, true), gate(4, true)],
       opening: declines,
       reply: (turn) => (turn === "close" ? "this week, notice the bracing" : `[${turn}]`),
     }),
@@ -75,7 +75,7 @@ test("history keeps one entry per session, updated in place", async () => {
   const storage = makeStorage(memoryBackend());
   const { session } = await finished();
   saveToHistory(storage, session);
-  session.exchanges.push({ q: "later", a: "more", disclosure_depth: 2, position: "advice", gate: {} });
+  session.exchanges.push({ q: "later", a: "more", disclosure_depth: 3, position: "advice", gate: {} });
   saveToHistory(storage, session);
   const history = loadHistory(storage);
   assert.equal(history.length, 1);
@@ -126,7 +126,7 @@ test("state is persisted before it is announced, so listeners read the new state
   const seenAtEvent = {};
   const reading = startReading({
     pack, storage, seed: "moon-4f2a91",
-    client: fakeClient({ gates: [gate(3, true), gate(3, true), gate(3, true)], opening: declines }),
+    client: fakeClient({ gates: [gate(4, true), gate(4, true), gate(4, true)], opening: declines }),
     onEvent: (e) => {
       if (e.type === "anchor" || e.type === "closed") {
         const saved = loadHistory(storage)[0];

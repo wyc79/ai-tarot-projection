@@ -59,6 +59,10 @@ export const ANTHROPIC = {
   judgePayload({ model, system, messages, schema, maxTokens = 1024, effort = "medium", features = {} }) {
     const payload = { model, max_tokens: maxTokens, system, messages };
     if (features.thinking) payload.thinking = { type: "adaptive" };
+    // A judge call is a classification, not a voice: pin it where the provider
+    // still allows pinning. Current Anthropic models removed sampling params
+    // entirely and answer 400, so this is off for them by configuration.
+    if (features.temperature) payload.temperature = 0;
 
     if (features.structuredOutput) {
       payload.output_config = { format: { type: "json_schema", schema } };

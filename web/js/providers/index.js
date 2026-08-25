@@ -17,7 +17,7 @@
 
 import { ANTHROPIC } from "./anthropic.js";
 
-const NONE = { thinking: false, effort: false, structuredOutput: false };
+const NONE = { thinking: false, effort: false, structuredOutput: false, temperature: false };
 
 export const PROVIDERS = {
   deepseek: {
@@ -26,7 +26,8 @@ export const PROVIDERS = {
     wire: ANTHROPIC,
     defaultModel: "deepseek-v4-flash",
     directUrl: "https://api.deepseek.com/anthropic/v1/messages",
-    features: NONE,
+    // Sampling params still exist here, so judge calls can be pinned to 0.
+    features: { ...NONE, temperature: true },
   },
   anthropic: {
     id: "anthropic",
@@ -34,8 +35,10 @@ export const PROVIDERS = {
     wire: ANTHROPIC,
     defaultModel: "claude-opus-5",
     directUrl: "https://api.anthropic.com/v1/messages",
-    // The only endpoint that implements all of this, because it defines it.
-    features: { thinking: true, effort: true, structuredOutput: true },
+    // Implements all of its own newest parameters, and none of the old ones:
+    // temperature/top_p/top_k were removed on the current models and now return
+    // 400, so judge determinism here comes from the schema and the rubric.
+    features: { thinking: true, effort: true, structuredOutput: true, temperature: false },
   },
   opencode: {
     id: "opencode",
