@@ -48,24 +48,25 @@ const systemFor = (client, turn) => client.calls.chat.findLast((c) => c.turn ===
 // how the first draft of this fixture "found" a jump that was its own.
 
 test("a reading that climbs one rung at a time scans clean", async () => {
+  // The shape the rules jointly ask for: ask the card, cross to their life at
+  // the same height, then climb on whichever rail they are on. The first draft
+  // of this fixture went "what do you see" -> "when did that start", which is
+  // the natural-sounding pattern and is a rail crossing and a climb in one
+  // question. It is what c145c7 did on its third turn.
   const { pack, session } = await play({
     script: [
       { asks: "What does it look like it's pointing at for you?",
         answer: "a woman on her own in a garden", gate: at(2, "name") },
-      { asks: "When did that first turn up?",
-        answer: "after the move, about March", gate: at(2, "consequences") },
-      { asks: "What's it like for you, having it be like that?",
-        answer: "I hate that it's got this far", gate: at(3, "evaluate") },
-      // deal turn: back to the bottom rung, which is projection-first and the
-      // ladder agreeing without either one knowing about the other
+      { asks: "Whose being on their own is that, in your world?",
+        answer: "mine, since the move in March", gate: at(3, "consequences") },
       { asks: "The obstacle card is the Five of Wands. What do you see in it?",
         answer: "nobody's actually aiming", gate: at(2, "name") },
-      { asks: "What happened the last time it got like that?",
+      { asks: "What happened in there just before this picture?",
         answer: "I stopped answering his calls", gate: at(4, "consequences") },
       { asks: "The advice card is The Fool. What does he look like he's about to do?",
         answer: "walking off", gate: at(2, "name") },
-      { asks: "What happened after the last time you left something?",
-        answer: "I didn't go back", gate: at(2, "consequences") },
+      { asks: "Whose walking off is that one, in your world?",
+        answer: "I hate that it got this far", gate: at(3, "evaluate") },
     ],
   });
   assert.equal(session.closed, true);
@@ -183,4 +184,29 @@ test("a reading that reached intentions gets a step it can act on", async () => 
   const closing = systemFor(client, "close");
   assert.match(closing, /highest they have reached all session: intentions/);
   assert.match(closing, /something they could do, because they told you what they were after/);
+});
+
+// -- (d) the two rails (c145c7) ------------------------------------------
+
+test("crossing rails and climbing in the same question is two steps", async () => {
+  const pack = await realPack();
+  assert.equal(targetLevel(pack, { userLevel: "name", ceiling: "evaluate" }), "consequences",
+               "staying on the rail earns a rung");
+  assert.equal(targetLevel(pack, { userLevel: "name", ceiling: "evaluate", crossingRails: true }),
+               "name", "crossing spends the step");
+  assert.equal(targetLevel(pack, { userLevel: "evaluate", ceiling: "plans", crossingRails: true }),
+               "evaluate", "and it spends it wherever they are standing");
+});
+
+test("the prompt names both targets, since only the reader knows what it will ask", async () => {
+  const { client } = await play({
+    script: [
+      { asks: "What does she look like she's pointing at for you?",
+        answer: "judging between good and bad", gate: at(2, "name") },
+    ],
+  });
+  const system = systemFor(client, "respond");
+  assert.match(system, /Your last question was about the card/);
+  assert.match(system, /A question about their life crosses to the other rail/);
+  assert.match(system, /If you cross, ask at name and no higher/);
 });

@@ -129,11 +129,19 @@ function ladderState(pack, session) {
   const last = here[here.length - 1] ?? null;
   const userLevel = last?.gate?.user_level ?? null;
   const deflected = last?.disclosure_depth === 1;
+  const ceiling = position?.ceiling ?? null;
+  // Which rail the last question ran on. The reader is about to choose whether
+  // to stay on it, and that choice changes how high it may reach -- so it is
+  // told both numbers rather than one, since only it knows what it is about to
+  // ask.
+  const rail = session.exchanges[session.exchanges.length - 1]?.question_type ?? null;
   return {
     userLevel,
     deflected,
-    ceiling: position?.ceiling ?? null,
-    target: targetLevel(pack, { userLevel, ceiling: position?.ceiling ?? null, deflected }),
+    rail,
+    ceiling,
+    target: targetLevel(pack, { userLevel, ceiling, deflected }),
+    targetIfCrossing: targetLevel(pack, { userLevel, ceiling, deflected, crossingRails: true }),
     // Across the whole session, not just this card: the closing step is sized
     // to how far the reading actually got, and a reading that never left the
     // ground closes on something small rather than on a plan nobody made.
@@ -153,7 +161,8 @@ function ladderState(pack, session) {
  */
 function describeLadder(pack, session, turn) {
   if (session.phase === "opening") return "";
-  const { userLevel, target, ceiling, deflected, highest } = ladderState(pack, session);
+  const { userLevel, target, targetIfCrossing, rail, ceiling, deflected, highest } =
+    ladderState(pack, session);
   const rungs = pack.levels.map((level) => {
     const mark = level.id === userLevel ? " <- they are here" : "";
     return `  ${level.id} — ${level.asks}${mark}`;
@@ -177,6 +186,19 @@ This position tops out at **${ceiling}**.
 
 Questions at that height sound like these — the shape, not the words:
 ${aim.exemplars.map((e) => `  "${e}"`).join("\n")}
+${rail ? `
+### The other rail
+
+Your last question was about ${rail === "projection" ? "the card" : "their life"}. A question about ${rail === "projection" ? "their life" : "the card"} crosses to the other rail, and
+crossing is itself a step: it asks them to change what they are talking about.
+**If you cross, ask at ${targetIfCrossing} and no higher** — climbing and crossing in the
+same question is two steps, and two steps is a question they have to invent an
+answer to.
+
+The crossing question worth knowing is the one that offers the connection
+instead of assuming it. Not "when did that first turn up for you?", which
+assumes the thing is theirs and gets a description of the card back. Offer it
+and let them take it or not.` : ""}
 
 This is a ceiling, not a quota. A question lower than it is fine whenever the
 lower one is the better question, and if they leap two rungs on their own in

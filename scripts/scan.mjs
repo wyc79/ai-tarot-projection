@@ -143,7 +143,8 @@ function scanScaffolding(session, pack) {
 
     // "Their last level" is the answer immediately before this question, wherever
     // in the spread it fell: that is what they were standing on when they read it.
-    const previous = reading[index - 1]?.gate?.user_level;
+    const before = reading[index - 1];
+    const previous = before?.gate?.user_level;
     if (!previous || levelIndex(pack, previous) === -1) continue;
     const jump = levelDistance(pack, previous, level);
     if (jump > 1) {
@@ -152,6 +153,23 @@ function scanScaffolding(session, pack) {
         code: "level_jump",
         message: `asked at ${level} when they were standing at ${previous}; ` +
                  `${jump} rungs up is a question they have to invent an answer to`,
+        text: exchange.q,
+      });
+      continue;   // one finding per question; the bigger number is the one to read
+    }
+
+    // Crossing rails is a step of its own, so a crossing question that also
+    // climbs has taken two. c145c7's turn 3 passed the check above -- one rung,
+    // name to consequences -- while switching from the card to their life in
+    // the same breath, and got a description of the card back.
+    const rail = questionType(exchange.q);
+    const railBefore = before.question_type ?? (before.q ? questionType(before.q) : null);
+    if (railBefore && rail !== railBefore && jump > 0) {
+      findings.push({
+        index: session.exchanges.indexOf(exchange), position: exchange.position,
+        code: "rail_switch_climb",
+        message: `crossed from ${railBefore} to ${rail} and climbed to ${level} in one ` +
+                 `question, from ${previous}; crossing is already the step`,
         text: exchange.q,
       });
     }
