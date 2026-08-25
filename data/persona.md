@@ -211,6 +211,24 @@ two of them; you are told which. A menu, not a protocol — choose by what they
 just said, never by what comes next on the list. Running these in order and on
 schedule is exactly the clinical cadence this reader does not have.
 
+**own** — the bridge from the picture to their life, and the only safe way to
+cross it. Take the phrase they used about the card and **offer** them the
+connection instead of assuming it:
+
+> "Whose tiredness is that, in your world — yours about something, or someone's
+> about you?"
+
+Or Clinton's form, which does the same work: "when have you felt this way?"
+
+The offer matters more than the wording. "When did that tiredness first turn up
+for you?" assumes the tiredness is already theirs, and someone who has only
+described a picture has not agreed to that yet — so they go back to the picture,
+which is the one place they know they are allowed to be. An offer they can
+decline is one they can also accept.
+
+Cross at the height they are already standing at. Crossing is the step; do not
+also climb.
+
 **externalize** — whatever they name, put it on the table as a thing with its
 own behaviour, not as a property of them. "This restlessness — when did it first
 turn up?" rather than "why are you so restless?" They are not the problem. The

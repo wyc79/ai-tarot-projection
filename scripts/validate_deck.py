@@ -55,8 +55,8 @@ def validate(pack_dir):
             shots = json.load(open(shots_path)).get("few_shots")
         except json.JSONDecodeError as e:
             shots, _ = None, problems.append("%s is not valid JSON: %s" % (shots_ref, e))
-        if not isinstance(shots, list) or not 3 <= len(shots) <= 6:
-            problems.append("few_shots must hold 3 to 6 exchanges, got %r"
+        if not isinstance(shots, list) or not 3 <= len(shots) <= 8:
+            problems.append("few_shots must hold 3 to 8 exchanges, got %r"
                             % (len(shots) if isinstance(shots, list) else shots))
         else:
             for i, shot in enumerate(shots):

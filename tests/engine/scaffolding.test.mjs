@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { startReading } from "../../web/js/engine/reading.js";
-import { targetLevel } from "../../web/js/engine/levels.js";
+import { levelDistance, targetLevel } from "../../web/js/engine/levels.js";
+import { questionLevel, questionType } from "../../web/js/engine/questions.js";
 import { scanSession } from "../../scripts/scan.mjs";
 import { declines, fakeClient, realPack } from "./helpers.mjs";
 
@@ -209,4 +210,50 @@ test("the prompt names both targets, since only the reader knows what it will as
   assert.match(system, /Your last question was about the card/);
   assert.match(system, /A question about their life crosses to the other rail/);
   assert.match(system, /If you cross, ask at name and no higher/);
+});
+
+// -- the few-shots are held to the rules they teach -----------------------
+
+test("no few-shot demonstrates a move the scanner would flag", async () => {
+  // Two of the six shipped shots were teaching the violations: one crossed
+  // rails and climbed in the same question, the other jumped two rungs. They
+  // are the highest-leverage text in the pack and nothing was checking them.
+  const pack = await realPack();
+  for (const shot of pack.fewShots) {
+    assert.ok(shot.user_level, `${shot.demonstrates}: no user_level declared`);
+    assert.ok(typeof shot.has_life_content === "boolean",
+              `${shot.demonstrates}: no has_life_content declared`);
+
+    const level = questionLevel(shot.reader);
+    const jump = levelDistance(pack, shot.user_level, level);
+    assert.ok(jump <= 1,
+              `${shot.demonstrates}: asks at ${level} from ${shot.user_level}, ${jump} rungs`);
+
+    // An answer with nothing of their life in it came off the card rail. A
+    // reader question that goes to their life from there is a crossing, and a
+    // crossing may not also climb.
+    if (!shot.has_life_content && questionType(shot.reader) === "life") {
+      assert.equal(jump, 0,
+                   `${shot.demonstrates}: crosses to their life and climbs to ${level}`);
+    }
+  }
+});
+
+test("the ownership offer is a permitted forced choice, a plain one is not", async () => {
+  const pack = await realPack();
+  const session = {
+    cards: [{ card_id: "wands-09-nine", position: "situation" }],
+    exchanges: [
+      { q: "What does it look like it's pointing at for you?", a: "it just looks tired",
+        position: "situation", disclosure_depth: 2, gate: { has_life_content: false } },
+      { q: "Whose tiredness is that, in your world — yours about something, or someone's about you?",
+        a: "mine", position: "situation", disclosure_depth: 3, gate: { has_life_content: true } },
+      { q: "Is it the money, or is it that calling him means staying?", a: "the money",
+        position: "situation", disclosure_depth: 3, gate: { has_life_content: true } },
+    ],
+    closing_reflection: "done.", closed: true,
+  };
+  const stacked = scanSession(session, pack).filter((f) => f.code === "stacked_or");
+  assert.equal(stacked.length, 1, "exactly one of the two forced choices is a violation");
+  assert.match(stacked[0].text, /Is it the money/);
 });

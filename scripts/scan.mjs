@@ -17,7 +17,7 @@
  */
 
 import { readFile } from "node:fs/promises";
-import { finalQuestion, questionLevel, questionType } from "../web/js/engine/questions.js";
+import { finalQuestion, isOwnershipOffer, questionLevel, questionType } from "../web/js/engine/questions.js";
 import { levelDistance, levelIndex } from "../web/js/engine/levels.js";
 import { loadPackFromDisk } from "./harness.mjs";
 
@@ -62,18 +62,24 @@ const sentencesIn = (text) => text.split(/(?<=[.?!])\s+/).filter(Boolean);
 
 /**
  * A forced choice is normally two questions wearing one coat, and people answer
- * the easier one. It is also the designed fallback: when someone has gone
- * monosyllabic, two contrasting readings of the card give them something to
- * push against, and that is in the persona on purpose.
+ * the easier one. It is also the designed move for when there is nothing of
+ * theirs on the table yet: two contrasting readings give someone with nothing
+ * to say something to push against, and the ownership offer hands them the
+ * refusal as one of its options on purpose.
  *
- * Permitted, then, when both are true: the answer that prompted this turn was a
- * 1, and the choice being offered is between readings of the card rather than
- * between two things about their life. Both checkpoint runs offered one after
- * "dunno" and both were flagged as violations; they were the reader working.
+ * Permitted, then, when their last answer gave you nothing to work with -- a
+ * shrug, or an answer entirely about the picture -- and what is being offered
+ * is either a choice between readings of the card or an ownership offer. A
+ * forced choice after a real answer about their life is still two questions
+ * wearing one coat.
  */
 function permittedForcedChoice(session, turn) {
   const previous = session.exchanges[turn.index - 1];
-  return previous?.disclosure_depth === 1 && questionType(turn.text) === "projection";
+  if (!previous) return false;
+  const nothingOfTheirs = previous.disclosure_depth === 1
+    || previous.gate?.has_life_content === false;
+  return nothingOfTheirs
+    && (questionType(turn.text) === "projection" || isOwnershipOffer(turn.text));
 }
 
 /**

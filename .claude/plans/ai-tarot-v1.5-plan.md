@@ -241,7 +241,7 @@ Internal machinery: the levels are never named to the user.
     arm's closing demonstrates the form)
   - Externalizing language template (canonical example, use as a pattern): ask "how does this
     problem affect X" - never "you're not X"
-- 3-6 few-shot exchanges in the pack (poor man's distillation); iterate against seeded sessions
+- 3-8 few-shot exchanges in the pack (poor man's distillation); iterate against seeded sessions
 - Recap block: every chat() turn carries a session record assembled from state - anchor with the
   user's phrases verbatim, each card with a one-line record, arc position, depth, safety_state.
   Declared to outrank the conversation history, which is suggestion where this is constraint

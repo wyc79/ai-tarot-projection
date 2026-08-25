@@ -61,6 +61,20 @@ export function questionType(text) {
 }
 
 /**
+ * Is this the ownership move: an offer of the connection rather than an
+ * assumption of it?
+ *
+ * "Whose tiredness is that, in your world -- yours about something, or
+ * someone's about you?" It crosses to their life without claiming the thing is
+ * theirs, and it hands them the refusal as one of the options. The forced
+ * choice inside it is the point, not a slip.
+ */
+export function isOwnershipOffer(text) {
+  const question = finalQuestion(text);
+  return /\bwhose\b/i.test(question) && /\byour(s|self)?\b/i.test(question);
+}
+
+/**
  * How far from the immediate a question reaches, on the scaffolding ladder.
  *
  * A parallel axis to questionType, not a finer version of it: a projection ask

@@ -456,7 +456,7 @@ test("the arc position's weighted moves reach the prompt from pack data", async 
   const { client } = await run({
     gates: [gate(4), gate(3)], answers: ["something real", "and more"],
   });
-  assert.match(systemFor(client, "invite"), /moves weighted here: externalize, their-words/);
+  assert.match(systemFor(client, "invite"), /moves weighted here: own, externalize, their-words/);
   assert.match(client.calls.chat.at(-1).system, /moves weighted here: exception, externalize/);
 });
 
@@ -496,7 +496,7 @@ test("few-shots reach the prompt as exchanges, without their maintainer labels",
   const { client, pack } = await run({ gates: [gate(3)], answers: ["hm"] });
   const system = systemFor(client, "invite");
   assert.match(system, /## How this sounds/);
-  assert.ok(pack.fewShots.length >= 3 && pack.fewShots.length <= 6);
+  assert.ok(pack.fewShots.length >= 3 && pack.fewShots.length <= 8);
   for (const shot of pack.fewShots) {
     assert.ok(system.includes(shot.reader), `few-shot missing: ${shot.demonstrates}`);
     assert.ok(!system.includes(shot.demonstrates), "the technique label must not reach the model");
