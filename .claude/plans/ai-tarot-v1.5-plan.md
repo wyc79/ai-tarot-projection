@@ -87,6 +87,17 @@ DECIDED: frontend is plain HTML/CSS/JS (no framework, no build step). Prompt ass
   - Relay key rules (hard requirements, both relays): NEVER stored server-side (no session maps, no globals, no files, no db), NEVER logged (redact auth material from all logging/error paths - test this), no user data at rest; all session state lives client-side
   - Direct mode kept as a third llmClient option (browser -> provider; anthropic-dangerous-direct-browser-access header for Anthropic; OpenAI-compatible base URL config covers Ollama/DeepSeek/etc.) - the maximally-paranoid path and CORS-permitting providers only
 - Self-host path: clone repo, fill .env, run the Python server; README instructions
+- Transcripts are never committed raw. The repo is public and the whole design exists to get
+  people to say specific things about their lives, so the sessions worth freezing as fixtures are
+  exactly the ones where that worked. Originals stay in gitignored checkpoint/; what is committed
+  is a derivative from scripts/redact_session.mjs, which substitutes word-for-word across both
+  sides of every exchange (the word overlap between an answer and the turn after it is what the
+  premise and hedge checks read) and refuses to write if any mapped word survives. Substitution
+  maps live in gitignored redactions/. A fixture is only redacted if its scanner findings are
+  byte-identical before and after.
+  AND SWEEP WIDER THAN THE FILE: the one sentence redacted on 2026-08-25 had already reached 24
+  other places, including data/few-shots.json, where it was a teaching example shipped inside
+  every prompt. Anything used as an example travels
 - Prompt iteration without redeploy (load-bearing for M3): packs, persona prompt, and few-shots are static data files assembled client-side - editing a prompt is a file save locally, a Pages deploy when hosted; relays are never touched
 - Prompt is assembled in two halves, and the split is load-bearing: readerSystem is the stable
   prefix (persona, few-shots, standing rules, spread, topic - ~22 KB, identical every turn) and
@@ -316,6 +327,8 @@ Internal machinery: the levels are never named to the user.
   referent lands or the attempts run out; then grounded:false is carried forward and card 2 tries
   a different bridge. Never pretend an ungrounded session has a theme
 - scripts/seeded_session.mjs is the canonical fixture: same seed, scripted model, diffable pacing
+- tests/fixtures/*.json are redacted derivatives of real sessions (see Architecture); the
+  originals live in checkpoint/ and are not committed
 - tests/fixtures/thread-c145c7.json is a named failing fixture beside it: a no-topic session
   where the reader answered card lore with card lore for five turns and never met the person.
   It is frozen, and tests assert what the scanner says about it
@@ -404,6 +417,8 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-25): session transcripts committed as fixtures are redacted derivatives now,
+  with the originals in gitignored checkpoint/ and the maps in gitignored redactions/.
 - v1.5 (2026-08-25): latency work on the same branch - the anchor revision moved off the
   critical path, the prompt split into a cacheable prefix and a per-turn block, and an
   editing pass moving standing instructions out of the per-turn half (5.5 -> 3.1 KB a turn).
