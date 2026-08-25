@@ -489,12 +489,13 @@ test("every move the pack weights is a move the persona defines", async () => {
 test("the staircase reaches the prompt, as a ceiling rather than a schedule", async () => {
   const { client, pack } = await run({ gates: [gate(3)], answers: ["hm"] });
   const system = systemFor(client, "invite");
+  const flat = system.replace(/\s+/g, " ");
   for (const level of pack.levels) {
     assert.ok(system.includes(`**${level.id}**`), `the persona does not name ${level.id}`);
   }
   assert.match(system, /stands exactly one step above where they are standing/);
   assert.match(system, /ceiling on distance, never a quota/);
-  assert.match(system.replace(/\\s+/g, " "), /You follow them up the staircase\. You never march them up it\./);
+  assert.match(flat, /You follow them up the staircase\. You never march them up it\./);
   assert.match(system, /when they drop .* you drop with them/);
 });
 
