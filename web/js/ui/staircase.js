@@ -9,7 +9,8 @@
  *                   green is something of theirs
  *
  * Dashed rules are flips, labelled with the reason the engine recorded. A red
- * ring is a ZPD violation -- a question more than one rung above them, or one
+ * ring is a scaffolding violation -- a question more than one rung above them,
+ * one crossing off a card that has nothing under it yet, or one
  * that crossed rails and climbed at the same time. A red arrow under a column
  * is a deflection.
  *
@@ -19,7 +20,7 @@
  */
 
 import { levelDistance, levelIndex } from "../engine/levels.js";
-import { disclosureArrivals, flipsAfterExchange } from "../engine/state.js";
+import { SETTLE_MIN, disclosureArrivals, flipsAfterExchange } from "../engine/state.js";
 import { questionLevel, questionType } from "../engine/questions.js";
 
 const PAD = { left: 62, right: 10, top: 10, bottom: 18 };
@@ -58,7 +59,11 @@ function drawable(session, pending) {
   return turns;
 }
 
-/** Which columns broke the one-rung rule, and why, without re-running the scanner. */
+/**
+ * Which columns broke the scaffolding rules, and why, without re-running the
+ * scanner. Three ways: too high, crossing and climbing at once, or crossing off
+ * a card with nothing under it yet.
+ */
 function violations(pack, turns) {
   const bad = new Map();
   for (const [column, { exchange, index }] of turns.entries()) {
@@ -69,11 +74,25 @@ function violations(pack, turns) {
     const jump = levelDistance(pack, standing, level);
     const rail = questionType(exchange.q);
     const railBefore = previous.question_type ?? questionType(previous.q ?? "");
-    if (jump > 1) {
-      bad.set(index, `asked at ${level} from ${standing}`);
-    } else if (rail !== railBefore && jump > 0) {
-      bad.set(index, `crossed to ${rail} and climbed to ${level}`);
+    // Answers already on this card when this question was asked.
+    const here = turns.slice(0, column)
+      .map((t) => t.exchange)
+      .filter((e) => e.position === exchange.position);
+    // Premature and too-high are separate faults with separate repairs, and one
+    // turn can be both -- c145c7's turn 3 is. Height reports once: the bigger
+    // number is the one to read, same as the scanner.
+    const reasons = [];
+    if (rail === "life" && rail !== railBefore
+        && here.length > 0 && here.length < SETTLE_MIN
+        && !here.some((e) => e.gate?.has_life_content === true)) {
+      reasons.push(`crossed off ${here.length} answer on this card`);
     }
+    if (jump > 1) {
+      reasons.push(`asked at ${level} from ${standing}`);
+    } else if (rail !== railBefore && jump > 0) {
+      reasons.push(`crossed to ${rail} and climbed to ${level}`);
+    }
+    if (reasons.length) bad.set(index, reasons.join("; "));
   }
   return bad;
 }
