@@ -457,7 +457,7 @@ test("the arc position's weighted moves reach the prompt from pack data", async 
     gates: [gate(4), gate(3)], answers: ["something real", "and more"],
   });
   assert.match(systemFor(client, "invite"), /moves weighted here: externalize, their-words/);
-  assert.match(client.calls.chat.at(-1).system, /moves weighted here: explore, exception/);
+  assert.match(client.calls.chat.at(-1).system, /moves weighted here: exception, externalize/);
 });
 
 test("the question policy is present and marked as never-to-be-named", async () => {
@@ -466,17 +466,30 @@ test("the question policy is present and marked as never-to-be-named", async () 
   assert.match(system, /## Choosing the question/);
   assert.match(system, /Never say any of these words to them/);
   assert.match(system, /If they can name the move, the move has failed/);
-  for (const move of ["externalize", "name", "explore", "exception", "re-author", "action"]) {
-    assert.ok(system.includes(`**${move}**`), `the policy does not define ${move}`);
+  assert.match(system, /A menu, not a protocol/);
+});
+
+test("every move the pack weights is a move the persona defines", async () => {
+  // The staircase refactor left "explore" weighted on the obstacle position
+  // with nothing defining it any more, and the prompt cheerfully told the
+  // reader to weight a move it had never heard of.
+  const { client, pack } = await run({ gates: [gate(3)], answers: ["hm"] });
+  const system = systemFor(client, "invite");
+  for (const move of new Set(pack.positions.flatMap((p) => p.moves))) {
+    assert.ok(system.includes(`**${move}**`), `pack weights ${move}, persona does not define it`);
   }
 });
 
-test("the ladder gates identity questions behind depth", async () => {
-  const { client } = await run({ gates: [gate(3)], answers: ["hm"] });
+test("the staircase reaches the prompt, as a ceiling rather than a schedule", async () => {
+  const { client, pack } = await run({ gates: [gate(3)], answers: ["hm"] });
   const system = systemFor(client, "invite");
-  assert.match(system, /Someone who has told you nothing cannot be asked\n  what it means to them/);
-  assert.match(system, /asking it too\n  early is the single fastest way to make someone close/);
-  assert.match(system, /a menu, not a\nprotocol/);
+  for (const level of pack.levels) {
+    assert.ok(system.includes(`**${level.id}**`), `the persona does not name ${level.id}`);
+  }
+  assert.match(system, /stands exactly one step above where they are standing/);
+  assert.match(system, /ceiling on distance, never a quota/);
+  assert.match(system, /You follow\nthem up the staircase\. You never march them up it\./);
+  assert.match(system, /when they drop .* you drop with them/);
 });
 
 test("few-shots reach the prompt as exchanges, without their maintainer labels", async () => {

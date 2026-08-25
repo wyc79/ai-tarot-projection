@@ -23,8 +23,8 @@
       "arc_role": "tension",
       "prompt_hint": "what is in the way, or what the pull is against",
       "moves": [
-        "explore",
-        "exception"
+        "exception",
+        "externalize"
       ],
       "ceiling": "intentions"
     },
