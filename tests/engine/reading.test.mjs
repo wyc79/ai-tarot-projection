@@ -503,3 +503,39 @@ test("every few-shot obeys the turn shape: one observation, one question, and sh
     }
   }
 });
+
+// -- unconditional closing (checkpoint fix 1) -----------------------------
+//
+// Run B of the 2026-08-25 checkpoint ended unclosed. The chain: its advice
+// deal-turn asked a life question, the user answered by describing the card,
+// the judge scored that a 1 -- correctly, for the question it was asked -- and
+// a depth-1 answer bought another follow-up on a card that had nowhere left to
+// go. The reading simply stopped. Whatever else is wrong upstream, the last
+// card must be able to close on its own.
+
+test("the last card gets one follow-up at most, then closes whatever the depth", async () => {
+  const { reading, client } = await run({
+    gates: [gate(4, false), gate(4, false), gate(1, false), gate(1, false)],
+    answers: ["it looks tired", "money, mostly", "walking off, leaving the full ones", "dunno"],
+  });
+  const s = reading.session;
+  assert.equal(s.closed, true, "run B stopped here instead");
+  assert.equal(s.closing_reflection, "[close]");
+  assert.equal(s.exchanges.filter((e) => e.position === "advice").length, 2,
+               "the projection exchange and one follow-up, and no more");
+  assert.equal(client.calls.chat.at(-1).turn, "close",
+               "the reading ends on the closing beat, not on another question");
+});
+
+test("a reading of nothing but thin answers still closes", async () => {
+  // The invariant, stated as a number so that changing the pacing constants
+  // shows up here rather than in a stalled session: three positions, three
+  // exchanges each, and the last one cut short by the rule above.
+  const { reading } = await run({
+    gates: Array.from({ length: 12 }, () => gate(1, false)),
+    answers: Array.from({ length: 12 }, (_, i) => `thin ${i}`),
+  });
+  assert.equal(reading.session.closed, true);
+  assert.equal(reading.session.exchanges.filter((e) => e.position !== "opening").length, 8,
+               "3 + 3 + 2: the last card does not get the third exchange");
+});

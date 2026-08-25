@@ -39,6 +39,10 @@ const SCRIPT = [
   { answer: "if I spend it I have to admit I'm staying",
     gate: { disclosure_depth: 4, flip_ready: true, stakes: "low" } },
   { answer: "walking off, leaving the full ones", gate: { disclosure_depth: 3, flip_ready: true, stakes: "low" } },
+  // The eighth answer exists so the fixture reaches the closing beat. Without
+  // it the canonical session ended unclosed and --prompt=close had no turn to
+  // print, which is how run B's failure mode sat in our own fixture unnoticed.
+  { answer: "lighter, maybe", gate: { disclosure_depth: 2, flip_ready: false, stakes: "low" } },
 ];
 
 function scriptedClient(prompts) {

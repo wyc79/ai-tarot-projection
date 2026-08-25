@@ -187,6 +187,13 @@ export function flipDecision(session, gate) {
   if (gate.disclosure_depth >= DEPTH_RICH) {
     return { flip: true, reason: `rich answer (depth ${gate.disclosure_depth}) earns the next card early` };
   }
+  // The last card has nowhere to advance to: flipping it means closing. So its
+  // budget is tighter than the others' and depth stops being a condition --
+  // the projection exchange, one follow-up at most, then the closing beat.
+  // A reading that ends without one is worse than a reading that ends early.
+  if (nextPosition(session) === null && count >= TARGET_EXCHANGES) {
+    return { flip: true, reason: `last card and ${count} exchanges; closing regardless of depth` };
+  }
   if (gate.flip_ready && count >= TARGET_EXCHANGES) {
     return { flip: true, reason: `judge says ready after ${count} exchanges` };
   }
