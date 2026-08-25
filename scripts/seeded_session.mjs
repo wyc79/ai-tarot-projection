@@ -73,7 +73,9 @@ function scriptedClient(prompts) {
             { phrase: "bracing for a fight nobody's having", source: "life" },
             { phrase: "haven't called him since March", source: "life" },
           ],
-          resolution_beat: "put down one thing that is not being attacked",
+          // Territory, not thesis: it names what the reading is walking toward
+          // and leaves both answers live.
+          resolution_beat: "whether the bracing is still protecting anything, or has outlived whatever it was for",
         };
       }
       // SCRIPT[0] is the opening answer, which has no flip gate.

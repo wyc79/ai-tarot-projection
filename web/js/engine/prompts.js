@@ -661,9 +661,22 @@ In that case the resolution beat is not about the cards at all: it is about
 finding out what actually matters to this person, so that the rest of the
 reading goes looking for them instead of further into the deck.
 
-The resolution beat is where the third card should land — a plausible place for
-this to come to rest, given what they have said so far. It is a plan, not a
-prediction, and the reader steers toward it rather than announcing it.`;
+**The resolution beat is a territory, not a thesis.** It names the question this
+reading is walking toward and leaves at least two live possibilities open, either
+of which could turn out to be true.
+
+  no:  "the change isn't a break, it's a repurposing, and something from the
+       before is still alive in it"
+  yes: "where the old major stands in the new one — still feeding it, or
+       genuinely left behind"
+
+The first one decided the finding from a single sentence they said once, and
+every question after it would go looking for agreement. They would end the
+reading having confirmed something you wrote. Say where to look, never what is
+there.
+
+It is a plan, not a prediction, and the reader steers toward it rather than
+announcing it.`;
 
 export const OPENING_SYSTEM = `You are reading the first thing someone said in a
 tarot reflection session, before any card was dealt. They were asked whether
@@ -702,21 +715,43 @@ export function judgeMessages(pack, session, { question, answer }) {
   return [{ role: "user", content: context }];
 }
 
-export function anchorMessages(pack, session) {
+/**
+ * @param {object} pack
+ * @param {object} session
+ * @param {object} [options]
+ * @param {string} [options.note] appended when the first answer needs re-asking
+ * @param {boolean} [options.rolling] this is an update, not the first commit
+ */
+export function anchorMessages(pack, session, { note = "", rolling = false } = {}) {
   const entry = session.cards[0];
   const card = pack.card(entry.card_id);
-  return [{
-    role: "user",
-    content: [
-      session.topic
-        ? `Before any card was dealt they said they wanted to look at: "${session.topic}"`
-        : "They did not name a topic before the cards were dealt.",
-      `First card: ${card.name} in the ${entry.position} position.`,
-      `They read it as: "${entry.user_projection}"`,
-      session.exchanges
-        .filter((e) => e.position === entry.position)
-        .map((e) => `Q: ${e.q}\nA: ${e.a}`)
-        .join("\n"),
-    ].join("\n"),
-  }];
+  const lines = [
+    session.topic
+      ? `Before any card was dealt they said they wanted to look at: "${session.topic}"`
+      : "They did not name a topic before the cards were dealt.",
+    `First card: ${card.name} in the ${entry.position} position.`,
+    `They read it as: "${entry.user_projection}"`,
+  ];
+
+  if (rolling && session.anchor) {
+    // An update, not a fresh read: the anchor exists and has been steering. It
+    // may be rewritten, but it may not be quietly replaced by something that
+    // contradicts what the reading has already been about.
+    lines.push("", "The anchor so far, which you are revising rather than replacing:",
+      `  theme: ${session.anchor.theme}`,
+      `  should land on: ${session.anchor.resolution_beat}`,
+      "",
+      "Everything they have said since:");
+    lines.push(...session.exchanges
+      .filter((e) => e.gate?.has_life_content)
+      .map((e) => `  "${e.a}"${e.gate?.hedged ? " (hedged — they left themselves a way out)" : ""}`));
+  } else {
+    lines.push(session.exchanges
+      .filter((e) => e.position === entry.position)
+      .map((e) => `Q: ${e.q}\nA: ${e.a}`)
+      .join("\n"));
+  }
+
+  if (note) lines.push("", note);
+  return [{ role: "user", content: lines.join("\n") }];
 }

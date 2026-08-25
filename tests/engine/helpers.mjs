@@ -42,8 +42,13 @@ export function fakeClient({
         return opening ?? { has_topic: false, topic: "", stakes: "low" };
       }
       if (schema.properties.theme) {
-        return anchor ?? { theme: "t", resolution_beat: "r",
-                          user_phrases: [{ phrase: "stuck", source: "life" }] };
+        // The default beat is territory-phrased, or every anchor call in every
+        // test would trip the re-ask and land twice.
+        return anchor ?? {
+          theme: "t",
+          resolution_beat: "whether it is still holding, or has outlived itself",
+          user_phrases: [{ phrase: "stuck", source: "life" }],
+        };
       }
       return queue.shift() ?? { disclosure_depth: 2, has_life_content: true, stakes: "low", reading_of_them: "x" };
     },

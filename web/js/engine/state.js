@@ -243,6 +243,31 @@ export function recordReading(session, text, { offset = 0 } = {}) {
   return session;
 }
 
+/**
+ * Fold new material into a committed anchor.
+ *
+ * The anchor used to freeze on the first card, which was right when the first
+ * card was the only thing it could be built from. Now that a disclosure buys a
+ * turn inside itself, the material that matters most usually arrives after the
+ * commit -- so the theme and the beat can be rewritten, and phrases append
+ * rather than replace. What was said stays said.
+ */
+export function updateAnchor(session, anchor) {
+  if (!session.anchor) return commitAnchor(session, anchor);
+  const seen = new Set(session.anchor.user_phrases.map((p) => p.phrase));
+  const added = (anchor.user_phrases ?? [])
+    .map((p) => (typeof p === "string" ? { phrase: p, source: "card" } : p))
+    .filter((p) => p.phrase && !seen.has(p.phrase));
+  session.anchor = {
+    theme: anchor.theme || session.anchor.theme,
+    user_phrases: [...session.anchor.user_phrases, ...added],
+    resolution_beat: anchor.resolution_beat || session.anchor.resolution_beat,
+    grounded: false,
+  };
+  session.anchor.grounded = session.anchor.user_phrases.some((p) => p.source === "life");
+  return session;
+}
+
 export function commitAnchor(session, anchor) {
   if (session.anchor) return session; // committed once, then elaborated only
   // Tolerate a bare string: transcripts written before phrases carried a source

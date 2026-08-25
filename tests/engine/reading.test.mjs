@@ -147,13 +147,29 @@ test("the anchor is committed from the first card and reaches later prompts", as
   assert.match(later, /theme: t/);
 });
 
-test("the anchor is not re-judged once committed", async () => {
+test("the anchor is revised as more of their life arrives, not frozen on card one", async () => {
+  // It used to freeze on the first commit, which was right when the first card
+  // was all it could be built from. The dwell rule means the material that
+  // decides what a session is about now usually lands after that.
+  // The anchor commits on the first flip, which the dwell puts one exchange
+  // later than it used to be; the revision is the disclosure after that.
   const { client } = await run({
-    gates: [gate(4), gate(4)],
-    answers: ["a", "b"],
+    gates: [gate(4), gate(4), gate(4)],
+    answers: ["treading water", "since the move in March", "I stopped calling people back"],
   });
   const anchorCalls = client.calls.judge.filter((c) => c.schema.properties.theme);
-  assert.equal(anchorCalls.length, 1);
+  assert.equal(anchorCalls.length, 2, "committed on the first card, revised on the next disclosure");
+  assert.match(anchorCalls[1].messages[0].content, /revising rather than replacing/);
+  assert.match(anchorCalls[1].messages[0].content, /since the move in March/);
+});
+
+test("a hedged answer does not move the anchor", async () => {
+  const { client } = await run({
+    gates: [gate(4), gate(4), { ...gate(3), hedged: true }],
+    answers: ["treading water", "since the move", "i guess so? a different major"],
+  });
+  const anchorCalls = client.calls.judge.filter((c) => c.schema.properties.theme);
+  assert.equal(anchorCalls.length, 1, "they have not decided to give it yet");
 });
 
 test("the card on the table reaches the prompt with its imagery line and position sense", async () => {
@@ -657,4 +673,32 @@ test("a session with a topic is not told to go looking for one", async () => {
   const system = systemFor(client, "invite").replace(/\s+/g, " ");
   assert.ok(!/This card's job is to find the ground/.test(system));
   assert.match(system, /What they said they wanted to look at/);
+});
+
+test("a beat that reads as a verdict is asked for again, once", async () => {
+  // river-89c1fb's beat, verbatim: it decided the finding off one sentence.
+  const verdict = {
+    theme: "a different major",
+    resolution_beat: "that the change isn't a break, it's a repurposing, and something "
+      + "from the before is still alive in it",
+    user_phrases: [{ phrase: "a different major", source: "life" }],
+  };
+  const pack = await realPack();
+  let asked = 0;
+  const client = fakeClient({ gates: [gate(4), gate(4)], opening: declines });
+  const judge = client.judge;
+  client.judge = async (call) => {
+    if (!call.schema.properties.theme) return judge(call);
+    asked += 1;
+    return asked === 1 ? verdict
+      : { ...verdict, resolution_beat: "where the old major stands in the new one — still feeding it, or genuinely left behind" };
+  };
+  const reading = startReading({ pack, client, seed: SEED });
+  await reading.begin();
+  await reading.say("nothing in particular");
+  await reading.say("a different major");
+  await reading.say("since the move");
+
+  assert.equal(asked, 2, "asked once, told why, asked again");
+  assert.match(reading.session.anchor.resolution_beat, /still feeding it, or genuinely left behind/);
 });

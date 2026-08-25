@@ -14,6 +14,7 @@
  */
 
 import { ANCHOR_SCHEMA, OPENING_SCHEMA, gateSchema } from "./schemas.js";
+import { BEAT_RETRY_NOTE, beatIsTerritory } from "./anchor.js";
 import { saveToHistory } from "./journal.js";
 import {
   ANCHOR_SYSTEM, JUDGE_SYSTEM, OPENING_SYSTEM, anchorMessages, flipDirection,
@@ -22,6 +23,7 @@ import {
 import {
   close, commitAnchor, createSession, currentCard, flipCard, flipDecision,
   recordExchange, recordOffFrame, recordOpening, recordReading, spreadComplete,
+  updateAnchor,
 } from "./state.js";
 import { makeDeal } from "./draw.js";
 import { newSeed } from "./rng.js";
@@ -66,6 +68,30 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
     onEvent({ type: "reader_done", text, turn });
     persist();
     return text;
+  }
+
+  /**
+   * Ask for the narrative plan, and ask again once if the beat came back as a
+   * verdict rather than a question.
+   *
+   * Once, not until it complies: the cost of a conclusive beat is that the rest
+   * of the reading steers toward confirming it, and the cost of re-asking
+   * forever is a session that never starts. One retry buys most of the value.
+   */
+  async function judgeAnchor({ rolling = false } = {}) {
+    const ask = (note) => client.judge({
+      system: ANCHOR_SYSTEM,
+      messages: anchorMessages(pack, session, { note, rolling }),
+      schema: ANCHOR_SCHEMA,
+    });
+    const first = await ask("");
+    if (beatIsTerritory(first.resolution_beat)) return first;
+    onEvent({ type: "anchor_retry", beat: first.resolution_beat });
+    const second = await ask(BEAT_RETRY_NOTE);
+    // Whatever comes back second is what the reading gets. A judge that will
+    // not phrase a territory twice running is not going to on the third ask,
+    // and the reading is not held up over it.
+    return beatIsTerritory(second.resolution_beat) ? second : first;
   }
 
   function flipNext(reason) {
@@ -122,6 +148,18 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
         return { gate, decision: { flip: false, reason: "frame dropped" } };
       }
 
+      // A committed anchor is revised while the reading is still collecting.
+      // The material that decides what a session is about now usually arrives
+      // after the first card, because a disclosure buys a turn inside itself --
+      // so freezing the plan on card one would freeze it before the reading
+      // heard the thing it is about. Hedged answers do not move it: they have
+      // not decided to give it yet.
+      if (session.anchor && gate.has_life_content && !gate.hedged) {
+        updateAnchor(session, await judgeAnchor({ rolling: true }));
+        persist();
+        onEvent({ type: "anchor", anchor: session.anchor, rolling: true });
+      }
+
       const decision = flipDecision(session, gate);
       onEvent({ type: "flip_decision", decision, gate });
 
@@ -133,12 +171,7 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
       // The anchor is committed off the first card, before any second card
       // exists to be reconciled with it.
       if (!session.anchor) {
-        const anchor = await client.judge({
-          system: ANCHOR_SYSTEM,
-          messages: anchorMessages(pack, session),
-          schema: ANCHOR_SCHEMA,
-        });
-        commitAnchor(session, anchor);
+        commitAnchor(session, await judgeAnchor());
         // Persist before announcing: a listener that reads storage on the event
         // would otherwise see the state as it was a moment ago.
         persist();
