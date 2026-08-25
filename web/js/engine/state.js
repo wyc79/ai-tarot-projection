@@ -144,6 +144,41 @@ export function dwellOnCurrentCard(session) {
   return { arrived: true, spent, satisfied: spent >= DWELL_MIN };
 }
 
+/**
+ * Which exchange each card turned over after, as index -> card.
+ *
+ * A card flips at the end of the previous card's run, so the flip belongs to
+ * the last exchange of the card before it -- not to the first exchange of its
+ * own, which finds nothing when the new card has no exchanges yet. That is the
+ * case that matters: a card turning over and the session stopping there.
+ */
+export function flipsAfterExchange(session) {
+  const lastOf = new Map();
+  for (const [index, exchange] of session.exchanges.entries()) {
+    if (exchange.position === "opening" || exchange.position === "off_frame") continue;
+    lastOf.set(exchange.position, index);
+  }
+  const flips = new Map();
+  for (const [ordinal, card] of session.cards.entries()) {
+    if (ordinal === 0) continue;                    // dealt, not earned
+    const at = lastOf.get(session.cards[ordinal - 1].position);
+    if (at !== undefined) flips.set(at, card);
+  }
+  return flips;
+}
+
+/** Exchange indexes where they first said something of their own, per card. */
+export function disclosureArrivals(session) {
+  const seen = new Set();
+  const arrivals = new Set();
+  for (const [index, exchange] of session.exchanges.entries()) {
+    if (exchange.gate?.has_life_content !== true || seen.has(exchange.position)) continue;
+    seen.add(exchange.position);
+    arrivals.add(index);
+  }
+  return arrivals;
+}
+
 export function groundedOnCurrentCard(session) {
   const card = currentCard(session);
   if (!card) return false;

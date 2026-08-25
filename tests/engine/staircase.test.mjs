@@ -72,3 +72,22 @@ test("a question that reaches too far is ringed while it is still pending", asyn
   const live = staircaseSvg(session, pack, { pending: "What were you hoping for, before it went this way?" });
   assert.match(live, /class="violation"/, "asked at intentions from name, and you can see it now");
 });
+
+test("a flip that cuts through a first disclosure is drawn as the violation it is", async () => {
+  const pack = await realPack();
+  const session = await c145c7();
+  const river = JSON.parse(await readFile(
+    new URL("../fixtures/river-89c1fb.json", import.meta.url), "utf8")).session;
+  river.exchanges[2].gate.hedged = true;
+
+  const svg = staircaseSvg(river, pack);
+  assert.equal((svg.match(/class="arrival"/g) ?? []).length, 1, "the moment it found them");
+  assert.match(svg, /on-disclosure/, "and the flip line through the same column");
+  assert.match(svg, /turned over on the turn they first said something of their own/);
+  assert.match(svg, /class="hedge"/, "and the question mark they put on it");
+
+  // c145c7 never got a disclosure at all, so it has neither.
+  const flat = staircaseSvg(session, pack);
+  assert.ok(!/class="arrival"/.test(flat));
+  assert.ok(!/on-disclosure/.test(flat));
+});

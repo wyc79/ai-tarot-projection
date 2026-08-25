@@ -19,6 +19,7 @@
  */
 
 import { levelDistance, levelIndex } from "../engine/levels.js";
+import { disclosureArrivals, flipsAfterExchange } from "../engine/state.js";
 import { questionLevel, questionType } from "../engine/questions.js";
 
 const PAD = { left: 62, right: 10, top: 10, bottom: 18 };
@@ -104,13 +105,21 @@ export function staircaseSvg(session, pack, { pending = "" } = {}) {
     parts.push(`<text class="rung" x="${PAD.left - 5}" y="${row + 2.5}" text-anchor="end">${level.id}</text>`);
   }
 
-  // Flips first, so the marks sit on top of their rules.
-  for (const card of session.cards) {
-    const column = turns.findIndex(({ exchange }) => exchange.position === card.position);
-    if (column <= 0) continue;   // the first card is dealt, not earned
-    const at = x(column) - STEP / 2;
-    parts.push(`<line class="flip" x1="${at}" y1="${PAD.top}" x2="${at}" y2="${height - PAD.bottom}">`
-      + `<title>${escape(card.flip_reason ?? "flip")}</title></line>`);
+  // Flips first, so the marks sit on top of their rules. A flip belongs to the
+  // exchange it followed, which is how a card that turned over and then had
+  // nothing said about it still gets a line.
+  const flips = flipsAfterExchange(session);
+  const arrivals = disclosureArrivals(session);
+  for (const [after, card] of flips) {
+    const column = turns.findIndex(({ index }) => index === after);
+    if (column === -1) continue;
+    const onDisclosure = arrivals.has(after);
+    const at = x(column) + STEP / 2;
+    parts.push(`<line class="flip${onDisclosure ? " on-disclosure" : ""}" x1="${at}" `
+      + `y1="${PAD.top}" x2="${at}" y2="${height - PAD.bottom}"><title>`
+      + `${escape(card.flip_reason ?? "flip")}`
+      + `${onDisclosure ? " — turned over on the turn they first said something of their own" : ""}`
+      + `</title></line>`);
   }
 
   const line = [];
@@ -131,6 +140,15 @@ export function staircaseSvg(session, pack, { pending = "" } = {}) {
     if (landedY !== null) {
       const grounded = exchange.gate?.has_life_content === true;
       const answerAt = at + NUDGE;
+      // The moment the reading found them. Everything the dwell rule protects
+      // happens in the two columns after this one.
+      if (arrivals.has(index)) {
+        parts.push(`<circle class="arrival" cx="${answerAt}" cy="${landedY}" r="6">`
+          + `<title>first time they said something of their own</title></circle>`);
+      }
+      if (exchange.gate?.hedged) {
+        parts.push(`<text class="hedge" x="${answerAt + 7}" y="${landedY - 4}">?</text>`);
+      }
       parts.push(`<rect class="${grounded ? "u-life" : "u-card"}" x="${answerAt - 3}" y="${landedY - 3}" `
         + `width="6" height="6" transform="rotate(45 ${answerAt} ${landedY})">`
         + `<title>${escape(exchange.a ?? "")}</title></rect>`);

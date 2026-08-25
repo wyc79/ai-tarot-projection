@@ -19,6 +19,7 @@
 import { readFile } from "node:fs/promises";
 import { finalQuestion, isOwnershipOffer, questionLevel, questionType } from "../web/js/engine/questions.js";
 import { levelDistance, levelIndex } from "../web/js/engine/levels.js";
+import { disclosureArrivals, flipsAfterExchange } from "../web/js/engine/state.js";
 import { loadPackFromDisk } from "./harness.mjs";
 
 /** Reader turns in order: every question asked, then the closing beat. */
@@ -59,6 +60,21 @@ function dealTurnIndexes(session) {
 }
 
 const sentencesIn = (text) => text.split(/(?<=[.?!])\s+/).filter(Boolean);
+
+/**
+ * Reader turns nobody answered.
+ *
+ * Every reader turn but one is stored twice: as the next exchange's question and
+ * as the card's ai_reading. The exception is the last thing said before a
+ * session stopped, which exists only on the card -- and in both c145c7 and
+ * river-89c1fb that is the turn worth reading.
+ */
+function trailingTurns(session) {
+  const answered = new Set(session.exchanges.map((e) => e.q).filter(Boolean));
+  return session.cards
+    .filter((c) => c.ai_reading && !answered.has(c.ai_reading))
+    .map((c) => ({ index: session.exchanges.length, position: c.position, text: c.ai_reading }));
+}
 
 /**
  * A forced choice is normally two questions wearing one coat, and people answer
@@ -118,6 +134,11 @@ export function scanSession(session, pack = null) {
     }
   }
 
+  findings.push(...scanTempo(session));
+  // Trailing turns included: the last thing the reader said before a session
+  // stopped lives on the card, not on an exchange, and both checks above care
+  // about it.
+  findings.push(...scanHedges(session, [...readerTurns(session), ...trailingTurns(session)]));
   if (pack) findings.push(...scanScaffolding(session, pack), ...scanPremises(session, pack));
 
   if (!session.closed) {
@@ -182,16 +203,10 @@ function scanPremises(session, pack) {
   const said = new Set();
   const positionOf = new Map(session.cards.map((c) => [c.position, c]));
 
-  // Every reader turn but one is stored twice: as the next exchange's question,
-  // and as the card's ai_reading. The one exception is the turn nobody answered
-  // -- the last thing the reader said before the session stopped -- which exists
-  // only on the card. That is where c145c7's worst turn is.
-  const answered = new Set(session.exchanges.map((e) => e.q).filter(Boolean));
-  const trailing = session.cards
-    .filter((c) => c.ai_reading && !answered.has(c.ai_reading))
-    .map((c) => ({ q: c.ai_reading, a: "", position: c.position }));
-
-  for (const [index, exchange] of [...session.exchanges, ...trailing].entries()) {
+  for (const [index, exchange] of [
+    ...session.exchanges,
+    ...trailingTurns(session).map((t) => ({ q: t.text, a: "", position: t.position })),
+  ].entries()) {
     const entry = positionOf.get(exchange.position);
     const card = entry && pack.card(entry.card_id);
     if (card && exchange.q) {
@@ -222,6 +237,88 @@ function scanPremises(session, pack) {
       }
     }
     for (const word of contentWords(exchange.a)) said.add(word);
+  }
+  return findings;
+}
+
+/**
+ * Tempo: did a card turn over on the turn someone first said something of their
+ * own?
+ *
+ * The flip is the reward mechanic, so a flip landing on a first disclosure
+ * teaches that opening up ends the subject. It is the one shape on the map that
+ * is always wrong, and it is invisible in a transcript -- both halves look fine
+ * separately.
+ */
+function scanTempo(session) {
+  const findings = [];
+  const flips = flipsAfterExchange(session);
+  const arrived = new Set();
+
+  for (const [index, exchange] of session.exchanges.entries()) {
+    const first = exchange.gate?.has_life_content === true && !arrived.has(exchange.position);
+    if (exchange.gate?.has_life_content === true) arrived.add(exchange.position);
+    if (first && flips.has(index)) {
+      findings.push({
+        index, position: exchange.position, code: "flip_on_disclosure",
+        message: `${flips.get(index).card_id} turned over on the turn they first said `
+          + "something of their own; the reward for opening up was the subject changing",
+        text: exchange.a,
+      });
+    }
+  }
+  return findings;
+}
+
+// Ways of holding a hedged thing lightly while asking again.
+const SOFTENERS = [
+  /\bcould be nothing\b/i, /\bmaybe\b/i, /\bmight\b/i, /\bor not\b/i,
+  /\bif (that|it|there)('s| is|s)?\b/i, /\bno pressure\b/i, /\bonly if\b/i,
+  /\bdoes that sound\b/i, /\bam I wrong\b/i, /\bor have I\b/i,
+];
+
+// Phrasings that overrule a hedge outright rather than repeating past it.
+// river's turn does this in the clear: "You weren't sure at first, but
+// 'repurposed' turned out to be you."
+const OVERRIDES = [
+  /\bturn(ed|s)? out to be\b/i,
+  /\bweren'?t sure\b[^.?!]*\bbut\b/i,
+  /\bwas'?n?'?t sure\b[^.?!]*\bbut\b/i,
+  /\bso (it|that|this)('s| is| was)\b/i,
+  /\bthat'?s you\b/i,
+  /\b(clearly|obviously|definitely|of course)\b/i,
+];
+
+/**
+ * Did the reader take something they were offered tentatively and hand it back
+ * as settled?
+ *
+ * "i guess so?" is someone checking whether it was safe to say. Answering it
+ * with "that turned out to be you" decides for them. The test is crude: does
+ * the next turn reuse the hedged answer's words without any of the phrasings
+ * that leave a way out.
+ */
+function scanHedges(session, turns) {
+  const findings = [];
+  for (const [index, exchange] of session.exchanges.entries()) {
+    if (!exchange.gate?.hedged) continue;
+    const next = turns.find((t) => t.index === index + 1);
+    if (!next?.text) continue;
+    if (SOFTENERS.some((re) => re.test(next.text))) continue;
+    const theirs = contentWords(exchange.a);
+    const reused = [...contentWords(next.text)].filter((w) => theirs.has(w));
+    const overruled = OVERRIDES.some((re) => re.test(next.text));
+    if (overruled || reused.length >= 2) {
+      findings.push({
+        index: next.index, position: next.position, code: "built_on_hedge",
+        message: overruled
+          ? "overruled the hedge outright; they put a question mark on it and the "
+            + "turn took it off again"
+          : `built on "${String(exchange.a).replace(/\s+/g, " ").slice(0, 48)}" as settled `
+            + "fact; they had put a question mark on it",
+        text: next.text,
+      });
+    }
   }
   return findings;
 }
@@ -318,13 +415,11 @@ export function staircase(session, pack) {
     scanSession(session, pack)
       .filter((f) => f.code === "level_jump" || f.code === "rail_switch_climb")
       .map((f) => f.index));
-  // A card turns over on the turn that names it, which is the turn whose
-  // question opens that card's first exchange.
   const flips = new Map();
-  for (const card of session.cards) {
-    const first = turns.find(({ e }) => e.position === card.position);
-    if (first) flips.set(first.index, card.flip_reason ?? "");
-  }
+  for (const [at, card] of flipsAfterExchange(session)) flips.set(at, card.flip_reason ?? "");
+  // Where they first said something of their own, per card. A flip in the same
+  // column is the shape this round exists to stop.
+  const arrivals = disclosureArrivals(session);
 
   const width = Math.max(2, ...turns.map((t) => String(t.index + 1).length + 1));
   const cell = (text) => String(text).padEnd(width);
@@ -343,15 +438,23 @@ export function staircase(session, pack) {
   });
 
   const ruler = `${label("")}${turns.map((t) => cell(t.index + 1)).join("")}`;
-  const alerts = `${label("")}${turns.map((t) => cell(flagged.has(t.index) ? "!" :
-    (flips.has(t.index) ? "|" : " "))).join("")}`;
+  const alerts = `${label("")}${turns.map((t) => {
+    const arrival = arrivals.has(t.index);
+    const flip = flips.has(t.index);
+    if (arrival && flip) return cell("X");   // flipped on the disclosure itself
+    if (flagged.has(t.index)) return cell("!");
+    if (arrival) return cell("+");
+    if (flip) return cell("|");
+    return cell(" ");
+  }).join("")}`;
   const notes = [...flips.entries()]
     .filter(([, reason]) => reason)
     .map(([index, reason]) => `    | at ${index + 1}: ${reason}`);
   const noAnswers = turns.every(({ e }) => !e.gate?.user_level);
 
   return [...rows, alerts, ruler, ...notes,
-          "    Q/q question (card/life rail)  U/u answer (life/card content)  * both  ! ZPD violation",
+          "    Q/q question (card/life rail)  U/u answer (life/card content)  * both",
+          "    + first disclosure on a card  | card turned after  X turned ON the disclosure  ! ZPD violation",
           ...(noAnswers
             ? ["    (no answer rows: this transcript predates user_level on the gate)"]
             : [])]
