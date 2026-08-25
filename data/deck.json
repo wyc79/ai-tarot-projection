@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "pack_id": "smith-waite-1909",
   "name": "Smith-Waite (1909)",
   "card_back": "Cards-jpg/CardBacks.jpg",
@@ -35,7 +35,13 @@
         "obstacle": "leaping before looking, or refusing to leap at all",
         "advice": "let it be unfinished; take the first step without the whole plan",
         "general": "beginnings, innocence, stepping out without a map"
-      }
+      },
+      "details": [
+        "a young man in a flowered tunic steps toward the edge of a cliff, looking up and away from it",
+        "a white rose in one hand; a small dark bundle tied to a stick over his shoulder",
+        "a small white dog leaps at his heel",
+        "snow-capped peaks behind him, a white sun in the upper corner"
+      ]
     },
     {
       "card_id": "major-01-magician",
@@ -47,7 +53,14 @@
         "obstacle": "capability without direction; talking about it instead of doing it",
         "advice": "name what you actually want, then use what is already in reach",
         "general": "will, focus, having the tools already in hand"
-      }
+      },
+      "details": [
+        "one arm raised holding a white double-ended wand, the other hand pointing down at the ground",
+        "a sideways figure-eight floats above his head; a snake eating its own tail circles his waist",
+        "a cup, a coin, a sword and a wand lie on the table in front of him",
+        "a red outer robe over a white undergarment",
+        "roses and lilies grow below him, roses on a trellis overhead"
+      ]
     },
     {
       "card_id": "major-02-high-priestess",
@@ -59,7 +72,14 @@
         "obstacle": "an answer being withheld, including from yourself",
         "advice": "stop explaining and listen for what you already suspect",
         "general": "inner knowing, what has not been said aloud"
-      }
+      },
+      "details": [
+        "she sits between a black pillar marked B and a pale pillar marked J",
+        "a partly hidden scroll rests in her lap",
+        "a horned crown with a sphere at its centre; an equal-armed cross on her chest",
+        "a crescent moon lies at her feet, under the hem of her blue robe",
+        "a veil patterned with pomegranates hangs behind her, hiding whatever is beyond"
+      ]
     },
     {
       "card_id": "major-03-empress",
@@ -71,7 +91,13 @@
         "obstacle": "over-tending, or giving where nothing comes back",
         "advice": "let it grow at its own pace; feed it rather than force it",
         "general": "abundance, nurture, things growing on their own time"
-      }
+      },
+      "details": [
+        "she reclines on red cushions in the open air, one arm resting",
+        "a wreath of stars on her head; a raised sceptre in one hand",
+        "a heart-shaped shield beside her, marked with the sign of Venus",
+        "ripe wheat grows in front of her; a stream falls through the trees behind"
+      ]
     },
     {
       "card_id": "major-04-emperor",
@@ -83,7 +109,13 @@
         "obstacle": "rigidity, or someone else's rules standing in the way",
         "advice": "decide what the frame is, and hold it without apologising",
         "general": "structure, authority, boundaries"
-      }
+      },
+      "details": [
+        "he sits upright on a stone throne carved with four rams' heads",
+        "an ankh sceptre in one hand, a golden orb in the other",
+        "long white beard, red robe, armoured legs and boots showing beneath it",
+        "bare orange mountains behind him, nothing growing"
+      ]
     },
     {
       "card_id": "major-05-hierophant",
@@ -95,7 +127,13 @@
         "obstacle": "inherited rules that no longer fit the person following them",
         "advice": "keep the teacher or the tradition worth keeping; discard the rest",
         "general": "tradition, teaching, the accepted way of doing things"
-      }
+      },
+      "details": [
+        "he sits between two grey stone pillars, one hand raised with two fingers up",
+        "a triple crown on his head; a staff with a triple cross in his other hand",
+        "two tonsured figures kneel below him with their backs to us",
+        "a pair of crossed keys lies on the floor between them"
+      ]
     },
     {
       "card_id": "major-06-lovers",
@@ -107,7 +145,14 @@
         "obstacle": "a choice deferred; wanting both paths at once",
         "advice": "choose by what you value, not by which is easier to explain",
         "general": "choice, union, what you align yourself with"
-      }
+      },
+      "details": [
+        "a naked woman on the left and a naked man on the right, standing apart, not touching",
+        "a winged figure rises from cloud above them with arms spread, a great sun behind",
+        "a tree with a serpent coiled on it stands behind her; a tree of flames behind him",
+        "she looks up at the winged figure; he looks at her",
+        "a single mountain between them"
+      ]
     },
     {
       "card_id": "major-07-chariot",
@@ -119,7 +164,14 @@
         "obstacle": "force applied without steering; speed used as avoidance",
         "advice": "keep the two halves pulling the same way and stay on the road",
         "general": "drive, momentum, opposing forces held together"
-      }
+      },
+      "details": [
+        "an armoured figure stands in a chariot under a canopy of stars",
+        "two sphinxes lie in front of it, one black and one white, facing away from each other",
+        "he holds a wand, and there are no reins",
+        "crescent moons on his shoulders, a winged disc on the front of the chariot",
+        "a walled city behind him"
+      ]
     },
     {
       "card_id": "major-08-strength",
@@ -131,7 +183,13 @@
         "obstacle": "trying to overpower what only yields to patience",
         "advice": "meet it softly and repeatedly; force will cost more than it wins",
         "general": "steady courage, patience over force"
-      }
+      },
+      "details": [
+        "a woman in a white dress bends over a lion and lays both hands on its head and jaw",
+        "a sideways figure-eight floats above her head; a chain of flowers hangs at her waist",
+        "the lion's tail is down between its legs, its tongue showing",
+        "green ground, a blue hill in the distance"
+      ]
     },
     {
       "card_id": "major-09-hermit",
@@ -143,7 +201,13 @@
         "obstacle": "isolation dressed up as reflection",
         "advice": "take the solitude you need, then bring the lantern back down",
         "general": "withdrawal, searching alone, the light carried inward"
-      }
+      },
+      "details": [
+        "an old man in a grey hooded cloak stands alone, seen from the side",
+        "he holds up a lit lantern with a six-pointed star inside it",
+        "a long staff in his other hand, taller than he is",
+        "he stands on snow against a plain grey sky, with nothing else in the picture"
+      ]
     },
     {
       "card_id": "major-10-wheel-of-fortune",
@@ -155,7 +219,13 @@
         "obstacle": "waiting on luck, or fighting a cycle that has to run",
         "advice": "act on the part that is yours and let the rest turn",
         "general": "turning, cycles, what sits outside your control"
-      }
+      },
+      "details": [
+        "a great wheel hangs in the sky, lettered around its rim",
+        "a blue sphinx holding a sword sits on top of it, still",
+        "a red dog-headed figure rises on one side, a yellow snake slides down the other",
+        "four winged figures sit on clouds in the corners, each reading a book"
+      ]
     },
     {
       "card_id": "major-11-justice",
@@ -167,7 +237,13 @@
         "obstacle": "an imbalance nobody has named out loud",
         "advice": "weigh it honestly, your own part included, then decide",
         "general": "balance, consequence, honest accounting"
-      }
+      },
+      "details": [
+        "a crowned figure sits between two pillars, facing straight out at you",
+        "an upright double-edged sword in one hand, a pair of scales in the other",
+        "a red robe under a green cloak; one white shoe shows beneath the hem",
+        "a purple curtain hangs behind, between the pillars"
+      ]
     },
     {
       "card_id": "major-12-hanged-man",
@@ -179,7 +255,14 @@
         "obstacle": "stuckness mistaken for patience; waiting used as a strategy",
         "advice": "stop struggling long enough for the view to change",
         "general": "suspension, reversal, seeing from another angle"
-      }
+      },
+      "details": [
+        "a man hangs upside down by one ankle from a wooden beam",
+        "his free leg is crossed behind the other, making a figure four",
+        "his arms are behind his back, out of sight",
+        "a bright halo of light around his head; his face is calm",
+        "green leaves sprout from the wood he is hanging from"
+      ]
     },
     {
       "card_id": "major-13-death",
@@ -191,7 +274,14 @@
         "obstacle": "holding on to what is already over",
         "advice": "let the ending finish; what comes next needs the room",
         "general": "endings, transformation, what has to be let go"
-      }
+      },
+      "details": [
+        "a skeleton in black armour rides a white horse at a walking pace",
+        "it carries a black banner with a white five-petalled rose",
+        "a king lies dead under the hooves, his crown fallen off",
+        "a bishop stands facing it, a woman turns her face away, a child kneels holding flowers",
+        "a river with a boat behind; the sun rises between two towers on the horizon"
+      ]
     },
     {
       "card_id": "major-14-temperance",
@@ -203,7 +293,14 @@
         "obstacle": "extremes swinging back and forth instead of settling",
         "advice": "adjust in small amounts and keep testing the mix",
         "general": "blending, moderation, patient adjustment"
-      }
+      },
+      "details": [
+        "a winged figure pours liquid between two gold cups, one held higher than the other",
+        "one bare foot rests on the bank, the other is in the water",
+        "a triangle inside a square on the chest; a small sun above the head",
+        "irises grow at the water's edge",
+        "a path runs to distant hills with a crown of light above them"
+      ]
     },
     {
       "card_id": "major-15-devil",
@@ -215,7 +312,14 @@
         "obstacle": "a dependence being called a preference",
         "advice": "name what you get out of it; the chain is looser than it looks",
         "general": "attachment, compulsion, chains that are looser than they look"
-      }
+      },
+      "details": [
+        "a horned goat-headed figure crouches on a black half-cube, bat wings spread",
+        "one hand raised open, the other holding a lit torch pointed downward",
+        "an upside-down five-pointed star above its head",
+        "a naked man and woman stand chained by the neck to the cube; both have small horns",
+        "the chains hang loose enough to lift over their heads"
+      ]
     },
     {
       "card_id": "major-16-tower",
@@ -227,7 +331,13 @@
         "obstacle": "defending a structure that is already failing",
         "advice": "let it fall and find out what was actually load-bearing",
         "general": "sudden collapse, a structure that could not hold"
-      }
+      },
+      "details": [
+        "lightning strikes a tall tower and knocks the golden crown off its top",
+        "flames come out of three windows",
+        "two figures fall headfirst, one in red and one in blue",
+        "sparks fall through a black sky; the tower stands on bare rock"
+      ]
     },
     {
       "card_id": "major-17-star",
@@ -239,7 +349,13 @@
         "obstacle": "hope so faint it is easier to ignore than to hold",
         "advice": "keep pouring; the small steady acts are the repair",
         "general": "hope, clarity after the storm, quiet repair"
-      }
+      },
+      "details": [
+        "a naked woman kneels at a pool, one knee on the ground and one foot in the water",
+        "she pours from two jugs: one into the pool, one onto the land where it runs in streams",
+        "one large eight-pointed star above her, and seven smaller ones around it",
+        "a bird sits in a tree on the right"
+      ]
     },
     {
       "card_id": "major-18-moon",
@@ -251,7 +367,14 @@
         "obstacle": "fear and imagination filling in what isn't known",
         "advice": "walk the path in poor light rather than waiting for noon",
         "general": "uncertainty, dreams, what is unclear by nature"
-      }
+      },
+      "details": [
+        "a face in profile looks out of the moon, ringed with straight and wavy rays",
+        "a dog and a wolf stand on the grass howling up at it",
+        "a crayfish crawls out of a pool in the foreground",
+        "two grey towers stand far apart, a path running between them into the hills",
+        "drops fall from the sky between the towers"
+      ]
     },
     {
       "card_id": "major-19-sun",
@@ -263,7 +386,13 @@
         "obstacle": "exposure that feels like too much light",
         "advice": "say the plain version out loud and let it be that simple",
         "general": "clarity, warmth, being seen plainly"
-      }
+      },
+      "details": [
+        "a large sun with a human face fills the top of the card",
+        "a naked child rides a white horse bareback, arms open, a wreath and a red feather in the hair",
+        "the child holds a big orange banner on a pole",
+        "four sunflowers look over a grey wall behind them"
+      ]
     },
     {
       "card_id": "major-20-judgement",
@@ -275,7 +404,14 @@
         "obstacle": "a call heard clearly and left unanswered",
         "advice": "decide what the story actually was, then answer it",
         "general": "reckoning, awakening, answering a call"
-      }
+      },
+      "details": [
+        "an angel leans out of a cloud and blows a long trumpet",
+        "a square white banner with a red cross hangs from the trumpet",
+        "a man on the left and a woman on the right rise from one coffin with their arms raised",
+        "a child stands between them, back to us, facing the angel",
+        "more figures rise from coffins on the water behind; snow-capped mountains on the horizon"
+      ]
     },
     {
       "card_id": "major-21-world",
@@ -287,7 +423,13 @@
         "obstacle": "finishing avoided; a loop left open on purpose",
         "advice": "close it properly, and let an ending be an ending",
         "general": "completion, wholeness, a cycle closing"
-      }
+      },
+      "details": [
+        "a figure dances inside a great green wreath, a purple scarf winding around the body",
+        "a short wand held loosely in each hand",
+        "the wreath is tied with red ribbon at the top and the bottom",
+        "four heads look in from the corners: a person, an eagle, a bull and a lion"
+      ]
     },
     {
       "card_id": "cups-01-ace",
@@ -299,7 +441,13 @@
         "obstacle": "an offer that is hard to accept or to trust",
         "advice": "accept what is being offered before you analyse it",
         "general": "feeling offered, a new opening on the heart's side"
-      }
+      },
+      "details": [
+        "a hand comes out of a cloud holding a wide gold cup",
+        "a white dove descends toward it with a disc in its beak",
+        "five streams pour over the rim into the water below",
+        "water lilies float on the water underneath"
+      ]
     },
     {
       "card_id": "cups-02-two",
@@ -311,7 +459,13 @@
         "obstacle": "a bond that needs both hands, and only one is offered",
         "advice": "make the exchange explicit: say what you are giving and what you want",
         "general": "meeting, mutual regard, a bond formed between equals"
-      }
+      },
+      "details": [
+        "a young woman and a young man face each other, each raising a cup",
+        "above them, a staff with two snakes and a winged lion's head",
+        "she wears white with a wreath; he wears a patterned tunic",
+        "a small house on a green hill behind them"
+      ]
     },
     {
       "card_id": "cups-03-three",
@@ -323,7 +477,12 @@
         "obstacle": "company that crowds out the harder conversation",
         "advice": "tell the people around you; let it be witnessed",
         "general": "shared joy, company, celebration"
-      }
+      },
+      "details": [
+        "three women stand in a ring, each lifting a cup, their arms crossing",
+        "one has her back to us in red; the other two face out",
+        "fruit and a pumpkin lie on the ground at their feet"
+      ]
     },
     {
       "card_id": "cups-04-four",
@@ -335,7 +494,12 @@
         "obstacle": "an offer refused because it is not the expected one",
         "advice": "look up; something is being held out that you haven't counted",
         "general": "discontent, offers unseen, boredom with enough"
-      }
+      },
+      "details": [
+        "a young man sits under a tree with his arms and legs crossed, looking down",
+        "three cups stand on the grass in front of him",
+        "a fourth is held out of a cloud beside his head; he has not looked at it"
+      ]
     },
     {
       "card_id": "cups-05-five",
@@ -347,7 +511,13 @@
         "obstacle": "grief that hides what is still standing",
         "advice": "count what is left before you leave the field",
         "general": "loss, grief, attention fixed on what spilled"
-      }
+      },
+      "details": [
+        "a figure in a long black cloak stands with head bowed, back to us",
+        "three cups lie spilled in front of them",
+        "two cups still stand upright behind them, out of their sight",
+        "a river runs between the figure and a castle, crossed by a narrow bridge"
+      ]
     },
     {
       "card_id": "cups-06-six",
@@ -359,7 +529,12 @@
         "obstacle": "nostalgia used as a place to live",
         "advice": "take the good from the old thing and carry it forward",
         "general": "memory, kindness, the past returning gently"
-      }
+      },
+      "details": [
+        "an older child hands a cup with a white flower in it to a smaller child",
+        "six cups, each holding a white flower, stand around a courtyard",
+        "an old house and a tower behind; a figure walks away in the distance"
+      ]
     },
     {
       "card_id": "cups-07-seven",
@@ -371,7 +546,12 @@
         "obstacle": "too many appealing options and no test to sort them",
         "advice": "pick the one you would still want if nobody saw it",
         "general": "options, fantasy, choices that are not all real"
-      }
+      },
+      "details": [
+        "a dark figure, seen only as a silhouette, faces seven cups floating in cloud",
+        "the cups hold a head, a veiled shining figure, a snake, a tower, jewels, a wreath and a dragon",
+        "one hand is half raised toward them; nothing has been taken"
+      ]
     },
     {
       "card_id": "cups-08-eight",
@@ -383,7 +563,12 @@
         "obstacle": "staying out of investment rather than out of desire",
         "advice": "leave properly; a partial exit costs more than a clean one",
         "general": "leaving, walking away from what is nearly enough"
-      }
+      },
+      "details": [
+        "a figure in a red cloak walks away from us toward the hills, leaning on a staff",
+        "eight cups stand stacked behind, with a gap where one is missing from the top row",
+        "the moon above shows a crescent laid over a full face"
+      ]
     },
     {
       "card_id": "cups-09-nine",
@@ -395,7 +580,12 @@
         "obstacle": "contentment that has stopped asking for anything",
         "advice": "enjoy it plainly, and check that the wish was the real one",
         "general": "satisfaction, comfort, having what you asked for"
-      }
+      },
+      "details": [
+        "a man in a red hat sits with his arms folded, facing out, pleased with himself",
+        "nine cups stand in an arc on a blue-draped counter behind him",
+        "there is no one else in the picture"
+      ]
     },
     {
       "card_id": "cups-10-ten",
@@ -407,7 +597,13 @@
         "obstacle": "an ideal picture that the real one keeps failing",
         "advice": "measure it against your life, not against the picture",
         "general": "belonging, shared happiness, home"
-      }
+      },
+      "details": [
+        "a man and a woman stand with their arms round each other, free arms raised",
+        "two children hold hands and dance beside them, not looking up",
+        "ten cups arc across the sky in a rainbow",
+        "a house, trees and a river behind them"
+      ]
     },
     {
       "card_id": "cups-11-page",
@@ -419,7 +615,12 @@
         "obstacle": "a feeling too new to be taken seriously yet",
         "advice": "follow the odd small impulse and find out what it is",
         "general": "a new feeling, curiosity, an unexpected message"
-      }
+      },
+      "details": [
+        "a young figure in a flowered tunic and a soft blue hat holds up a cup",
+        "a fish leans out of the cup and looks back at them",
+        "the sea moves behind"
+      ]
     },
     {
       "card_id": "cups-12-knight",
@@ -431,7 +632,12 @@
         "obstacle": "a pursuit that stalls whenever the mood does",
         "advice": "make the offer, and carry it the whole way",
         "general": "following feeling, an offer carried to someone"
-      }
+      },
+      "details": [
+        "a rider in armour moves at a walking pace, holding a cup out in front of him",
+        "wings on his helmet and on his heels",
+        "a stream crosses the dry ground in front of the horse"
+      ]
     },
     {
       "card_id": "cups-13-queen",
@@ -443,7 +649,12 @@
         "obstacle": "absorbing other people's feelings until your own go unclear",
         "advice": "trust what you feel, and say it as information",
         "general": "deep feeling held steadily, intuition, care"
-      }
+      },
+      "details": [
+        "a queen sits on a stone throne at the water's edge, looking into a covered cup",
+        "the cup has handles shaped like angels and is the most worked thing in the picture",
+        "cherubs are carved into her throne; coloured pebbles lie at her feet"
+      ]
     },
     {
       "card_id": "cups-14-king",
@@ -455,7 +666,12 @@
         "obstacle": "calm maintained by keeping the depth out of view",
         "advice": "stay steady without pretending the water is still",
         "general": "emotional steadiness, deep water handled calmly"
-      }
+      },
+      "details": [
+        "a king sits on a throne that floats on moving water, a cup in one hand",
+        "a ship sails behind him on one side; a fish leaps on the other",
+        "his feet do not touch the sea and he is not wet"
+      ]
     },
     {
       "card_id": "pentacles-01-ace",
@@ -467,7 +683,12 @@
         "obstacle": "a solid option that would mean actually starting",
         "advice": "take the practical opening and make it real this week",
         "general": "a material opening, an offer with substance to it"
-      }
+      },
+      "details": [
+        "a hand comes out of a cloud holding a large gold coin marked with a five-pointed star",
+        "below it, a walled garden full of white lilies",
+        "an arched gap in the hedge opens onto mountains"
+      ]
     },
     {
       "card_id": "pentacles-02-two",
@@ -479,7 +700,12 @@
         "obstacle": "keeping everything moving so that nothing has to be chosen",
         "advice": "keep only what you can hold while the water is rough",
         "general": "juggling, balance in motion, competing demands"
-      }
+      },
+      "details": [
+        "a young man in a tall red hat dances, a coin in each hand",
+        "a green ribbon loops round both coins in a figure-eight",
+        "two ships ride high waves behind him"
+      ]
     },
     {
       "card_id": "pentacles-03-three",
@@ -491,7 +717,12 @@
         "obstacle": "skill without agreement about what is being built",
         "advice": "say what you are good at and let others hold their part",
         "general": "craft, collaboration, work being built to a plan"
-      }
+      },
+      "details": [
+        "a stonemason stands on a bench, working in a church archway",
+        "two others watch: one hooded, one holding out a sheet of plans",
+        "three coins are worked into the stone arch above them"
+      ]
     },
     {
       "card_id": "pentacles-04-four",
@@ -503,7 +734,12 @@
         "obstacle": "security held so tightly it prevents movement",
         "advice": "loosen one hand and find out what the grip is protecting",
         "general": "holding on, security, control of what you have"
-      }
+      },
+      "details": [
+        "a crowned figure sits holding one coin tight against his chest",
+        "one coin balances on his head; one is under each foot",
+        "a city stands behind him; he is outside it, alone on a stool"
+      ]
     },
     {
       "card_id": "pentacles-05-five",
@@ -515,7 +751,12 @@
         "obstacle": "help close by and never asked for",
         "advice": "ask; the door you keep walking past is open",
         "general": "hardship, exclusion, being outside the warm room"
-      }
+      },
+      "details": [
+        "two figures walk through snow past a lit stained-glass window",
+        "one is on crutches, the other wrapped in a shawl",
+        "five coins are set in the window above them; neither looks up"
+      ]
     },
     {
       "card_id": "pentacles-06-six",
@@ -527,7 +768,13 @@
         "obstacle": "generosity that keeps the scales in one person's hand",
         "advice": "let it be even: give or receive without keeping the ledger",
         "general": "giving and receiving, help with a balance to it"
-      }
+      },
+      "details": [
+        "a man in red holds a pair of scales in one hand",
+        "with the other he drops coins into the hands of a kneeling figure",
+        "a second figure kneels beside them, waiting",
+        "six coins hang in the air behind"
+      ]
     },
     {
       "card_id": "pentacles-07-seven",
@@ -539,7 +786,12 @@
         "obstacle": "impatience with something that only grows slowly",
         "advice": "assess it honestly, then either let it grow or pull it up",
         "general": "patience, assessment, waiting on what was planted"
-      }
+      },
+      "details": [
+        "a young man leans both hands on the top of a hoe, looking down",
+        "six coins grow on a leafy bush beside him; one lies on the ground at his feet",
+        "he has stopped working"
+      ]
     },
     {
       "card_id": "pentacles-08-eight",
@@ -551,7 +803,12 @@
         "obstacle": "grinding at the work to avoid the bigger question",
         "advice": "put the hours in; the skill is built by the repetition",
         "general": "practice, diligence, repetition that builds skill"
-      }
+      },
+      "details": [
+        "a craftsman sits at a bench with hammer and chisel, cutting a coin",
+        "five finished ones are fixed to the post beside him, one above another",
+        "one lies at his feet and one on the bench; a town in the distance"
+      ]
     },
     {
       "card_id": "pentacles-09-nine",
@@ -563,7 +820,13 @@
         "obstacle": "independence that has quietly become a wall",
         "advice": "enjoy what you built, and let someone into the garden",
         "general": "self-sufficiency, earned comfort, your own ground"
-      }
+      },
+      "details": [
+        "a woman stands alone in a walled vineyard, one hand resting on a coin",
+        "a hooded falcon sits on her gloved hand",
+        "nine coins hang among the vines; a house behind",
+        "a small snail crosses the ground near her hem"
+      ]
     },
     {
       "card_id": "pentacles-10-ten",
@@ -575,7 +838,13 @@
         "obstacle": "inherited structures that assume you will keep them going",
         "advice": "decide what you want to keep of what was handed to you",
         "general": "legacy, stability, what outlasts the person who built it"
-      }
+      },
+      "details": [
+        "an old man in a patterned robe sits at the edge of the scene with two white dogs",
+        "a man and a woman stand talking; a child reaches for one of the dogs",
+        "nobody is looking at the old man",
+        "an archway and a walled town behind; ten coins spread across the whole picture"
+      ]
     },
     {
       "card_id": "pentacles-11-page",
@@ -587,7 +856,12 @@
         "obstacle": "study that stays study and never becomes practice",
         "advice": "start small and expect to be bad at it first",
         "general": "a beginner's study, an offer to learn something practical"
-      }
+      },
+      "details": [
+        "a young figure holds a coin up in both hands and looks straight at it",
+        "a ploughed field, trees and mountains behind",
+        "they are standing still, feet together"
+      ]
     },
     {
       "card_id": "pentacles-12-knight",
@@ -599,7 +873,12 @@
         "obstacle": "steadiness that has become standing still",
         "advice": "keep the plodding pace; it gets there if you don't stop",
         "general": "slow reliability, unglamorous steady progress"
-      }
+      },
+      "details": [
+        "an armoured rider sits still on a heavy black horse",
+        "he holds a coin out in one gloved hand",
+        "the horse has stopped, all four feet down, at the edge of a ploughed field"
+      ]
     },
     {
       "card_id": "pentacles-13-queen",
@@ -611,7 +890,12 @@
         "obstacle": "carrying everyone's practical needs and your own last",
         "advice": "tend yourself with the competence you give everything else",
         "general": "practical care, resourcefulness, tending things well"
-      }
+      },
+      "details": [
+        "a queen sits in a garden looking down at a large coin held in her lap with both hands",
+        "roses arch over her throne; a goat's head is carved into it",
+        "a rabbit runs past the bottom corner"
+      ]
     },
     {
       "card_id": "pentacles-14-king",
@@ -623,7 +907,13 @@
         "obstacle": "success defended so carefully it stopped being enjoyed",
         "advice": "use what you built; it exists to be spent, not guarded",
         "general": "material mastery, provision, ground that is established"
-      }
+      },
+      "details": [
+        "a king sits on a throne carved with bulls' heads, a coin resting on his knee",
+        "his robe is covered in grapevines and bunches of grapes",
+        "a sceptre in his other hand; a castle behind",
+        "one armoured leg shows beneath the vines"
+      ]
     },
     {
       "card_id": "swords-01-ace",
@@ -635,7 +925,12 @@
         "obstacle": "a truth that has to be said, and will cut when it is",
         "advice": "name it precisely; the clean statement is the whole move",
         "general": "clarity, the truth named, a decision that cuts through"
-      }
+      },
+      "details": [
+        "a hand comes out of a cloud gripping an upright sword",
+        "a gold crown hangs on the point, an olive branch on one side and a palm on the other",
+        "a few drops fall through the air; bare mountains below"
+      ]
     },
     {
       "card_id": "swords-02-two",
@@ -647,7 +942,12 @@
         "obstacle": "an avoidance being maintained with real effort",
         "advice": "take the blindfold off before you decide anything",
         "general": "stalemate, refusal to look, a balance held blind"
-      }
+      },
+      "details": [
+        "a woman sits on a stone bench, blindfolded, two long swords crossed over her chest",
+        "she is holding them there herself",
+        "the sea and rocks behind her; a crescent moon"
+      ]
     },
     {
       "card_id": "swords-03-three",
@@ -659,7 +959,12 @@
         "obstacle": "a hurt that keeps getting re-read",
         "advice": "let it hurt the honest amount, then stop rehearsing it",
         "general": "heartbreak, painful clarity, the words that hurt"
-      }
+      },
+      "details": [
+        "three swords pass through a single red heart",
+        "grey cloud and straight rain behind it",
+        "there are no people in the picture"
+      ]
     },
     {
       "card_id": "swords-04-four",
@@ -671,7 +976,13 @@
         "obstacle": "rest that has quietly become hiding",
         "advice": "actually rest: stopping is the work right now",
         "general": "rest, retreat, deliberate stillness"
-      }
+      },
+      "details": [
+        "a knight lies on a tomb with his hands together and his eyes shut",
+        "three swords hang on the wall above him",
+        "a fourth lies along the side of the tomb beneath him",
+        "a stained-glass window in the corner shows a figure with a raised hand"
+      ]
     },
     {
       "card_id": "swords-05-five",
@@ -683,7 +994,13 @@
         "obstacle": "needing to be right more than needing the outcome",
         "advice": "decide whether winning this is worth what it costs",
         "general": "conflict won badly, the cost of being right"
-      }
+      },
+      "details": [
+        "a young man gathers up swords and looks back over his shoulder, half smiling",
+        "two others walk away toward the water, one with a hand to their face",
+        "two swords lie on the ground behind him",
+        "torn grey cloud across the sky"
+      ]
     },
     {
       "card_id": "swords-06-six",
@@ -695,7 +1012,13 @@
         "obstacle": "leaving with everything still packed in the boat",
         "advice": "go, and accept that some of it comes with you for now",
         "general": "transition, moving to calmer water, carrying it along"
-      }
+      },
+      "details": [
+        "a ferryman stands and poles a flat boat away from us",
+        "a cloaked figure sits in it with a child pressed against them",
+        "six swords stand upright in the front of the boat",
+        "the water is choppy on one side of the boat and flat on the other"
+      ]
     },
     {
       "card_id": "swords-07-seven",
@@ -707,7 +1030,13 @@
         "obstacle": "a strategy that depends on not being fully honest",
         "advice": "do the direct version, or admit to yourself why you won't",
         "general": "evasion, half-truths, taking the indirect route"
-      }
+      },
+      "details": [
+        "a man carries five swords away from a camp, holding them by the blades",
+        "he looks back over his shoulder as he goes, up on his toes",
+        "two swords stay planted in the ground behind him",
+        "striped tents and a distant figure"
+      ]
     },
     {
       "card_id": "swords-08-eight",
@@ -719,7 +1048,12 @@
         "obstacle": "a cage with a gap in it that nobody has tested",
         "advice": "test one wall and find out which parts are real",
         "general": "feeling trapped, restriction that is mostly self-held"
-      }
+      },
+      "details": [
+        "a woman stands bound with cloth and blindfolded",
+        "eight swords are set in the ground around her, but none across the front",
+        "her feet are in shallow water; a castle sits on the cliff above"
+      ]
     },
     {
       "card_id": "swords-09-nine",
@@ -731,7 +1065,13 @@
         "obstacle": "fear rehearsed in private and never said out loud",
         "advice": "say the worst of it out loud to one person; it shrinks",
         "general": "anxiety, sleepless dread, the mind at night"
-      }
+      },
+      "details": [
+        "someone sits up in bed with their face in both hands",
+        "nine swords hang on the black wall behind, level, one above another",
+        "the quilt is patterned with roses and zodiac signs",
+        "a carving on the bed shows one figure standing over another"
+      ]
     },
     {
       "card_id": "swords-10-ten",
@@ -743,7 +1083,12 @@
         "obstacle": "an ending being dramatised instead of accepted",
         "advice": "call it over; the light is already at the edge",
         "general": "ending, the bottom, overkill"
-      }
+      },
+      "details": [
+        "a figure lies face down under a red cloak with ten swords in his back",
+        "the sky above is black",
+        "the horizon is bright yellow and the water beyond it is completely still"
+      ]
     },
     {
       "card_id": "swords-11-page",
@@ -755,7 +1100,12 @@
         "obstacle": "vigilance that reads everything as a threat",
         "advice": "stay curious, and ask directly instead of watching",
         "general": "watchfulness, curiosity, testing ideas out"
-      }
+      },
+      "details": [
+        "a young figure stands on a rise holding a sword up in both hands",
+        "they are looking sideways, not at what is in front of them",
+        "hair and clouds blown; birds high up"
+      ]
     },
     {
       "card_id": "swords-12-knight",
@@ -767,7 +1117,12 @@
         "obstacle": "speed that has outrun the reason for it",
         "advice": "charge if you mean it, but know what you are riding at",
         "general": "charge, urgency, argument at speed"
-      }
+      },
+      "details": [
+        "an armoured rider charges at a full gallop, sword raised",
+        "his cloak and the horse's mane stream out behind",
+        "trees bent by the wind; birds scattered"
+      ]
     },
     {
       "card_id": "swords-13-queen",
@@ -779,7 +1134,13 @@
         "obstacle": "a clarity that has hardened into distance",
         "advice": "say the true thing plainly, and stay warm while you say it",
         "general": "clear sight, honesty without padding, hard-won perspective"
-      }
+      },
+      "details": [
+        "a queen sits in profile with an upright sword in one hand",
+        "her other hand is open and held out, as if to receive something",
+        "butterflies on her crown and a cherub's head carved on her throne",
+        "a single bird in the sky; cloud below the throne"
+      ]
     },
     {
       "card_id": "swords-14-king",
@@ -791,7 +1152,12 @@
         "obstacle": "principle used to avoid the human part of it",
         "advice": "rule on it, then check the ruling against the people in it",
         "general": "judgment, principle, deciding by reason"
-      }
+      },
+      "details": [
+        "a king sits facing forward, a sword upright in his hand and tilted a little",
+        "his throne is carved with butterflies and angels",
+        "two trees and gathering cloud behind him"
+      ]
     },
     {
       "card_id": "wands-01-ace",
@@ -803,7 +1169,12 @@
         "obstacle": "an impulse that keeps not getting acted on",
         "advice": "act while it is hot; the spark does not keep",
         "general": "a spark, raw impulse, the start of wanting something"
-      }
+      },
+      "details": [
+        "a hand comes out of a cloud gripping a rough staff that is putting out leaves",
+        "loose leaves fall away from it",
+        "a castle stands on a hill in the distance"
+      ]
     },
     {
       "card_id": "wands-02-two",
@@ -815,7 +1186,13 @@
         "obstacle": "the world in hand and no move made toward it",
         "advice": "pick a direction and commit; the view has told you enough",
         "general": "planning, the wider view, deciding whether to go"
-      }
+      },
+      "details": [
+        "a man in red stands on a castle wall holding a small globe in one hand",
+        "one staff is fixed to the wall; he holds the other",
+        "he looks out over water and hills, away from us",
+        "roses and lilies are cut into the stone beside him"
+      ]
     },
     {
       "card_id": "wands-03-three",
@@ -827,7 +1204,12 @@
         "obstacle": "waiting on returns that cannot be hurried",
         "advice": "keep looking out rather than back, and send the next one",
         "general": "the wait after launching, watching it go out"
-      }
+      },
+      "details": [
+        "a man stands on a cliff with his back to us, between three planted staffs",
+        "he holds one of them and looks out over a yellow sea",
+        "small ships are just visible on the water"
+      ]
     },
     {
       "card_id": "wands-04-four",
@@ -839,7 +1221,12 @@
         "obstacle": "stability that would be risked by wanting more",
         "advice": "mark it properly before moving to the next thing",
         "general": "arrival, celebration, ground that feels steady"
-      }
+      },
+      "details": [
+        "four staffs stand upright with a garland of flowers and fruit slung between their tops",
+        "two figures beneath it hold bouquets above their heads",
+        "a crowd and a walled house behind them"
+      ]
     },
     {
       "card_id": "wands-05-five",
@@ -851,7 +1238,12 @@
         "obstacle": "a conflict nobody is actually trying to win",
         "advice": "find out what the fight is really about, or leave it",
         "general": "friction, scrappy competition, noise"
-      }
+      },
+      "details": [
+        "five young men in different coloured tunics swing staffs at each other",
+        "nobody is hurt, and nobody seems to be aiming",
+        "bare ground and an empty sky"
+      ]
     },
     {
       "card_id": "wands-06-six",
@@ -863,7 +1255,12 @@
         "obstacle": "needing the win to be witnessed before it counts",
         "advice": "take the credit plainly and keep riding",
         "general": "recognition, a win that others can see"
-      }
+      },
+      "details": [
+        "a rider wearing a laurel crown sits on a horse draped in green cloth",
+        "a wreath is tied to the staff he carries",
+        "people walk alongside him carrying staffs of their own"
+      ]
     },
     {
       "card_id": "wands-07-seven",
@@ -875,7 +1272,12 @@
         "obstacle": "defending something you never decided was worth it",
         "advice": "hold the ground that is actually yours and drop the rest",
         "general": "defending your ground, holding a position"
-      }
+      },
+      "details": [
+        "a man on higher ground holds a staff across himself",
+        "six more staffs come up at him from below; whoever holds them is out of the picture",
+        "he is wearing one boot and one shoe"
+      ]
     },
     {
       "card_id": "wands-08-eight",
@@ -887,7 +1289,12 @@
         "obstacle": "everything moving too fast to aim",
         "advice": "move now, while the way is still clear",
         "general": "speed, things landing at once, momentum"
-      }
+      },
+      "details": [
+        "eight staffs fly diagonally through an open sky",
+        "there are no people in the picture at all",
+        "a river, a hill and a few trees below them"
+      ]
     },
     {
       "card_id": "wands-09-nine",
@@ -899,7 +1306,12 @@
         "obstacle": "vigilance built from old hits and applied to a quiet field",
         "advice": "keep going, and check whether the fence is still needed",
         "general": "resilience, guarded persistence, one more round"
-      }
+      },
+      "details": [
+        "a man with a bandage round his head leans on a staff and looks off to one side",
+        "eight more staffs stand in a row behind him like a fence",
+        "low hills behind; nothing is coming"
+      ]
     },
     {
       "card_id": "wands-10-ten",
@@ -911,7 +1323,12 @@
         "obstacle": "carrying what could have been shared or put down",
         "advice": "put some of it down; you were never required to carry it all",
         "general": "burden, taking on too much, the last stretch"
-      }
+      },
+      "details": [
+        "a man carries ten staffs in a bundle, bent forward under them",
+        "the bundle hides his face",
+        "a farmhouse and trees are close ahead of him"
+      ]
     },
     {
       "card_id": "wands-11-page",
@@ -923,7 +1340,13 @@
         "obstacle": "enthusiasm that runs out before the second week",
         "advice": "chase the new thing, and give it longer than the excitement lasts",
         "general": "enthusiasm, a new want, restless beginnings"
-      }
+      },
+      "details": [
+        "a young figure in a wide hat with a red feather stands in open desert",
+        "both hands rest on a tall sprouting staff planted in front of them",
+        "they are looking up along it, at the top of it",
+        "pyramids behind"
+      ]
     },
     {
       "card_id": "wands-12-knight",
@@ -935,7 +1358,12 @@
         "obstacle": "impulsiveness that keeps costing the same way",
         "advice": "go hard at it, but pick the direction before you kick",
         "general": "boldness, charging at what you want, heat"
-      }
+      },
+      "details": [
+        "a rider in armour on a rearing horse, staff in hand",
+        "salamanders on his tunic and a red plume on his helmet",
+        "dry ground and pyramids behind"
+      ]
     },
     {
       "card_id": "wands-13-queen",
@@ -947,7 +1375,12 @@
         "obstacle": "warmth spent outward while your own want goes unnamed",
         "advice": "say what you want as directly as you back other people",
         "general": "confidence, warmth, presence held steadily"
-      }
+      },
+      "details": [
+        "a queen sits facing forward, a staff in one hand and a sunflower in the other",
+        "lions are carved on her throne and painted on the cloth behind her",
+        "a black cat sits at her feet, facing out at us"
+      ]
     },
     {
       "card_id": "wands-14-king",
@@ -959,7 +1392,12 @@
         "obstacle": "vision that keeps outrunning the follow-through",
         "advice": "set the direction, then stay for the unglamorous middle",
         "general": "vision, leadership, the will to set a direction"
-      }
+      },
+      "details": [
+        "a king sits in profile, leaning forward, a sprouting staff in his hand",
+        "lions and salamanders on his throne and his cloak",
+        "a small lizard on the ground beside his feet"
+      ]
     }
   ]
 }

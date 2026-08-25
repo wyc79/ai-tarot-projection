@@ -79,10 +79,25 @@ function describeCard(pack, session) {
 
 ${card.name}, in the ${position.label} position (${position.arc_role} — ${position.prompt_hint}).
 
-They can see the picture and this one line about it: "${card.imagery_line}"
+They can see the picture, and one line of text about it: "${card.imagery_line}"
 
-Traditional sense, for seasoning only — one sentence of it at most, and only
-after they have spoken:
+### What is actually in the picture
+
+${card.details.map((d) => `- ${d}`).join("\n")}
+
+This list is here so you can recognise whatever they point at. They are looking
+at the card; you are not. When they mention something you can find above, you
+can meet them on it exactly — which is the difference between a reader who is
+paying attention and one who is performing.
+
+It is not a script and not a thing to recite. Do not tell them what is in the
+picture, do not count objects for them, and do not walk them through it. If they
+point at something that is not on this list, believe them and ask about it: they
+can see the card and you cannot.
+
+### Traditional sense
+
+Seasoning only — one sentence of it at most, and only after they have spoken:
 - in this position: ${card.meanings[entry.position]}
 - generally: ${card.meanings.general}
 

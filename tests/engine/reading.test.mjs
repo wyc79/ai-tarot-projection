@@ -208,3 +208,20 @@ test("the anchor's phrases are not presented as things they keep saying", async 
   assert.match(system, /not evidence that they say it\noften/);
   assert.doesNotMatch(system, /- their words:/);
 });
+
+test("the reader is given what is actually in the picture, not just the one line", async () => {
+  const { client, reading, pack } = await run({ gates: [gate(1, false)], answers: ["hm"] });
+  const card = pack.card(reading.session.cards[0].card_id);
+  const system = client.calls.chat[0].system;
+  for (const detail of card.details) {
+    assert.ok(system.includes(detail), `missing detail: ${detail}`);
+  }
+});
+
+test("the detail list is framed for recognition, never for narration", async () => {
+  const { client } = await run({ gates: [gate(1, false)], answers: ["hm"] });
+  const system = client.calls.chat[0].system;
+  assert.match(system, /so you can recognise whatever they point at/);
+  assert.match(system, /Do not tell them what is in the\npicture/);
+  assert.match(system, /believe them and ask about it/);
+});

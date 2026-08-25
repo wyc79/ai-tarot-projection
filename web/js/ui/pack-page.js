@@ -16,6 +16,7 @@ function renderCard(pack, card) {
   $("card-id").textContent = card.card_id;
   $("imagery-line").textContent = card.imagery_line;
   $("general").textContent = card.meanings.general;
+  $("details").innerHTML = card.details.map((d) => `<li>${d}</li>`).join("");
 
   $("positions").innerHTML = "";
   for (const position of pack.positions) {

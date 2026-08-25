@@ -12,11 +12,13 @@ import json
 import os
 import sys
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 REQUIRED_POSITIONS = ["situation", "obstacle", "advice"]
 MEANING_KEYS = REQUIRED_POSITIONS + ["general"]
 EXPECTED_CARDS = 78
 IMAGERY_MAX = 160  # one line, not a paragraph
+DETAILS_MIN = 3    # fewer than three and the reader has nothing to recognise
+DETAIL_MAX = 140   # one observation each, not a paragraph
 
 
 def nonempty_str(v):
@@ -92,6 +94,19 @@ def validate(pack_dir):
         if nonempty_str(line) and len(line) > IMAGERY_MAX:
             warnings.append("%s: imagery_line is %d chars (max %d)"
                             % (where, len(line), IMAGERY_MAX))
+
+        details = card.get("details")
+        if not isinstance(details, list) or len(details) < DETAILS_MIN:
+            problems.append("%s: needs at least %d details, got %r"
+                            % (where, DETAILS_MIN,
+                               len(details) if isinstance(details, list) else details))
+        else:
+            for detail in details:
+                if not nonempty_str(detail):
+                    problems.append("%s: empty detail line" % where)
+                elif len(detail) > DETAIL_MAX:
+                    warnings.append("%s: detail is %d chars (max %d)"
+                                    % (where, len(detail), DETAIL_MAX))
 
         meanings = card.get("meanings")
         if not isinstance(meanings, dict):

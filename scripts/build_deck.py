@@ -120,6 +120,9 @@ def build():
             "image": "Cards-jpg/%s" % fn,
             # Raw Waite, to be rewritten by hand.
             "imagery_line": first_sentence(c["desc"]),
+            # Authored by looking at the card. Waite describes what things mean;
+            # this field is only what is visibly there.
+            "details": [],
             "meanings": {
                 "situation": "",
                 "obstacle": "",
@@ -130,7 +133,7 @@ def build():
 
     out.sort(key=lambda c: (c["card_id"].split("-")[0] != "major", c["card_id"]))
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "pack_id": "smith-waite-1909",
         "name": "Smith-Waite (1909)",
         "card_back": "Cards-jpg/CardBacks.jpg",

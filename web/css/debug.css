@@ -115,3 +115,7 @@ summary { cursor: pointer; font-size: 0.85rem; }
 .panel-details pre { max-height: 22rem; overflow: auto; font-size: 0.7rem; color: var(--dim); white-space: pre-wrap; word-break: break-word; }
 
 h2.label { margin: 0 0 0.4rem; }
+
+.details { margin: 0.35rem 0 0; padding-left: 1.1rem; font-size: 0.85rem; color: var(--text); }
+.details li { margin-bottom: 0.2rem; }
+.dim-note { color: var(--dim); text-transform: none; letter-spacing: 0; }

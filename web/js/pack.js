@@ -7,7 +7,7 @@
  * works at http://localhost:8787/ and at https://user.github.io/ai-tarot/.
  */
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 /**
  * @param {string} packDir  pack root, relative to the document
