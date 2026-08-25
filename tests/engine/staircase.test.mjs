@@ -43,3 +43,32 @@ test("the user's own words are escaped, since they land in markup", async () => 
   assert.ok(!svg.includes("<script>"), "a transcript is untrusted text like any other");
   assert.match(svg, /&lt;script&gt;/);
 });
+
+test("the question you are being asked is on the map before you answer it", async () => {
+  const pack = await realPack();
+  const session = await c145c7();
+  const settled = staircaseSvg(session, pack);
+  // The turn that hangs unanswered at the end of c145c7, which is the one turn
+  // a diagram built from exchanges alone can never show.
+  const pending = session.cards.at(-1).ai_reading;
+  const live = staircaseSvg(session, pack, { pending });
+
+  assert.ok(live.length > settled.length);
+  assert.match(live, /class="q-card pending"/);
+  assert.match(live, /waiting on you/);
+  assert.equal((live.match(/class="drop"/g) ?? []).length,
+               (settled.match(/class="drop"/g) ?? []).length,
+               "a question nobody has answered is not a deflection");
+});
+
+test("a question that reaches too far is ringed while it is still pending", async () => {
+  const pack = await realPack();
+  const session = {
+    cards: [{ card_id: "major-02-high-priestess", position: "situation" }],
+    exchanges: [{ q: "What does she look like she's pointing at for you?", a: "a woman in blue",
+                  position: "situation", question_type: "projection", disclosure_depth: 2,
+                  gate: { user_level: "name", has_life_content: false } }],
+  };
+  const live = staircaseSvg(session, pack, { pending: "What were you hoping for, before it went this way?" });
+  assert.match(live, /class="violation"/, "asked at intentions from name, and you can see it now");
+});

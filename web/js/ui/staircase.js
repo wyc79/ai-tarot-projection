@@ -32,12 +32,29 @@ const ROW = 16;
 const escape = (text) => String(text).replace(/[<>&"]/g,
   (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
 
-/** Turns worth drawing: everything asked once the cards were out. */
-function drawable(session) {
-  return session.exchanges
+/**
+ * Turns worth drawing: everything asked once the cards were out, plus the
+ * question hanging in the air.
+ *
+ * A question and its answer share one exchange record, so a diagram built from
+ * exchanges alone is always one turn behind what is on screen -- it cannot show
+ * the question you are currently being asked. That is the turn most worth
+ * seeing, because a question aimed two rungs too high is visible while you are
+ * still deciding how to answer it.
+ */
+function drawable(session, pending) {
+  const turns = session.exchanges
     .map((exchange, index) => ({ exchange, index }))
     .filter(({ exchange }) => exchange.q
       && exchange.position !== "opening" && exchange.position !== "off_frame");
+  if (pending && session.cards.length) {
+    turns.push({
+      exchange: { q: pending, a: "", position: session.cards[session.cards.length - 1].position },
+      index: session.exchanges.length,
+      pending: true,
+    });
+  }
+  return turns;
 }
 
 /** Which columns broke the one-rung rule, and why, without re-running the scanner. */
@@ -65,8 +82,8 @@ function violations(pack, turns) {
  * @param {object} pack
  * @returns {string} SVG markup, or "" when there is nothing to draw yet
  */
-export function staircaseSvg(session, pack) {
-  const turns = drawable(session);
+export function staircaseSvg(session, pack, { pending = "" } = {}) {
+  const turns = drawable(session, pending);
   if (!turns.length) return "";
 
   const levels = [...pack.levels].reverse();
@@ -97,7 +114,7 @@ export function staircaseSvg(session, pack) {
   }
 
   const line = [];
-  for (const [column, { exchange, index }] of turns.entries()) {
+  for (const [column, { exchange, index, pending: unanswered }] of turns.entries()) {
     const asked = questionLevel(exchange.q);
     const at = x(column);
     const askedAt = at - NUDGE;
@@ -105,8 +122,9 @@ export function staircaseSvg(session, pack) {
     if (askedY !== null) line.push(`${askedAt},${askedY}`);
 
     const projection = questionType(exchange.q) === "projection";
-    parts.push(`<circle class="${projection ? "q-card" : "q-life"}" cx="${askedAt}" `
-      + `cy="${askedY}" r="3.2"><title>${escape(exchange.q)}</title></circle>`);
+    parts.push(`<circle class="${projection ? "q-card" : "q-life"}${unanswered ? " pending" : ""}" `
+      + `cx="${askedAt}" cy="${askedY}" r="3.2">`
+      + `<title>${escape(exchange.q)}${unanswered ? " (waiting on you)" : ""}</title></circle>`);
 
     const landed = exchange.gate?.user_level;
     const landedY = landed ? y(landed) : null;
@@ -118,7 +136,7 @@ export function staircaseSvg(session, pack) {
         + `<title>${escape(exchange.a ?? "")}</title></rect>`);
     }
 
-    if (exchange.disclosure_depth === 1) {
+    if (!unanswered && exchange.disclosure_depth === 1) {
       const foot = height - PAD.bottom + 5;
       parts.push(`<path class="drop" d="M${at},${foot - 5} L${at},${foot} M${at - 2.5},${foot - 2.5} `
         + `L${at},${foot} L${at + 2.5},${foot - 2.5}"><title>deflection</title></path>`);

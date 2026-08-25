@@ -142,4 +142,6 @@ h2.label { margin: 0 0 0.4rem; }
 .staircase .flip { stroke: var(--line); stroke-dasharray: 2 2; }
 .staircase .violation { fill: none; stroke: var(--bad); stroke-width: 1.5; }
 .staircase .drop { stroke: var(--bad); stroke-width: 1.2; fill: none; }
+/* The question you are being asked right now: same mark, not yet settled. */
+.staircase .pending { opacity: 0.55; stroke-dasharray: 2 1.5; }
 .staircase-key { color: var(--dim); font-size: 0.7rem; margin: 0.4rem 0 0; line-height: 1.5; }

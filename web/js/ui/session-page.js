@@ -129,10 +129,14 @@ function renderGate(gate, decision) {
     ${decision ? `<div class="${decision.flip ? "ok" : ""}">${decision.flip ? "FLIP" : "hold"} — ${decision.reason}</div>` : ""}`;
 }
 
-/** Redrawn whenever an exchange lands, which is the only thing it reads. */
-function renderStaircase() {
+/**
+ * Redrawn on every turn boundary. `pending` is the question just asked and not
+ * yet answered -- it has no exchange record, so without it the map would always
+ * be one turn behind the conversation on the left.
+ */
+function renderStaircase(pending = "") {
   if (!reading || !pack) return;
-  const svg = staircaseSvg(reading.session, pack);
+  const svg = staircaseSvg(reading.session, pack, { pending });
   $("staircase").innerHTML = svg
     ? `${svg}<p class="staircase-key">line: what was asked · ○ about the card,
        ● about their life · ◇ where the answer landed, green when it carried
@@ -171,6 +175,9 @@ function onEvent(event) {
       break;
     case "reader_done":
       streamingLine = null;
+      // Before they answer: the question is on the map the moment it is asked,
+      // ringed already if it reached too far.
+      renderStaircase(event.text);
       // Downloadable from the first turn: an abandoned reading is often the
       // one worth keeping.
       $("save-md").disabled = false;
@@ -191,6 +198,7 @@ function onEvent(event) {
       setStatus("frame dropped — this is not a reading any more", "bad");
       break;
     case "closed":
+      renderStaircase();
       setStatus("reading closed", "ok");
       $("reply-form").hidden = true;
       // The label is written before close() runs, so it would otherwise keep
