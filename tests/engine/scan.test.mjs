@@ -96,3 +96,33 @@ test("the stall fallback is a projection question even on a follow-up turn", () 
     questionType("Does she look more like she's enjoying a peace she made, or like she's standing guard over it?"),
     "projection");
 });
+
+// -- the forced-choice fallback (checkpoint fix 5) ------------------------
+
+const FALLBACK = "Fair enough, it's not an obvious one. Does she look more like she's enjoying a peace she made, or like she's standing guard over it?";
+
+/** A card, a deal turn, an answer of depth `first`, then `q`. */
+const afterAnswer = (first, q) => ({
+  cards: [{ card_id: "pentacles-09-nine", position: "situation" }],
+  exchanges: [
+    { q: "What does it look like it's pointing at for you?", a: "dunno",
+      position: "situation", disclosure_depth: first },
+    { q, a: "it looks tired I guess", position: "situation", disclosure_depth: 2 },
+  ],
+  closing_reflection: "done.",
+  closed: true,
+});
+
+test("a forced choice after a one-word answer is the fallback, not a violation", () => {
+  assert.deepEqual(codes(afterAnswer(1, FALLBACK)), [],
+                   "both checkpoint runs were flagged here and both were right");
+});
+
+test("a forced choice after a real answer is still two questions in a coat", () => {
+  assert.ok(codes(afterAnswer(3, FALLBACK)).includes("stacked_or"));
+});
+
+test("a forced choice between two things about their life is never the fallback", () => {
+  const session = afterAnswer(1, "Is it the money, or is it that calling him means staying?");
+  assert.ok(codes(session).includes("stacked_or"));
+});

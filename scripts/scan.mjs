@@ -59,6 +59,22 @@ function dealTurnIndexes(session) {
 const sentencesIn = (text) => text.split(/(?<=[.?!])\s+/).filter(Boolean);
 
 /**
+ * A forced choice is normally two questions wearing one coat, and people answer
+ * the easier one. It is also the designed fallback: when someone has gone
+ * monosyllabic, two contrasting readings of the card give them something to
+ * push against, and that is in the persona on purpose.
+ *
+ * Permitted, then, when both are true: the answer that prompted this turn was a
+ * 1, and the choice being offered is between readings of the card rather than
+ * between two things about their life. Both checkpoint runs offered one after
+ * "dunno" and both were flagged as violations; they were the reader working.
+ */
+function permittedForcedChoice(session, turn) {
+  const previous = session.exchanges[turn.index - 1];
+  return previous?.disclosure_depth === 1 && questionType(turn.text) === "projection";
+}
+
+/**
  * @param {object} session a session object, as written by journal.toJson
  * @returns {Array<{index: number, position: string, code: string, message: string, text: string}>}
  */
@@ -87,8 +103,8 @@ export function scanSession(session) {
     if (sentences.length > 4) {
       add(turn, "over_length", `${sentences.length} sentences; the ceiling is four`);
     }
-    if (/\bor\b[^.?!]*\?/i.test(question)) {
-      add(turn, "stacked_or", "a forced choice: two questions wearing one coat");
+    if (/\bor\b[^.?!]*\?/i.test(question) && !permittedForcedChoice(session, turn)) {
+      add(turn, "stacked_or", "a forced choice, and not one the fallback rule allows here");
     }
   }
 
