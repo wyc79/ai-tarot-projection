@@ -94,6 +94,77 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
     return beatIsTerritory(second.resolution_beat) ? second : first;
   }
 
+  /**
+   * Start revising the anchor, without waiting for it.
+   *
+   * The anchor is a narrative plan: its job is to steer the questions that come
+   * next. This turn's reply does not need it -- the reply has the whole session
+   * record and their actual words in front of it -- so making it wait was
+   * putting a second round trip in front of the thing the person is watching
+   * for, on exactly the turns where they had just said something real and were
+   * most aware of the pause.
+   *
+   * It runs alongside the reader turn instead and is settled before say()
+   * resolves, so the next turn sees it. Nothing reads session state until then,
+   * and chat() does not touch the session until it is done, so there is nothing
+   * here for the two of them to race over.
+   */
+  function beginAnchorRevision(gate) {
+    if (!session.anchor || !gate.has_life_content || gate.hedged) return null;
+    return judgeAnchor({ rolling: true }).catch((error) => {
+      // A failed revision is not a failed turn. The reading carries on with the
+      // plan it already had, and says so rather than swallowing it.
+      onEvent({ type: "anchor_failed", error: error.message });
+      return null;
+    });
+  }
+
+  async function settleAnchorRevision(pending) {
+    if (!pending) return;
+    const revised = await pending;
+    if (!revised) return;
+    updateAnchor(session, revised);
+    persist();
+    onEvent({ type: "anchor", anchor: session.anchor, rolling: true });
+  }
+
+  /** Everything the gate implies, once it is in: hold, bridge, or close. */
+  async function advance(gate) {
+    const decision = flipDecision(session, gate);
+    onEvent({ type: "flip_decision", decision, gate });
+
+    if (!decision.flip) {
+      await readerTurn("respond");
+      return { gate, decision };
+    }
+
+    // The anchor is committed off the first card, before any second card
+    // exists to be reconciled with it.
+    if (!session.anchor) {
+      commitAnchor(session, await judgeAnchor());
+      // Persist before announcing: a listener that reads storage on the event
+      // would otherwise see the state as it was a moment ago.
+      persist();
+      onEvent({ type: "anchor", anchor: session.anchor });
+    }
+
+    if (spreadComplete(session)) {
+      const text = await readerTurn("close");
+      close(session, text);
+      persist();
+      onEvent({ type: "closed", reflection: text });
+      return { gate, decision, closed: true };
+    }
+
+    flipNext(decision.reason);
+    // A bridge answers the card behind it while the new one is already up.
+    await readerTurn("bridge", {
+      stageDirection: flipDirection(pack, session),
+      readingOffset: 1,
+    });
+    return { gate, decision, flipped: true };
+  }
+
   function flipNext(reason) {
     const [cardId] = deal.take(1);
     flipCard(session, cardId, { reason });
@@ -148,51 +219,14 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
         return { gate, decision: { flip: false, reason: "frame dropped" } };
       }
 
-      // A committed anchor is revised while the reading is still collecting.
-      // The material that decides what a session is about now usually arrives
-      // after the first card, because a disclosure buys a turn inside itself --
-      // so freezing the plan on card one would freeze it before the reading
-      // heard the thing it is about. Hedged answers do not move it: they have
-      // not decided to give it yet.
-      if (session.anchor && gate.has_life_content && !gate.hedged) {
-        updateAnchor(session, await judgeAnchor({ rolling: true }));
-        persist();
-        onEvent({ type: "anchor", anchor: session.anchor, rolling: true });
-      }
-
-      const decision = flipDecision(session, gate);
-      onEvent({ type: "flip_decision", decision, gate });
-
-      if (!decision.flip) {
-        await readerTurn("respond");
-        return { gate, decision };
-      }
-
-      // The anchor is committed off the first card, before any second card
-      // exists to be reconciled with it.
-      if (!session.anchor) {
-        commitAnchor(session, await judgeAnchor());
-        // Persist before announcing: a listener that reads storage on the event
-        // would otherwise see the state as it was a moment ago.
-        persist();
-        onEvent({ type: "anchor", anchor: session.anchor });
-      }
-
-      if (spreadComplete(session)) {
-        const text = await readerTurn("close");
-        close(session, text);
-        persist();
-        onEvent({ type: "closed", reflection: text });
-        return { gate, decision, closed: true };
-      }
-
-      flipNext(decision.reason);
-      // A bridge answers the card behind it while the new one is already up.
-      await readerTurn("bridge", {
-        stageDirection: flipDirection(pack, session),
-        readingOffset: 1,
-      });
-      return { gate, decision, flipped: true };
+      // A committed anchor is revised while the reading is still collecting:
+      // the material that decides what a session is about now usually arrives
+      // after the first card, because a disclosure buys a turn inside itself.
+      // Started here, settled after the reader has spoken -- see above.
+      const revision = beginAnchorRevision(gate);
+      const turn = await advance(gate);
+      await settleAnchorRevision(revision);
+      return turn;
     },
 
     /** The answer to the opening question. Deals the first card, or does not. */

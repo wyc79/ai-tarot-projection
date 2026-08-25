@@ -272,3 +272,89 @@ test("river's resolution beat is the shape the anchor judge now rejects", async 
     "where the old major stands in the new one — still feeding it, or genuinely left behind"),
                true);
 });
+
+// -- the revision is not on the critical path ----------------------------
+
+test("the reader turn starts before the anchor revision comes back", async () => {
+  // Deterministic rather than timed: the revision is held open until the chat
+  // call it runs alongside has actually started. If the turn awaited the
+  // revision first the two would deadlock, and the race below reports that as
+  // a failure rather than hanging the suite.
+  const pack = await realPack();
+  let armed = false;
+  let chatStarted;
+  const chatHasStarted = new Promise((resolve) => { chatStarted = resolve; });
+  let releaseRevision;
+  const revisionHeld = new Promise((resolve) => { releaseRevision = resolve; });
+
+  let anchorCalls = 0;
+  const client = {
+    async chat({ onDelta = () => {} }) {
+      if (armed) chatStarted();
+      const t = "What happened after that?";
+      onDelta(t, t);
+      return t;
+    },
+    async judge({ schema }) {
+      if (schema.properties.has_topic) return { has_topic: false, topic: "", stakes: "low" };
+      if (schema.properties.theme) {
+        anchorCalls += 1;
+        // Only the revision is held. The first commit still blocks, on purpose:
+        // the bridge turn names the next card and wants the plan in hand.
+        if (anchorCalls > 1) await revisionHeld;
+        return { theme: "t", resolution_beat: "whether it holds, or has outlived itself",
+                 user_phrases: [{ phrase: `p${anchorCalls}`, source: "life" }] };
+      }
+      return at({ depth: 4, life: true, level: "consequences" });
+    },
+  };
+
+  const reading = startReading({ pack, client, seed: "river-89c1fb" });
+  await reading.begin();
+  await reading.say("just curious");
+  await reading.say("a different major");          // dwell holds the card
+  await reading.say("eighteen months ago");        // flips it, commits the anchor
+  assert.equal(anchorCalls, 1, "committed, blocking, on the flip");
+
+  armed = true;
+  const turn = reading.say("nobody's asked me about it since");   // revises it
+
+  const raced = await Promise.race([
+    chatHasStarted.then(() => "chat started"),
+    new Promise((r) => { setTimeout(() => r("deadlocked on the revision"), 500); }),
+  ]);
+  assert.equal(raced, "chat started");
+  releaseRevision();
+  await turn;
+  assert.equal(anchorCalls, 2, "and revised once");
+  assert.equal(reading.session.anchor.user_phrases.at(-1).phrase, "p2",
+               "the revision still lands before the turn resolves");
+});
+
+test("a revision that fails leaves the reading with the plan it had", async () => {
+  const pack = await realPack();
+  let asked = 0;
+  const events = [];
+  const client = {
+    async chat({ onDelta = () => {} }) { const t = "and then?"; onDelta(t, t); return t; },
+    async judge({ schema }) {
+      if (schema.properties.has_topic) return { has_topic: false, topic: "", stakes: "low" };
+      if (schema.properties.theme) {
+        asked += 1;
+        if (asked > 1) throw new Error("provider_unavailable");
+        return { theme: "the first plan", resolution_beat: "whether it holds, or has outlived itself",
+                 user_phrases: [{ phrase: "first", source: "life" }] };
+      }
+      return at({ depth: 4, life: true, level: "consequences" });
+    },
+  };
+  const reading = startReading({ pack, client, seed: "river-89c1fb", onEvent: (e) => events.push(e) });
+  await reading.begin();
+  await reading.say("just curious");
+  await reading.say("a different major");
+  await reading.say("eighteen months ago");
+  await reading.say("nobody's asked me about it since");
+
+  assert.equal(reading.session.anchor.theme, "the first plan", "not wiped by a failed revision");
+  assert.ok(events.some((e) => e.type === "anchor_failed"), "and not swallowed either");
+});
