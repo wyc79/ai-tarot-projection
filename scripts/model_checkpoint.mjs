@@ -33,7 +33,7 @@ import path from "node:path";
 import { makeLlmClient } from "../web/js/llmClient.js";
 import { startReading } from "../web/js/engine/reading.js";
 import { toJson, toMarkdown } from "../web/js/engine/journal.js";
-import { formatFindings, scanSession } from "./scan.mjs";
+import { formatFindings, levelTrace, scanSession } from "./scan.mjs";
 import { ROOT, arg, loadPackFromDisk, preflightRelay, reportError, requireKey } from "./harness.mjs";
 
 const KEY = requireKey();
@@ -182,15 +182,21 @@ const lines = [
     `${label.toUpperCase()}  ${model}`,
     `   cards: ${session.cards.map((c) => c.card_id).join(", ")}`,
     `   depths: ${session.exchanges.map((e) => e.disclosure_depth).join(" ")}`,
+    // question level / answer level per turn, by first letter. This is the
+    // comparison that survives the arms diverging: how high the reader reached
+    // and how high they were standing are both absolute readings of one turn.
+    `   levels: ${levelTrace(session)}`,
     `   closed: ${session.closed}`,
-    formatFindings("   protocol", scanSession(session)).replace(/\n/g, "\n   "),
+    formatFindings("   protocol", scanSession(session, pack)).replace(/\n/g, "\n   "),
     "",
   ]),
   "Same cards is expected: the seed fixes them. The depth traces are NOT",
   "comparable across arms: depth is a verdict on an answer relative to the",
   "question it answered, so once the two conversations diverge the two traces",
   "are scoring different questions. Compare protocol findings, which are",
-  "absolute. Use scripts/judge_replay.mjs to measure the judge itself.",
+  "absolute, and so is the level trace: qa per turn, first letters of the",
+  "question's level and the answer's. n<c<e<i<p. Use scripts/judge_replay.mjs",
+  "to measure the judge itself.",
 ];
 const summary = lines.join("\n");
 await writeFile(path.join(OUT, "summary.txt"), summary);

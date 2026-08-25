@@ -17,7 +17,9 @@
  */
 
 import { readFile } from "node:fs/promises";
-import { finalQuestion, questionType } from "../web/js/engine/questions.js";
+import { finalQuestion, questionLevel, questionType } from "../web/js/engine/questions.js";
+import { levelDistance, levelIndex } from "../web/js/engine/levels.js";
+import { loadPackFromDisk } from "./harness.mjs";
 
 /** Reader turns in order: every question asked, then the closing beat. */
 export function readerTurns(session) {
@@ -76,9 +78,11 @@ function permittedForcedChoice(session, turn) {
 
 /**
  * @param {object} session a session object, as written by journal.toJson
+ * @param {object} [pack] needed for the scaffolding checks, which are the only
+ *   ones that require knowing the ladder's order. Omitted, they are skipped.
  * @returns {Array<{index: number, position: string, code: string, message: string, text: string}>}
  */
-export function scanSession(session) {
+export function scanSession(session, pack = null) {
   const findings = [];
   const deals = dealTurnIndexes(session);
   const add = (turn, code, message) =>
@@ -108,6 +112,8 @@ export function scanSession(session) {
     }
   }
 
+  if (pack) findings.push(...scanScaffolding(session, pack));
+
   if (!session.closed) {
     findings.push({
       index: session.exchanges.length, position: "end", code: "unclosed",
@@ -115,6 +121,58 @@ export function scanSession(session) {
     });
   }
   return findings;
+}
+
+/**
+ * The scaffolding checks: is the reader standing one step above them, and is it
+ * moving at all.
+ *
+ * Levels are classified from the questions' own words rather than read off
+ * question_level, so this works on transcripts recorded before the engine
+ * started labelling them -- which is every transcript from before today.
+ */
+function scanScaffolding(session, pack) {
+  const findings = [];
+  const reading = session.exchanges.filter((e) => e.position !== "off_frame");
+  const asked = [];
+
+  for (const [index, exchange] of reading.entries()) {
+    if (exchange.position === "opening" || !exchange.q) continue;
+    const level = questionLevel(exchange.q);
+    asked.push(level);
+
+    // "Their last level" is the answer immediately before this question, wherever
+    // in the spread it fell: that is what they were standing on when they read it.
+    const previous = reading[index - 1]?.gate?.user_level;
+    if (!previous || levelIndex(pack, previous) === -1) continue;
+    const jump = levelDistance(pack, previous, level);
+    if (jump > 1) {
+      findings.push({
+        index: session.exchanges.indexOf(exchange), position: exchange.position,
+        code: "level_jump",
+        message: `asked at ${level} when they were standing at ${previous}; ` +
+                 `${jump} rungs up is a question they have to invent an answer to`,
+        text: exchange.q,
+      });
+    }
+  }
+
+  if (asked.length >= 3 && new Set(asked).size === 1) {
+    findings.push({
+      index: session.exchanges.length, position: "end", code: "level_flat",
+      message: `every question sat at ${asked[0]}; the reading never moved off one rung`,
+      text: "",
+    });
+  }
+  return findings;
+}
+
+/** The question/answer altitude trace, for reading two arms side by side. */
+export function levelTrace(session) {
+  return session.exchanges
+    .filter((e) => e.position !== "opening" && e.position !== "off_frame" && e.q)
+    .map((e) => `${questionLevel(e.q)[0]}${(e.gate?.user_level ?? "?")[0]}`)
+    .join(" ");
 }
 
 /** One line per finding, or one line saying there were none. */
@@ -135,10 +193,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.error("usage: node scripts/scan.mjs <session.json> [...]");
     process.exit(1);
   }
+  const pack = await loadPackFromDisk();
   let total = 0;
   for (const file of files) {
     const parsed = JSON.parse(await readFile(file, "utf8"));
-    const findings = scanSession(parsed.session ?? parsed);
+    const findings = scanSession(parsed.session ?? parsed, pack);
     total += findings.length;
     console.log(formatFindings(file, findings));
   }
