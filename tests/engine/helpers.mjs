@@ -25,9 +25,9 @@ export const realPack = () => loadPack("data", { fetchImpl: fileFetch });
 const TURN_MARKERS = [
   ["opening", /Nothing has been dealt yet, and nothing will be dealt this turn/],
   ["invite", /has just turned over and they have not spoken/],
-  ["bridge", /Two things, in one short turn/],
+  ["bridge", /The same shape, with the card named in the middle/],
   ["close", /This is the last thing you say/],
-  ["respond", /They have just answered/],
+  ["respond", /No card turns over on this turn/],
 ];
 
 export function turnKind(system) {

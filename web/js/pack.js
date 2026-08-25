@@ -7,7 +7,7 @@
  * works at http://localhost:8787/ and at https://user.github.io/ai-tarot/.
  */
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 /**
  * @param {string} packDir  pack root, relative to the document
@@ -32,6 +32,13 @@ export async function loadPack(packDir = "data", { fetchImpl = fetch } = {}) {
     return r.text();
   });
 
+  // Few-shots are pack data too: how the reader sounds is content, and changing
+  // it should not mean changing code.
+  const fewShots = await fetchImpl(`${base}/${deck.few_shots}`).then((r) => {
+    if (!r.ok) throw new Error(`pack declares ${deck.few_shots} but it is missing`);
+    return r.json();
+  }).then((body) => body.few_shots);
+
   const byId = new Map(deck.cards.map((card) => [card.card_id, card]));
 
   return {
@@ -39,6 +46,7 @@ export async function loadPack(packDir = "data", { fetchImpl = fetch } = {}) {
     name: deck.name,
     positions: deck.positions,
     persona,
+    fewShots,
     cards: deck.cards,
     cardBackUrl: `${base}/${deck.card_back}`,
     card: (id) => byId.get(id),

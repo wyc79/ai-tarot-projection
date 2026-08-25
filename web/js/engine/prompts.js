@@ -53,28 +53,33 @@ Say it once, plainly, and then get back to the reading. This is the only turn in
 which you will say it; repeating it every time the subject comes up turns a
 piece of honesty into a disclaimer they stop hearing.`;
 
+/**
+ * How the reader sounds, shown rather than described. The labels on each shot
+ * are for whoever maintains the pack; the model gets the exchanges only, because
+ * telling it which technique it is about to use is how a turn starts sounding
+ * like a technique.
+ */
+function describeFewShots(pack) {
+  if (!pack.fewShots?.length) return "";
+  const shots = pack.fewShots.map((shot) =>
+    [`— ${shot.card}, in the ${shot.position}.`,
+     `They said: "${shot.user}"`,
+     `You said: "${shot.reader}"`].join("\n")).join("\n\n");
+  return `
+## How this sounds
+
+Not lines to reuse. The shape to hold: one observation, one question, and
+nothing spent on preamble.
+
+${shots}`;
+}
+
 function describeSpread(pack) {
   return pack.positions
-    .map((p, i) => `${i + 1}. ${p.label} (${p.arc_role}) — ${p.prompt_hint}`)
+    .map((p, i) => `${i + 1}. ${p.label} (${p.arc_role}) — ${p.prompt_hint} [${p.moves.join(", ")}]`)
     .join("\n");
 }
 
-function describeLedger(pack, session) {
-  if (!session.cards.length) return "Nothing has been turned over yet.";
-  const remaining = session.positions.length - session.cards.length;
-  const note = remaining > 0
-    ? `\n\n${remaining} position${remaining > 1 ? "s" : ""} still to come. You do not know which cards those are.`
-    : "\n\nEvery position has been dealt. There is no further card.";
-  return session.cards
-    .map((entry) => {
-      const card = pack.card(entry.card_id);
-      const lines = [`- ${card.name} in ${entry.position}`];
-      if (entry.user_projection) lines.push(`  they read it as: "${entry.user_projection}"`);
-      if (entry.ai_reading) lines.push(`  you said: "${entry.ai_reading}"`);
-      return lines.join("\n");
-    })
-    .join("\n") + note;
-}
 
 function describeTopic(session) {
   if (session.phase === "opening") return "";
@@ -96,21 +101,81 @@ card turned over. Steer toward it. When a card seems to point somewhere else,
 bend the card toward this — not this toward the card.`;
 }
 
-function describeAnchor(session) {
-  if (!session.anchor) return "";
-  const { theme, user_phrases, resolution_beat } = session.anchor;
-  return `
-## What this reading is about
+/** First sentence of a reader turn, for the one-line record of each card. */
+function firstSentence(text) {
+  if (!text) return "";
+  const trimmed = text.trim().replace(/\s+/g, " ");
+  const end = trimmed.search(/[.?!](\s|$)/);
+  const line = end === -1 ? trimmed : trimmed.slice(0, end + 1);
+  return line.length > 120 ? `${line.slice(0, 117)}...` : line;
+}
 
-Committed after the first card, from their own words. Elaborate on it. Do not
-contradict it, and do not quietly change the subject to something tidier.
+/** The depth of the most recent answer on the card currently face up. */
+function depthOnCurrentCard(session) {
+  const card = currentCard(session);
+  if (!card) return null;
+  const here = session.exchanges.filter((e) => e.position === card.position);
+  return here.length ? here[here.length - 1].disclosure_depth : null;
+}
 
-- theme: ${theme}
-- phrases they used earlier: ${user_phrases.map((p) => `"${p}"`).join(", ") || "(none recorded)"}
-- where the last card should land: ${resolution_beat}
+/**
+ * The session record: the one part of the prompt that is a constraint rather
+ * than context.
+ *
+ * The conversation history says what was said; this says what is true. They can
+ * drift apart -- a model that half-remembers three turns back will contradict a
+ * reading it already gave, and that is what makes a session feel like it is
+ * being improvised at the user rather than held. So this block is assembled
+ * from state on every single turn and declared to outrank the history.
+ */
+function describeRecap(pack, session) {
+  const lines = ["\n## Session record", "",
+    "Assembled from the table, not from memory. Your reply must be consistent",
+    "with everything here. Where this and the conversation above disagree, this",
+    "wins: the history is what was said, this is what is true.",
+    "",
+    "Never contradict a reading you have already given. New material elaborates",
+    "what is below; it does not replace it or quietly move on from it.",
+    ""];
 
-These phrases are a record of what they said once, not evidence that they say it
-often. Reuse their language; do not tell them they keep saying it.`;
+  if (session.anchor) {
+    lines.push("anchor:");
+    lines.push(`  theme: ${session.anchor.theme}`);
+    const phrases = session.anchor.user_phrases.map((phrase) => `"${phrase}"`).join(", ");
+    lines.push(`  their exact words: ${phrases || "(none recorded)"}`);
+    lines.push("  (verbatim. Reuse them as they are; a tidier synonym is a different word.)");
+    lines.push(`  should land on: ${session.anchor.resolution_beat}`);
+  } else {
+    lines.push("anchor: not committed yet (it is built from the first card)");
+  }
+
+  lines.push("", "cards on the table:");
+  if (!session.cards.length) {
+    lines.push("  none yet");
+  } else {
+    for (const [index, entry] of session.cards.entries()) {
+      const card = pack.card(entry.card_id);
+      lines.push(`  ${index + 1}. ${entry.position} — ${card.name}`);
+      if (entry.user_projection) lines.push(`     they read it as: "${entry.user_projection}"`);
+      const said = firstSentence(entry.ai_reading);
+      if (said) lines.push(`     you said: ${said}`);
+    }
+  }
+
+  const remaining = session.positions.length - session.cards.length;
+  lines.push(`  ${remaining > 0
+    ? `${remaining} position${remaining > 1 ? "s" : ""} still to come, cards unknown to you`
+    : "every position dealt; there is no further card"}`);
+
+  const entry = currentCard(session);
+  const position = entry && pack.positions.find((p) => p.id === entry.position);
+  const depth = depthOnCurrentCard(session);
+  lines.push("", "now:");
+  lines.push(`  arc position: ${position ? `${position.id} (${position.arc_role} — ${position.prompt_hint})` : "nothing dealt yet"}`);
+  if (position) lines.push(`  moves weighted here: ${position.moves.join(", ")}`);
+  lines.push(`  disclosure depth on this card: ${depth === null ? "they have not answered yet" : depth}`);
+  lines.push(`  safety: ${session.safety_state}`);
+  return lines.join("\n");
 }
 
 function describeCard(pack, session) {
@@ -157,11 +222,11 @@ from this position's sense and the general one. Never recite either.`;
 export function readerSystem({ pack, session, turn, handback = false }) {
   const parts = [
     pack.persona,
+    describeFewShots(pack),
     RULES_ON_TURNING_CARDS,
     `\n## The spread\n\n${describeSpread(pack)}`,
-    `\n## Turned over so far\n\n${describeLedger(pack, session)}`,
     describeTopic(session),
-    describeAnchor(session),
+    describeRecap(pack, session),
     describeCard(pack, session),
   ];
 
@@ -194,7 +259,8 @@ deck, and do not promise what the cards will do.`,
 
 The card has just turned over and they have not spoken about it yet. Name the
 card and the position it landed in, then hand it straight to them: ask what it
-looks like it is pointing at for them.
+looks like it is pointing at for them. Two sentences, and the second one is the
+question.
 
 Do not interpret it first, and do not mention its traditional meaning at all
 yet — you have not earned the right to, because they have not told you anything.`,
@@ -206,25 +272,29 @@ yet — you have not earned the right to, because they have not told you anythin
 above, and it is still the one in front of them when you finish. Do not reach
 for the next one and do not hint that it is coming.
 
-They have just answered. Build on what they actually said, using their words and
-their image — and only what is actually there, never a repetition or an emphasis
-you did not see.
+**One observation, then one question.** The observation builds on what they
+actually said, using their words and their image — and only what is actually
+there, never a repetition or an emphasis you did not see.
 
-At most one sentence of traditional sense, bent toward this card's position —
-and if you already spent that sentence on this card, do not spend it again in
-different words. Work with what they have given you instead.
+At most one sentence of traditional sense, bent toward this card's position, and
+only inside the observation — if you already spent that sentence on this card,
+do not spend it again in different words.
 
-Then ask one question that goes further in rather than sideways, and end your
-turn on it. Four sentences at the outside.`,
+The question goes further in rather than sideways, and it is the last thing you
+write.`,
 
   bridge: `
 ## This turn
 
-Two things, in one short turn, without a seam. First answer what they just said
-— their words, one sentence of traditional sense at most. Then the next card
-turns over: name it, and hand it to them the same way you handed them the first.
-Do not interpret the new card. End on the question about it. Five sentences at
-the outside.`,
+The same shape, with the card named in the middle of it.
+
+**One observation** on what they just said — their words, one sentence of
+traditional sense at most. **Then the new card turns over:** name it and the
+position it landed in, in a clause, not a paragraph. **Then one question** about
+it, and stop.
+
+Do not interpret the new card. The naming is not a third thing to say about;
+it is a fact you drop in on the way to the question.`,
 
   close: `
 ## This turn

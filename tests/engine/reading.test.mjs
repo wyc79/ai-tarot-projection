@@ -137,8 +137,8 @@ test("the anchor is committed from the first card and reaches later prompts", as
   });
   assert.equal(reading.session.anchor.theme, "t");
   const later = client.calls.chat.at(-1).system;
-  assert.match(later, /What this reading is about/);
-  assert.match(later, /Do not\ncontradict it/);
+  assert.match(later, /## Session record/);
+  assert.match(later, /theme: t/);
 });
 
 test("the anchor is not re-judged once committed", async () => {
@@ -210,7 +210,7 @@ test("every turn but the last is told to end on a question", async () => {
 test("the anchor's phrases are not presented as things they keep saying", async () => {
   const { client } = await run({ gates: [gate(3, true), gate(1, false)], answers: ["treading water", "hm"] });
   const system = client.calls.chat.at(-1).system;
-  assert.match(system, /not evidence that they say it\noften/);
+  assert.match(system, /a tidier synonym is a different word/);
   assert.doesNotMatch(system, /- their words:/);
 });
 
@@ -335,12 +335,13 @@ test("a respond turn says outright that nothing flipped", async () => {
   const respond = systemFor(client, "respond");
   assert.match(respond, /\*\*No card turns over on this turn\.\*\*/);
   assert.match(respond, /do not hint that it is coming/);
+  assert.match(respond, /One observation, then one question/);
 });
 
 test("the reader is told how many positions remain and that it cannot know them", async () => {
   const { client } = await run({ gates: [gate(3, true), gate(1, false)], answers: ["a", "b"] });
   const system = systemFor(client, "respond");
-  assert.match(system, /1 position still to come\. You do not know which cards those are\./);
+  assert.match(system, /1 position still to come, cards unknown to you/);
 });
 
 test("every turn instruction still carries the rules it is supposed to", async () => {
@@ -356,12 +357,20 @@ test("every turn instruction still carries the rules it is supposed to", async (
   };
   const required = {
     opening: [/Nothing has been dealt yet/, /Make declining genuinely easy/],
-    invite: [/Name the\ncard and the position/, /Do not interpret it first/],
-    respond: [/No card turns over on this turn/, /never a repetition or an emphasis\nyou did not see/,
-              /do not spend it again/, /end your\nturn on it/],
-    bridge: [/Two things, in one short turn/, /End on the question about it/],
+    invite: [/Name the\ncard and the position/, /Do not interpret it first/,
+             /the second one is the\nquestion/],
+    respond: [/No card turns over on this turn/, /One observation, then one question/,
+              /never a repetition or an emphasis you did not see/,
+              /do not spend it again/, /it is the last thing you\nwrite/],
+    bridge: [/The same shape, with the card named in the middle/,
+             /in a clause, not a paragraph/, /Then one question/],
     close: [/one small concrete thing/, /Then stop/],
   };
+  // The shape itself is a standing rule, so it must reach every turn.
+  for (const turn of Object.keys(required)) {
+    assert.match(readerSystem({ pack, session: base, turn }), /## The shape of every turn/,
+                 `the ${turn} turn lost the turn-shape rule`);
+  }
   for (const [turn, patterns] of Object.entries(required)) {
     const system = readerSystem({ pack, session: base, turn });
     for (const pattern of patterns) {
@@ -378,4 +387,119 @@ test("a frame dropped before any card lets the conversation continue", async () 
   assert.equal(reading.session.cards.length, 0);
   assert.equal(reading.session.exchanges.length, 3, "the conversation kept going without cards");
   assert.equal(reading.session.exchanges.at(-1).position, "off_frame");
+});
+
+test("the recap block is assembled from state, on every turn, and says it outranks history", async () => {
+  const { client } = await run({
+    gates: [gate(3, true), gate(2, false), gate(3, true)],
+    answers: ["treading water", "the same job", "yes"],
+    opening: wants("my job"),
+  });
+  for (const call of client.calls.chat) {
+    assert.match(call.system, /## Session record/, `missing on the ${call.turn} turn`);
+    assert.match(call.system, /the history is what was said, this is what is true/);
+    assert.match(call.system, /Never contradict a reading you have already given/);
+  }
+});
+
+test("the recap carries the anchor's phrases verbatim, marked as verbatim", async () => {
+  const pack = await realPack();
+  const client = fakeClient({
+    gates: [gate(3, true), gate(1, false)], opening: declines,
+    anchor: { theme: "treading water", user_phrases: ["treading water", "can't stop kicking"], resolution_beat: "r" },
+  });
+  const reading = startReading({ pack, client, seed: SEED });
+  await reading.begin();
+  await reading.say("nothing in particular");
+  await reading.say("treading water");
+  await reading.say("still kicking");
+  const system = client.calls.chat.at(-1).system;
+  assert.match(system, /their exact words: "treading water", "can't stop kicking"/);
+  assert.match(system, /verbatim\. Reuse them as they are/);
+});
+
+test("the recap names the arc position, the depth so far, and the safety state", async () => {
+  const { client } = await run({
+    gates: [gate(2, false), gate(2, false)], answers: ["a specific thing", "another"],
+  });
+  const system = client.calls.chat.at(-1).system;
+  assert.match(system, /arc position: situation \(setup —/);
+  assert.match(system, /disclosure depth on this card: 2/);
+  assert.match(system, /safety: normal/);
+});
+
+test("each card's reading is recorded as one line, not the whole turn", async () => {
+  const pack = await realPack();
+  const long = "First sentence lands here. Then a second one that should not appear. And a third.";
+  const client = fakeClient({ gates: [gate(3, true), gate(1, false)], opening: declines, reply: () => long });
+  const reading = startReading({ pack, client, seed: SEED });
+  await reading.begin();
+  await reading.say("nothing in particular");
+  await reading.say("deep answer");
+  const system = client.calls.chat.at(-1).system;
+  assert.match(system, /you said: First sentence lands here\./);
+  assert.doesNotMatch(system, /should not appear/);
+});
+
+test("before anything is dealt the recap says so rather than inventing state", async () => {
+  const pack = await realPack();
+  const client = fakeClient({ opening: declines });
+  const reading = startReading({ pack, client, seed: SEED });
+  await reading.begin();
+  const system = client.calls.chat[0].system;
+  assert.match(system, /anchor: not committed yet/);
+  assert.match(system, /cards on the table:\n  none yet/);
+  assert.match(system, /arc position: nothing dealt yet/);
+});
+
+test("the arc position's weighted moves reach the prompt from pack data", async () => {
+  const { client } = await run({
+    gates: [gate(4, true), gate(2, false)], answers: ["something real", "and more"],
+  });
+  assert.match(systemFor(client, "invite"), /moves weighted here: externalize, name/);
+  assert.match(client.calls.chat.at(-1).system, /moves weighted here: explore, exception/);
+});
+
+test("the question policy is present and marked as never-to-be-named", async () => {
+  const { client } = await run({ gates: [gate(2, false)], answers: ["hm"] });
+  const system = systemFor(client, "invite");
+  assert.match(system, /## Choosing the question/);
+  assert.match(system, /Never say any of these words to them/);
+  assert.match(system, /If they can name the move, the move has failed/);
+  for (const move of ["externalize", "name", "explore", "exception", "re-author", "action"]) {
+    assert.ok(system.includes(`**${move}**`), `the policy does not define ${move}`);
+  }
+});
+
+test("the ladder gates identity questions behind depth", async () => {
+  const { client } = await run({ gates: [gate(2, false)], answers: ["hm"] });
+  const system = systemFor(client, "invite");
+  assert.match(system, /Someone who has told you nothing cannot be asked\n  what it means to them/);
+  assert.match(system, /asking it too\n  early is the single fastest way to make someone close/);
+  assert.match(system, /a menu, not a\nprotocol/);
+});
+
+test("few-shots reach the prompt as exchanges, without their maintainer labels", async () => {
+  const { client, pack } = await run({ gates: [gate(2, false)], answers: ["hm"] });
+  const system = systemFor(client, "invite");
+  assert.match(system, /## How this sounds/);
+  assert.ok(pack.fewShots.length >= 3 && pack.fewShots.length <= 5);
+  for (const shot of pack.fewShots) {
+    assert.ok(system.includes(shot.reader), `few-shot missing: ${shot.demonstrates}`);
+    assert.ok(!system.includes(shot.demonstrates), "the technique label must not reach the model");
+  }
+});
+
+test("every few-shot obeys the turn shape: one observation, one question, and short", async () => {
+  const pack = await realPack();
+  for (const shot of pack.fewShots) {
+    const questions = (shot.reader.match(/\?/g) ?? []).length;
+    const sentences = shot.reader.split(/(?<=[.?!])\s+/).filter(Boolean);
+    const isClosing = shot.position === "advice" && questions === 0;
+    assert.ok(questions <= 1, `${shot.demonstrates}: ${questions} questions`);
+    assert.ok(sentences.length <= 3, `${shot.demonstrates}: ${sentences.length} sentences`);
+    if (!isClosing) {
+      assert.match(shot.reader.trim(), /\?$/, `${shot.demonstrates}: does not end on its question`);
+    }
+  }
 });

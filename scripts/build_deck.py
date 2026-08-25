@@ -36,13 +36,19 @@ SMALL_WORDS = {"of", "the", "and"}
 
 # The three-card spread, as the pack defines it. Each position's arc_role is what
 # the reader bends the user's projection toward.
+# `moves` weights the kind of question the reader reaches for here. The moves
+# themselves are defined in the persona; keeping the weighting in pack data means
+# a different spread can weight them differently without touching the engine.
 POSITIONS = [
     {"id": "situation", "label": "Situation", "arc_role": "setup",
-     "prompt_hint": "where things stand right now"},
+     "prompt_hint": "where things stand right now",
+     "moves": ["externalize", "name"]},
     {"id": "obstacle", "label": "Obstacle", "arc_role": "tension",
-     "prompt_hint": "what is in the way, or what the pull is against"},
+     "prompt_hint": "what is in the way, or what the pull is against",
+     "moves": ["explore", "exception"]},
     {"id": "advice", "label": "Advice", "arc_role": "resolution",
-     "prompt_hint": "where this could land, and what to do with it"},
+     "prompt_hint": "where this could land, and what to do with it",
+     "moves": ["re-author", "action"]},
 ]
 
 
@@ -133,7 +139,7 @@ def build():
 
     out.sort(key=lambda c: (c["card_id"].split("-")[0] != "major", c["card_id"]))
     return {
-        "schema_version": 3,
+        "schema_version": 4,
         "pack_id": "smith-waite-1909",
         "name": "Smith-Waite (1909)",
         "card_back": "Cards-jpg/CardBacks.jpg",

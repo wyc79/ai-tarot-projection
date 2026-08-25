@@ -12,7 +12,7 @@ import json
 import os
 import sys
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 REQUIRED_POSITIONS = ["situation", "obstacle", "advice"]
 MEANING_KEYS = REQUIRED_POSITIONS + ["general"]
 EXPECTED_CARDS = 78
@@ -39,14 +39,32 @@ def validate(pack_dir):
     if deck.get("schema_version") != SCHEMA_VERSION:
         problems.append("schema_version must be %d, got %r"
                         % (SCHEMA_VERSION, deck.get("schema_version")))
-    for key in ("pack_id", "name", "card_back", "persona"):
+    for key in ("pack_id", "name", "card_back", "persona", "few_shots"):
         if not nonempty_str(deck.get(key)):
             problems.append("missing or empty top-level %r" % key)
 
-    for key in ("card_back", "persona"):
+    for key in ("card_back", "persona", "few_shots"):
         ref = deck.get(key, "")
         if nonempty_str(ref) and not os.path.exists(os.path.join(pack_dir, ref)):
             problems.append("%s file not found: %s" % (key, ref))
+
+    shots_ref = deck.get("few_shots", "")
+    shots_path = os.path.join(pack_dir, shots_ref) if nonempty_str(shots_ref) else None
+    if shots_path and os.path.exists(shots_path):
+        try:
+            shots = json.load(open(shots_path)).get("few_shots")
+        except json.JSONDecodeError as e:
+            shots, _ = None, problems.append("%s is not valid JSON: %s" % (shots_ref, e))
+        if not isinstance(shots, list) or not 3 <= len(shots) <= 5:
+            problems.append("few_shots must hold 3 to 5 exchanges, got %r"
+                            % (len(shots) if isinstance(shots, list) else shots))
+        else:
+            for i, shot in enumerate(shots):
+                for key in ("demonstrates", "position", "card", "user", "reader"):
+                    if not nonempty_str(shot.get(key)):
+                        problems.append("few_shot %d: missing or empty %r" % (i, key))
+                if shot.get("position") not in REQUIRED_POSITIONS:
+                    problems.append("few_shot %d: unknown position %r" % (i, shot.get("position")))
 
     positions = deck.get("positions")
     if not isinstance(positions, list) or len(positions) != len(REQUIRED_POSITIONS):
@@ -59,6 +77,10 @@ def validate(pack_dir):
             for key in ("label", "arc_role", "prompt_hint"):
                 if not nonempty_str(p.get(key)):
                     problems.append("position %r: missing or empty %r" % (p.get("id"), key))
+            moves = p.get("moves")
+            if not isinstance(moves, list) or not moves or not all(nonempty_str(m) for m in moves):
+                problems.append("position %r: moves must be a non-empty list of names"
+                                % p.get("id"))
 
     cards = deck.get("cards")
     if not isinstance(cards, list):

@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "few_shots": [
+    {
+      "demonstrates": "externalize + action-landscape question at low depth",
+      "position": "situation",
+      "card": "Nine of Wands",
+      "user": "it just looks tired. like he's done this a lot",
+      "reader": "Tired came out before anything else did, and you handed it to the man in the picture rather than to yourself. When did the tiredness first turn up?"
+    },
+    {
+      "demonstrates": "forced choice when the answer is one word",
+      "position": "situation",
+      "card": "Two of Swords",
+      "user": "dunno",
+      "reader": "Fair enough, it's not an obvious one. Does she look more like she's guarding something, or like she's forgotten why she's standing there?"
+    },
+    {
+      "demonstrates": "identity-landscape question, once there is something real to ask it about",
+      "position": "obstacle",
+      "card": "Six of Swords",
+      "user": "my brother. I haven't called him since March",
+      "reader": "March is a long time to be holding a phone and not using it. What does it say about what matters to you, that this is the call you're not making?",
+      "note": "asked only because the previous answer named a person and a date; at lower depth this closes people"
+    },
+    {
+      "demonstrates": "exception hunt as the reading turns toward its resolution",
+      "position": "obstacle",
+      "card": "Five of Wands",
+      "user": "it's been like this the whole year honestly",
+      "reader": "The whole year is what it looks like from inside it. Was there a week this year when it wasn't running the show, and what was different about that week?"
+    },
+    {
+      "demonstrates": "re-author and the closing action step, tied to what they said they valued",
+      "position": "advice",
+      "card": "Eight of Cups",
+      "user": "I want to stop bracing all the time",
+      "reader": "Bracing is something you're doing, not weather that happens to you, and you're the one who called it that. This week, catch the one moment you brace before a conversation that turns out to be nothing."
+    }
+  ]
+}
