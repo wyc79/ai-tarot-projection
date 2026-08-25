@@ -319,3 +319,24 @@ test("the reader's voice is never pinned, only the judge", async () => {
   await client.chat({ system: "s", messages: [] });
   assert.equal(calls[0].body.payload.temperature, undefined);
 });
+
+test("the persona is marked cacheable where the provider understands the marker", async () => {
+  const { client, calls } = harness({
+    config: { provider: "anthropic" }, respond: () => sseResponse([STOP]),
+  });
+  await client.chat({ system: "the persona prompt", messages: [{ role: "user", content: "hi" }] });
+  assert.deepEqual(calls[0].body.payload.system,
+                   [{ type: "text", text: "the persona prompt",
+                      cache_control: { type: "ephemeral" } }]);
+});
+
+test("and left as a plain string for a gateway that may not know it", async () => {
+  // Off is not "no caching" -- the prompt is built as a stable prefix either
+  // way, and a provider that caches prefixes on its own still benefits. It is
+  // only about not sending a parameter that might come back as a 400.
+  const { client, calls } = harness({
+    config: { provider: "deepseek" }, respond: () => sseResponse([STOP]),
+  });
+  await client.chat({ system: "the persona prompt", messages: [] });
+  assert.equal(calls[0].body.payload.system, "the persona prompt");
+});

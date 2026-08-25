@@ -39,7 +39,7 @@ async function play({ script, close = "This week, catch the one moment you brace
   return { pack, session: reading.session, client };
 }
 
-const systemFor = (client, turn) => client.calls.chat.findLast((c) => c.turn === turn).system;
+const systemFor = (client, turn) => client.calls.chat.findLast((c) => c.turn === turn).prompt;
 
 // -- (a) the seeded climb ------------------------------------------------
 //

@@ -49,6 +49,13 @@ export const ANTHROPIC = {
   /** A reader turn: streamed, short, low effort -- this is voice, not analysis. */
   chatPayload({ model, system, messages, maxTokens = 8192, effort = "low", features = {} }) {
     const payload = { model, max_tokens: maxTokens, stream: true, system, messages };
+    // The system prompt is the persona and the pack, identical on every turn of
+    // a session; everything that changes rides in the last user message. Marking
+    // it caches roughly 22 KB that would otherwise be re-read from scratch each
+    // turn. Sent as a block array, which is the only shape cache_control fits.
+    if (features.promptCaching && system) {
+      payload.system = [{ type: "text", text: system, cache_control: { type: "ephemeral" } }];
+    }
     if (features.thinking) payload.thinking = { type: "adaptive" };
     if (features.effort) payload.output_config = { effort };
     return payload;

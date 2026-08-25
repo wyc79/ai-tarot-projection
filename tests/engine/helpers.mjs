@@ -30,8 +30,13 @@ export function fakeClient({
   return {
     calls,
     async chat({ system, messages, onDelta = () => {} }) {
-      const turn = turnKindOf(system);
-      calls.chat.push({ system, messages, turn });
+      // What the model actually sees: the stable prefix, then the turn block
+      // folded into the last user message. Tests assert against this rather
+      // than against either half, because the split between them is an
+      // arrangement for caching, not a change to the reader's instructions.
+      const prompt = `${system}\n${messages[messages.length - 1]?.content ?? ""}`;
+      const turn = turnKindOf(prompt);
+      calls.chat.push({ system, messages, prompt, turn });
       const text = reply(turn, system, messages);
       onDelta(text, text);
       return text;

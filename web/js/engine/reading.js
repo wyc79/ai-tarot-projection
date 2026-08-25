@@ -18,7 +18,7 @@ import { BEAT_RETRY_NOTE, beatIsTerritory } from "./anchor.js";
 import { saveToHistory } from "./journal.js";
 import {
   ANCHOR_SYSTEM, JUDGE_SYSTEM, OPENING_SYSTEM, anchorMessages, flipDirection,
-  judgeMessages, openingMessages, readerMessages, readerSystem,
+  judgeMessages, openingMessages, readerMessages, readerSystem, readerTurnBlock,
 } from "./prompts.js";
 import {
   close, commitAnchor, createSession, currentCard, flipCard, flipDecision,
@@ -52,8 +52,11 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
     // Hand agency back on the first high-stakes turn only. Saying it again every
     // time the subject resurfaces turns honesty into a disclaimer.
     const handback = session.last_stakes === "high" && !session.handback_given;
-    const system = readerSystem({ pack, session, turn, handback });
-    const messages = readerMessages(pack, session, { stageDirection });
+    const system = readerSystem({ pack, session });
+    const messages = readerMessages(pack, session, {
+      stageDirection,
+      turnBlock: readerTurnBlock({ pack, session, turn, handback }),
+    });
     onEvent({ type: "reader_start", turn });
 
     const text = await client.chat({

@@ -98,7 +98,7 @@ test("a session that never finds the person still closes, and says it is ungroun
 
 test("an ungrounded reading is told not to talk as though it has a subject", async () => {
   const { client } = await ungroundedSession();
-  const system = client.calls.chat.at(-1).system.replace(/\s+/g, " ");
+  const system = client.calls.chat.at(-1).prompt.replace(/\s+/g, " ");
   assert.match(system, /GROUNDED: no\. Every word above came from the picture/);
   assert.match(system, /the theme is a placeholder/);
   assert.match(system, /The first follow-up on this card is an ownership offer/);
@@ -107,7 +107,7 @@ test("an ungrounded reading is told not to talk as though it has a subject", asy
 
 test("and its closing step is sized to a session that never left the ground", async () => {
   const { client } = await ungroundedSession();
-  const closing = client.calls.chat.findLast((c) => c.turn === "close").system.replace(/\s+/g, " ");
+  const closing = client.calls.chat.findLast((c) => c.turn === "close").prompt.replace(/\s+/g, " ");
   assert.match(closing, /highest they have reached all session: name/);
   assert.match(closing, /something to notice, not something to carry out/);
   assert.match(closing, /This turn happens whatever height they reached/);

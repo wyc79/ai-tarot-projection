@@ -17,7 +17,15 @@
 
 import { ANTHROPIC } from "./anthropic.js";
 
-const NONE = { thinking: false, effort: false, structuredOutput: false, temperature: false };
+const NONE = {
+  thinking: false, effort: false, structuredOutput: false, temperature: false,
+  // Explicit cache markers. Off here does not mean "no caching": the reader's
+  // prompt is deliberately built as a stable 22 KB prefix followed by a small
+  // per-turn block, and a provider that caches prefixes on its own gets the
+  // benefit either way. This flag is only about whether to send cache_control,
+  // which a gateway that has never heard of it may reject outright.
+  promptCaching: false,
+};
 
 export const PROVIDERS = {
   deepseek: {
@@ -27,6 +35,9 @@ export const PROVIDERS = {
     defaultModel: "deepseek-v4-flash",
     directUrl: "https://api.deepseek.com/anthropic/v1/messages",
     // Sampling params still exist here, so judge calls can be pinned to 0.
+    // promptCaching stays off until someone has actually watched a cache hit
+    // come back from this endpoint; assuming it works is how you find out it
+    // does not, one 400 per turn.
     features: { ...NONE, temperature: true },
   },
   anthropic: {
@@ -38,7 +49,10 @@ export const PROVIDERS = {
     // Implements all of its own newest parameters, and none of the old ones:
     // temperature/top_p/top_k were removed on the current models and now return
     // 400, so judge determinism here comes from the schema and the rubric.
-    features: { thinking: true, effort: true, structuredOutput: true, temperature: false },
+    features: {
+      thinking: true, effort: true, structuredOutput: true, temperature: false,
+      promptCaching: true,
+    },
   },
   opencode: {
     id: "opencode",

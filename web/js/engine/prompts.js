@@ -353,14 +353,41 @@ card means, which you give plainly and briefly and then hand back.
 Those two are also the two sides of the forced choice, when one is needed.`;
 }
 
-/** The reader's system prompt for one turn. */
-export function readerSystem({ pack, session, turn, handback = false }) {
-  const parts = [
+/**
+ * Who the reader is. Identical on every turn of a session, and identical across
+ * sessions for a given pack.
+ *
+ * The split from readerTurnBlock below is the whole point of having two
+ * functions. This half is a stable prefix, so a provider can cache it -- either
+ * because it was told to with cache_control, or because it does prefix caching
+ * on its own. Everything that changes turn to turn is in the other half, after
+ * the transcript, where it cannot break the prefix.
+ *
+ * Before the split this was all one string with the session record in the
+ * middle of it, which meant every turn sent a prompt that had never been seen
+ * before: 22 KB of unchanging persona re-read from scratch each time.
+ */
+export function readerSystem({ pack, session }) {
+  return [
     pack.persona,
     describeFewShots(pack),
     RULES_ON_TURNING_CARDS,
     `\n## The spread\n\n${describeSpread(pack)}`,
     describeTopic(session),
+  ].filter(Boolean).join("\n");
+}
+
+/**
+ * What is true right now and what this turn is for.
+ *
+ * Goes last, after the transcript, and that ordering is not only about caching:
+ * the session record is declared to outrank the conversation above it, and a
+ * thing said after the conversation outranks it more readily than a thing said
+ * before. The turn instruction lands last of all, which is where an instruction
+ * belongs.
+ */
+export function readerTurnBlock({ pack, session, turn, handback = false }) {
+  const parts = [
     describeRecap(pack, session),
     describeCard(pack, session),
     describeLadder(pack, session, turn),
@@ -469,7 +496,7 @@ to close.`,
 /**
  * Which turn instruction a system prompt ends with.
  *
- * readerSystem appends one of TURN_INSTRUCTIONS verbatim, so this is exact.
+ * readerTurnBlock appends one of TURN_INSTRUCTIONS verbatim, so this is exact.
  * It exists because the test helpers and the fixture script each kept their own
  * table of marker regexes against these strings, and both drifted: the fixture's
  * bridge marker had not matched anything for some time, so --prompt=bridge
@@ -480,15 +507,27 @@ export function turnKindOf(system) {
     ?? "unknown";
 }
 
-/** The transcript so far, as provider-neutral messages. */
-export function readerMessages(pack, session, { stageDirection = null } = {}) {
+/**
+ * The transcript so far, then what is true now and what this turn is for.
+ *
+ * The turn block is folded into the final user message rather than sent as its
+ * own, because two user messages in a row is a shape some providers refuse and
+ * none of them need.
+ */
+export function readerMessages(pack, session, { stageDirection = null, turnBlock = "" } = {}) {
   const messages = [];
   for (const exchange of session.exchanges) {
     if (exchange.q) messages.push({ role: "assistant", content: exchange.q });
     messages.push({ role: "user", content: exchange.a });
   }
-  if (stageDirection) messages.push({ role: "user", content: `(${stageDirection})` });
-  if (!messages.length) messages.push({ role: "user", content: "(the reading begins)" });
+
+  const tail = [
+    stageDirection ? `(${stageDirection})` : "",
+    messages.length ? "" : "(the reading begins)",
+    turnBlock,
+  ].filter(Boolean).join("\n\n");
+  if (tail) messages.push({ role: "user", content: tail });
+  else if (!messages.length) messages.push({ role: "user", content: "(the reading begins)" });
   return messages;
 }
 

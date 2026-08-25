@@ -59,7 +59,10 @@ function scriptedClient(prompts) {
   let step = 0;
   return {
     async chat({ system, messages, onDelta = () => {} }) {
-      prompts.push({ system, messages });
+      // The prompt as the model receives it: the cached-prefix half, then the
+      // turn block folded into the last user message.
+      prompts.push({ system, messages,
+                     full: `${system}\n${messages[messages.length - 1]?.content ?? ""}` });
       const text = `[reader turn ${(turn += 1)}]`;
       onDelta(text, text);
       return text;
@@ -117,13 +120,15 @@ const record = {
 };
 
 if (wantPrompt) {
-  const found = prompts.find((p) => turnKindOf(p.system) === wantPrompt);
+  const found = prompts.find((p) => turnKindOf(p.full) === wantPrompt);
   if (!found) {
-    const seen = [...new Set(prompts.map((p) => turnKindOf(p.system)))];
+    const seen = [...new Set(prompts.map((p) => turnKindOf(p.full)))];
     console.error(`no ${wantPrompt} turn in this session. It ran: ${seen.join(", ")}`);
     process.exit(1);
   }
-  console.log(found.system);
+  console.log(found.full);
+  console.error(`\n(${(found.system.length / 1024).toFixed(1)} KB cacheable prefix + `
+    + `${((found.full.length - found.system.length) / 1024).toFixed(1)} KB per turn)`);
 } else if (wantJson) {
   console.log(JSON.stringify(record, null, 2));
 } else {

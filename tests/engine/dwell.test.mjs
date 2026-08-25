@@ -141,14 +141,14 @@ test("the reader is told not to build on something they hedged", async () => {
   await reading.say("each cup is filled with flowers, probably repurposed from something else");
   await reading.say("i guess so?i used to have a different major");
 
-  const system = client.calls.chat.at(-1).system.replace(/\s+/g, " ");
+  const system = client.calls.chat.at(-1).prompt.replace(/\s+/g, " ");
   assert.match(system, /THEY HEDGED THAT/);
   assert.match(system, /Do not repeat it back as settled fact/);
   assert.match(system, /Make walking it back easy/);
 });
 
 test("the tempo rule reaches every turn, and one few-shot shows it", async () => {
-  const { readerSystem } = await import("../../web/js/engine/prompts.js");
+  const { readerSystem, readerTurnBlock } = await import("../../web/js/engine/prompts.js");
   const pack = await realPack();
   const base = {
     positions: ["situation", "obstacle", "advice"], exchanges: [], anchor: null,
@@ -156,7 +156,7 @@ test("the tempo rule reaches every turn, and one few-shot shows it", async () =>
     cards: [{ card_id: "cups-06-six", position: "situation", user_projection: "", ai_reading: "" }],
   };
   for (const turn of ["invite", "respond", "bridge", "close"]) {
-    const system = readerSystem({ pack, session: base, turn }).replace(/\s+/g, " ");
+    const system = `${readerSystem({ pack, session: base })}\n${readerTurnBlock({ pack, session: base, turn })}`.replace(/\s+/g, " ");
     assert.match(system, /Eagerness is not readiness/, `the ${turn} turn lost the tempo rule`);
     assert.match(system, /one more question inside it\*\*, not a scene change/);
   }

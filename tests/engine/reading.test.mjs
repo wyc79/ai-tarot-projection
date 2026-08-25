@@ -26,7 +26,7 @@ async function run({ gates, answers, seed = SEED, storage = null, opening = decl
 
 const types = (events, type) => events.filter((e) => e.type === type);
 /** The system prompt for a given turn kind, since index 0 is now the opening. */
-const systemFor = (client, turn) => client.calls.chat.find((c) => c.turn === turn).system;
+const systemFor = (client, turn) => client.calls.chat.find((c) => c.turn === turn).prompt;
 
 test("a full seeded session runs draw -> projection -> flips -> anchor -> close", async () => {
   const { reading, events } = await run({
@@ -124,7 +124,7 @@ test("crisis drops the frame on the first answer and no card ever follows", asyn
 
 test("the drop-frame instruction replaces the reader's voice, not decorates it", async () => {
   const { client } = await run({ gates: [gate(3, "crisis")], answers: ["I don't want to be here"] });
-  const system = client.calls.chat.at(-1).system;
+  const system = client.calls.chat.at(-1).prompt;
   assert.match(system, /the frame is dropped/i);
   assert.match(system, /No cards\./);
   assert.doesNotMatch(system, /## This turn\n\nThe card has just turned over/);
@@ -133,7 +133,7 @@ test("the drop-frame instruction replaces the reader's voice, not decorates it",
 test("high stakes hands agency back without dropping the frame", async () => {
   const { client, reading } = await run({ gates: [gate(3, "high")], answers: ["whether to sue"] });
   assert.equal(reading.session.safety_state, "normal");
-  assert.match(client.calls.chat.at(-1).system, /hand agency back/i);
+  assert.match(client.calls.chat.at(-1).prompt, /hand agency back/i);
 });
 
 test("the anchor is committed from the first card and reaches later prompts", async () => {
@@ -142,7 +142,7 @@ test("the anchor is committed from the first card and reaches later prompts", as
     answers: ["treading water", "yeah, since the move"],
   });
   assert.equal(reading.session.anchor.theme, "t");
-  const later = client.calls.chat.at(-1).system;
+  const later = client.calls.chat.at(-1).prompt;
   assert.match(later, /## Session record/);
   assert.match(later, /theme: t/);
 });
@@ -210,7 +210,7 @@ test("a closed reading refuses further turns", async () => {
 
 test("the reader is told not to invent what the user said", async () => {
   const { client } = await run({ gates: [gate(3)], answers: ["they look like family"] });
-  const system = client.calls.chat.at(-1).system;
+  const system = client.calls.chat.at(-1).prompt;
   assert.match(system, /Never invent what they said/);
   assert.match(system, /One\nmention is one mention/);
 });
@@ -233,7 +233,7 @@ test("the anchor's phrases are not presented as things they keep saying", async 
   const { client } = await run({
     gates: [gate(4), gate(4)], answers: ["treading water", "since the move"],
   });
-  const system = client.calls.chat.at(-1).system;
+  const system = client.calls.chat.at(-1).prompt;
   assert.match(system, /a tidier synonym is a different word/);
   assert.doesNotMatch(system, /- their words:/);
 });
@@ -262,7 +262,7 @@ test("agency is handed back once, not every turn the subject comes up", async ()
   });
   // Match the injected block, not the persona's standing rule, which every
   // system prompt carries.
-  const handbacks = client.calls.chat.filter((c) => /This is the only turn in\nwhich you will say it/.test(c.system));
+  const handbacks = client.calls.chat.filter((c) => /This is the only turn in\nwhich you will say it/.test(c.prompt));
   assert.equal(handbacks.length, 1, "a disclaimer repeated every turn stops being heard");
   assert.equal(reading.session.handback_given, true);
   assert.equal(reading.session.safety_state, "normal", "high stakes never drops the frame");
@@ -368,7 +368,7 @@ test("a respond turn says outright that nothing flipped", async () => {
 
 test("the reader is told how many positions remain and that it cannot know them", async () => {
   const { client } = await run({ gates: [gate(4), gate(4), gate(2)], answers: ["a", "b", "c"] });
-  const system = client.calls.chat.at(-1).system;
+  const system = client.calls.chat.at(-1).prompt;
   assert.match(system, /1 position still to come, cards unknown to you/);
 });
 
@@ -376,7 +376,7 @@ test("every turn instruction still carries the rules it is supposed to", async (
   // A guard against edits that silently fail to apply: each turn's instruction
   // is checked for the thing it exists to say. Two prompt fixes were lost this
   // way before this test existed.
-  const { readerSystem } = await import("../../web/js/engine/prompts.js");
+  const { readerSystem, readerTurnBlock } = await import("../../web/js/engine/prompts.js");
   const pack = await realPack();
   const base = {
     positions: ["situation", "obstacle", "advice"], exchanges: [], anchor: null,
@@ -399,7 +399,7 @@ test("every turn instruction still carries the rules it is supposed to", async (
              /in a clause, not a paragraph/, /Then one question/],
     close: [/one small concrete thing/, /Then stop/],
   };
-  const flat = (turn) => readerSystem({ pack, session: base, turn }).replace(/\s+/g, " ");
+  const flat = (turn) => `${readerSystem({ pack, session: base })}\n${readerTurnBlock({ pack, session: base, turn })}`.replace(/\s+/g, " ");
   // The shape itself is a standing rule, so it must reach every turn.
   for (const turn of Object.keys(required)) {
     assert.match(flat(turn), /## The shape of every turn/,
@@ -430,9 +430,9 @@ test("the recap block is assembled from state, on every turn, and says it outran
     opening: wants("my job"),
   });
   for (const call of client.calls.chat) {
-    assert.match(call.system, /## Session record/, `missing on the ${call.turn} turn`);
-    assert.match(call.system, /the history is what was said, this is what is true/);
-    assert.match(call.system, /Never contradict a reading you have already given/);
+    assert.match(call.prompt, /## Session record/, `missing on the ${call.turn} turn`);
+    assert.match(call.prompt, /the history is what was said, this is what is true/);
+    assert.match(call.prompt, /Never contradict a reading you have already given/);
   }
 });
 
@@ -449,7 +449,7 @@ test("the recap carries the anchor's phrases verbatim, marked as verbatim", asyn
   await reading.say("nothing in particular");
   await reading.say("treading water");
   await reading.say("still kicking");
-  const system = client.calls.chat.at(-1).system;
+  const system = client.calls.chat.at(-1).prompt;
   assert.match(system, /their exact words: "treading water" \(life\), "can't stop kicking" \(life\)/);
   assert.match(system, /verbatim\. Reuse them as they are/);
 });
@@ -458,7 +458,7 @@ test("the recap names the arc position, the depth so far, and the safety state",
   const { client } = await run({
     gates: [gate(2), gate(2)], answers: ["a general thing", "another"],
   });
-  const system = client.calls.chat.at(-1).system;
+  const system = client.calls.chat.at(-1).prompt;
   assert.match(system, /arc position: situation \(setup —/);
   assert.match(system, /disclosure depth on this card: 2/);
   assert.match(system, /safety: normal/);
@@ -472,7 +472,7 @@ test("each card's reading is recorded as one line, not the whole turn", async ()
   await reading.begin();
   await reading.say("nothing in particular");
   await reading.say("deep answer");
-  const system = client.calls.chat.at(-1).system;
+  const system = client.calls.chat.at(-1).prompt;
   assert.match(system, /you said: First sentence lands here\./);
   assert.doesNotMatch(system, /should not appear/);
 });
@@ -482,7 +482,7 @@ test("before anything is dealt the recap says so rather than inventing state", a
   const client = fakeClient({ opening: declines });
   const reading = startReading({ pack, client, seed: SEED });
   await reading.begin();
-  const system = client.calls.chat[0].system;
+  const system = client.calls.chat[0].prompt;
   assert.match(system, /anchor: not committed yet/);
   assert.match(system, /cards on the table:\n  none yet/);
   assert.match(system, /arc position: nothing dealt yet/);
@@ -493,7 +493,7 @@ test("the arc position's weighted moves reach the prompt from pack data", async 
     gates: [gate(4), gate(3)], answers: ["something real", "and more"],
   });
   assert.match(systemFor(client, "invite"), /moves weighted here: own, externalize, their-words/);
-  assert.match(client.calls.chat.at(-1).system, /moves weighted here: exception, externalize/);
+  assert.match(client.calls.chat.at(-1).prompt, /moves weighted here: exception, externalize/);
 });
 
 test("the question policy is present and marked as never-to-be-named", async () => {
@@ -656,7 +656,7 @@ test("card meaning is reveal-on-request, not seasoning", async () => {
   assert.ok(!/one sentence of traditional sense/i.test(system),
             "the seasoning allowance is still in the prompt somewhere");
   assert.ok(!/At most one sentence of traditional sense/i.test(
-    client.calls.chat.map((c) => c.system).join("\n")));
+    client.calls.chat.map((c) => c.prompt).join("\n")));
 });
 
 test("a session with no topic is told the first card has a job", async () => {
