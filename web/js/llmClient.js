@@ -139,7 +139,7 @@ export function makeLlmClient({ getKey, getConfig, onDebug = () => {} }) {
      * Streams a reader turn. onDelta fires per token group; resolves with the
      * full text so the ledger gets one string.
      */
-    async chat({ system, messages, onDelta = () => {}, maxTokens, signal }) {
+    async chat({ system, messages, onDelta = () => {}, maxTokens = 2048, signal }) {
       const { config, provider } = resolve();
       const payload = provider.wire.chatPayload({
         model: config.chatModel, system, messages, maxTokens,
@@ -151,19 +151,34 @@ export function makeLlmClient({ getKey, getConfig, onDebug = () => {} }) {
       const decoder = new TextDecoder();
       let buffer = "";
       let full = "";
+      let truncated = false;
+
+      const consume = (chunk) => {
+        buffer = chunk.rest;
+        if (chunk.error) throw new RelayError(chunk.error.code, chunk.error.message);
+        if (chunk.truncated) truncated = true;
+        if (chunk.text) {
+          full += chunk.text;
+          onDelta(chunk.text, full);
+        }
+        return chunk.done;
+      };
 
       for (;;) {
         const { value, done } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-        const chunk = provider.wire.readStreamChunk(buffer);
-        buffer = chunk.rest;
-        if (chunk.error) throw new RelayError(chunk.error.code, chunk.error.message);
-        if (chunk.text) {
-          full += chunk.text;
-          onDelta(chunk.text, full);
-        }
-        if (chunk.done) break;
+        if (consume(provider.wire.readStreamChunk(buffer))) break;
+      }
+      // Nothing promises a newline after the final event, and the parser holds
+      // back the last unterminated line. Flushing it is the difference between
+      // a reader turn that asks its question and one that trails off.
+      if (buffer.trim()) consume(provider.wire.readStreamChunk(`${buffer}\n`));
+
+      if (truncated) {
+        throw new RelayError("response_truncated",
+          `the reply hit the token ceiling after ${full.length} characters`,
+          { hint: "raise maxTokens, or the model is spending the budget on thinking" });
       }
       return full;
     },

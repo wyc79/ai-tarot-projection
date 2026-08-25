@@ -231,3 +231,29 @@ test("the client object does not hold the key anywhere", async () => {
   await client.chat({ system: "s", messages: [] });
   assert.equal(JSON.stringify(Object.values(client).map(String)).includes(KEY), false);
 });
+
+test("the last line of a stream is not dropped when it lacks a trailing newline", async () => {
+  // Providers do not promise a newline after the final SSE event. Losing that
+  // line silently truncates the reader mid-sentence -- and a reader turn that
+  // ends without its question reads as the model trailing off.
+  const { client } = harness({
+    respond: () => sseResponse([delta("who is missing"), 'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":" from the coffins?"}}'],
+    ),
+  });
+  assert.equal(await client.chat({ system: "s", messages: [] }),
+               "who is missing from the coffins?");
+});
+
+test("a stream that ends without message_stop still yields what it sent", async () => {
+  const { client } = harness({ respond: () => sseResponse([delta("cut short")]) });
+  assert.equal(await client.chat({ system: "s", messages: [] }), "cut short");
+});
+
+test("hitting the token ceiling is reported, not silently returned as a short turn", async () => {
+  const truncated = `data: ${JSON.stringify({ type: "message_delta", delta: { stop_reason: "max_tokens" } })}\n`;
+  const { client } = harness({ respond: () => sseResponse([delta("this trails off"), truncated]) });
+  await assert.rejects(client.chat({ system: "s", messages: [] }), (e) => {
+    assert.equal(e.code, "response_truncated");
+    return true;
+  });
+});

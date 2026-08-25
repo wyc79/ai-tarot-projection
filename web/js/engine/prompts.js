@@ -62,8 +62,11 @@ Committed after the first card, from their own words. Elaborate on it. Do not
 contradict it, and do not quietly change the subject to something tidier.
 
 - theme: ${theme}
-- their words: ${user_phrases.map((p) => `"${p}"`).join(", ") || "(none recorded)"}
-- where the last card should land: ${resolution_beat}`;
+- phrases they used earlier: ${user_phrases.map((p) => `"${p}"`).join(", ") || "(none recorded)"}
+- where the last card should land: ${resolution_beat}
+
+These phrases are a record of what they said once, not evidence that they say it
+often. Reuse their language; do not tell them they keep saying it.`;
 }
 
 function describeCard(pack, session) {
@@ -130,7 +133,8 @@ in, not sideways. Four sentences at the outside.`,
 Two things, in one short turn, without a seam. First answer what they just said
 — their words, one sentence of traditional sense at most. Then the next card
 turns over: name it, and hand it to them the same way you handed them the first.
-Do not interpret the new card. Five sentences at the outside.`,
+Do not interpret the new card. End on the question about it. Five sentences at
+the outside.`,
 
   close: `
 ## This turn

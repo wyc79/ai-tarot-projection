@@ -180,3 +180,31 @@ test("a closed reading refuses further turns", async () => {
   assert.equal(reading.session.closed, true);
   await assert.rejects(reading.say("more"), /closed/);
 });
+
+test("the reader is told not to invent what the user said", async () => {
+  const { client } = await run({ gates: [gate(2, false)], answers: ["they look like family"] });
+  const system = client.calls.chat.at(-1).system;
+  assert.match(system, /Never invent what they said/);
+  assert.match(system, /One\nmention is one mention/);
+});
+
+test("every turn but the last is told to end on a question", async () => {
+  const { client } = await run({
+    gates: [gate(2, false), gate(3, true), gate(3, true), gate(3, true)],
+    answers: ["a", "b", "c", "d"],
+  });
+  for (const call of client.calls.chat) {
+    if (call.turn === "close") {
+      assert.doesNotMatch(call.system, /## This turn[\s\S]*end (?:your turn )?on (?:it|the question)/);
+    } else {
+      assert.match(call.system, /Every turn ends with a question/);
+    }
+  }
+});
+
+test("the anchor's phrases are not presented as things they keep saying", async () => {
+  const { client } = await run({ gates: [gate(3, true), gate(1, false)], answers: ["treading water", "hm"] });
+  const system = client.calls.chat.at(-1).system;
+  assert.match(system, /not evidence that they say it\noften/);
+  assert.doesNotMatch(system, /- their words:/);
+});

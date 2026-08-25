@@ -74,13 +74,14 @@ export const ANTHROPIC = {
    * Pull text deltas out of one SSE chunk. Returns the leftover partial line,
    * because a chunk boundary lands mid-line often enough to matter.
    *
-   * @returns {{text: string, rest: string, done: boolean, error: object|null}}
+   * @returns {{text: string, rest: string, done: boolean, truncated: boolean, error: object|null}}
    */
   readStreamChunk(buffer) {
     const lines = buffer.split("\n");
     const rest = lines.pop() ?? "";
     let text = "";
     let done = false;
+    let truncated = false;
     let error = null;
 
     for (const line of lines) {
@@ -97,13 +98,15 @@ export const ANTHROPIC = {
         text += event.delta.text;
       } else if (event.type === "message_delta" && event.delta?.stop_reason === "refusal") {
         error = { code: "refusal", message: "the model declined this turn" };
+      } else if (event.type === "message_delta" && event.delta?.stop_reason === "max_tokens") {
+        truncated = true;
       } else if (event.type === "error") {
         error = { code: event.error?.type ?? "stream_error", message: event.error?.message ?? "stream error" };
       } else if (event.type === "message_stop") {
         done = true;
       }
     }
-    return { text, rest, done, error };
+    return { text, rest, done, truncated, error };
   },
 
   /** The concatenated text of a non-streamed response. */
