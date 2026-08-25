@@ -134,7 +134,7 @@ test("an abort is not disguised as a connection failure", async () => {
   await assert.rejects(client.chat({ system: "s", messages: [] }), (e) => e.name === "AbortError");
 });
 
-const GATE = { disclosure_depth: 3, flip_ready: true, stakes: "low", reading_of_them: "they said stuck" };
+const GATE = { disclosure_depth: 3, stakes: "low", reading_of_them: "they said stuck" };
 const judgeReply = (text) => new Response(JSON.stringify({
   stop_reason: "end_turn", content: [{ type: "text", text }],
 }), { status: 200 });

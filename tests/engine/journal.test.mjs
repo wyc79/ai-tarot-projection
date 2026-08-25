@@ -12,7 +12,7 @@ async function finished(seed = "moon-4f2a91") {
   const reading = startReading({
     pack,
     client: fakeClient({
-      gates: [gate(3, false), gate(4, true), gate(4, true), gate(4, true)],
+      gates: [gate(3), gate(4), gate(4), gate(4)],
       opening: declines,
       reply: (turn) => (turn === "close" ? "this week, notice the bracing" : `[${turn}]`),
     }),
@@ -60,7 +60,7 @@ test("the json export carries the seed and every flip-gate verdict", async () =>
                  "every turn is stakes-checked, the opening one included");
   }
   for (const exchange of parsed.session.exchanges.filter((e) => e.position !== "opening")) {
-    assert.equal(typeof exchange.gate.flip_ready, "boolean",
+    assert.equal(typeof exchange.gate.disclosure_depth, "number",
                  "re-running a transcript needs what the judge thought at the time");
   }
 });
@@ -126,7 +126,7 @@ test("state is persisted before it is announced, so listeners read the new state
   const seenAtEvent = {};
   const reading = startReading({
     pack, storage, seed: "moon-4f2a91",
-    client: fakeClient({ gates: [gate(4, true), gate(4, true), gate(4, true)], opening: declines }),
+    client: fakeClient({ gates: [gate(4), gate(4), gate(4)], opening: declines }),
     onEvent: (e) => {
       if (e.type === "anchor" || e.type === "closed") {
         const saved = loadHistory(storage)[0];

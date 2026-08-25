@@ -6,18 +6,27 @@
  * means for the session. Keeping the decision out of the prompt is what makes
  * the flip rhythm reviewable.
  *
+ * flipDecision is the only thing in the codebase that decides a card turns
+ * over. The judge used to get a vote too, through a flip_ready boolean, and the
+ * 2026-08-25 checkpoint showed what that was worth: false on every gate row of
+ * both runs, while every card flipped anyway. Two owners, one of them ignored.
+ * The judge now reports depth against a labelled rubric -- the thing it is
+ * actually good at -- and the thresholds live here.
+ *
  * @typedef {{theme: string, user_phrases: string[], resolution_beat: string}} Anchor
  * @typedef {{card_id: string, position: string, user_projection: string,
- *            ai_reading: string, flipped_at: number}} DrawnCard
+ *            ai_reading: string, flipped_at: number, flip_reason: string}} DrawnCard
  * @typedef {{q: string, a: string, disclosure_depth: number, position: string}} Exchange
- * @typedef {{disclosure_depth: number, flip_ready: boolean,
- *            stakes: "low"|"high"|"crisis"}} Gate
+ * @typedef {{disclosure_depth: number, stakes: "low"|"high"|"crisis",
+ *            reading_of_them: string}} Gate
  */
 
 export const STATE_VERSION = 1;
 
 /** The top of the 1-4 disclosure scale: a rich answer earns the next card early. */
 export const DEPTH_RICH = 4;
+/** A specific situation, with edges. Enough to move on once the rhythm is met. */
+export const DEPTH_ENOUGH = 3;
 /** The default rhythm: roughly two exchanges per card. */
 export const TARGET_EXCHANGES = 2;
 /** Hard cap. A thin answer gets one softer follow-up, then the reading moves on
@@ -75,7 +84,7 @@ export function exchangesOnCurrentCard(session) {
   return session.exchanges.filter((e) => e.position === card.position).length;
 }
 
-export function flipCard(session, cardId, flippedAt = Date.now()) {
+export function flipCard(session, cardId, { flippedAt = Date.now(), reason = "" } = {}) {
   const position = nextPosition(session);
   if (!position) throw new Error("the spread is full");
   session.cards.push({
@@ -84,6 +93,9 @@ export function flipCard(session, cardId, flippedAt = Date.now()) {
     user_projection: "",
     ai_reading: "",
     flipped_at: flippedAt,
+    // Why this card turned, in the words flipDecision used. There is exactly
+    // one thing that decides a flip now, and this is it saying so out loud.
+    flip_reason: reason,
   });
   return session;
 }
@@ -194,8 +206,8 @@ export function flipDecision(session, gate) {
   if (nextPosition(session) === null && count >= TARGET_EXCHANGES) {
     return { flip: true, reason: `last card and ${count} exchanges; closing regardless of depth` };
   }
-  if (gate.flip_ready && count >= TARGET_EXCHANGES) {
-    return { flip: true, reason: `judge says ready after ${count} exchanges` };
+  if (gate.disclosure_depth >= DEPTH_ENOUGH && count >= TARGET_EXCHANGES) {
+    return { flip: true, reason: `depth ${gate.disclosure_depth} after ${count} exchanges` };
   }
   if (count >= MAX_EXCHANGES) {
     return { flip: true, reason: `${count} exchanges on one card; moving on rather than stalling` };

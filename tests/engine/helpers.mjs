@@ -56,13 +56,13 @@ export function fakeClient({
       if (schema.properties.theme) {
         return anchor ?? { theme: "t", user_phrases: ["stuck"], resolution_beat: "r" };
       }
-      return queue.shift() ?? { disclosure_depth: 2, flip_ready: true, stakes: "low", reading_of_them: "x" };
+      return queue.shift() ?? { disclosure_depth: 2, stakes: "low", reading_of_them: "x" };
     },
   };
 }
 
-export const gate = (depth, ready, stakes = "low") =>
-  ({ disclosure_depth: depth, flip_ready: ready, stakes, reading_of_them: "noted" });
+export const gate = (depth, stakes = "low") =>
+  ({ disclosure_depth: depth, stakes, reading_of_them: "noted" });
 
 /** Answer to the opening question. Declining is the default a test wants. */
 export const declines = { has_topic: false, topic: "", stakes: "low" };

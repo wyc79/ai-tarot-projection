@@ -25,10 +25,6 @@ export const GATE_SCHEMA = {
         "Judge what was disclosed, not how many words were used: a short answer can be " +
         "a 4 and a long one a 2.",
     },
-    flip_ready: {
-      type: "boolean",
-      description: "Has this card been read for what it is worth, or is there more here?",
-    },
     stakes: {
       type: "string",
       enum: ["low", "high", "crisis"],
@@ -43,7 +39,7 @@ export const GATE_SCHEMA = {
       description: "One sentence: what they actually disclosed, in their own words where possible.",
     },
   },
-  required: ["disclosure_depth", "flip_ready", "stakes", "reading_of_them"],
+  required: ["disclosure_depth", "stakes", "reading_of_them"],
   additionalProperties: false,
 };
 

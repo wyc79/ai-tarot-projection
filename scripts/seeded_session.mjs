@@ -31,18 +31,18 @@ const fileFetch = async (url) => {
 const SCRIPT = [
   { answer: "yeah - whether I keep bracing for a fight nobody's having",
     opening: { has_topic: true, topic: "bracing for a fight nobody's having", stakes: "low" } },
-  { answer: "dunno", gate: { disclosure_depth: 1, flip_ready: false, stakes: "low" } },
-  { answer: "it looks tired I guess", gate: { disclosure_depth: 2, flip_ready: false, stakes: "low" } },
+  { answer: "dunno", gate: { disclosure_depth: 1, stakes: "low" } },
+  { answer: "it looks tired I guess", gate: { disclosure_depth: 2, stakes: "low" } },
   { answer: "my brother, and I haven't called him since March",
-    gate: { disclosure_depth: 4, flip_ready: true, stakes: "low" } },
-  { answer: "money, mostly", gate: { disclosure_depth: 2, flip_ready: false, stakes: "low" } },
+    gate: { disclosure_depth: 4, stakes: "low" } },
+  { answer: "money, mostly", gate: { disclosure_depth: 2, stakes: "low" } },
   { answer: "if I spend it I have to admit I'm staying",
-    gate: { disclosure_depth: 4, flip_ready: true, stakes: "low" } },
-  { answer: "walking off, leaving the full ones", gate: { disclosure_depth: 3, flip_ready: true, stakes: "low" } },
+    gate: { disclosure_depth: 4, stakes: "low" } },
+  { answer: "walking off, leaving the full ones", gate: { disclosure_depth: 3, stakes: "low" } },
   // The eighth answer exists so the fixture reaches the closing beat. Without
   // it the canonical session ended unclosed and --prompt=close had no turn to
   // print, which is how run B's failure mode sat in our own fixture unnoticed.
-  { answer: "lighter, maybe", gate: { disclosure_depth: 2, flip_ready: false, stakes: "low" } },
+  { answer: "lighter, maybe", gate: { disclosure_depth: 2, stakes: "low" } },
 ];
 
 function scriptedClient(prompts) {
@@ -95,8 +95,10 @@ const record = {
   topic: session.topic,
   cards: session.cards.map((c) => `${c.position}:${c.card_id}`),
   anchor_theme: session.anchor?.theme ?? null,
+  flips: events.filter((e) => e.type === "flip")
+    .map((e) => `${e.position}: ${e.reason}`),
   decisions: events.filter((e) => e.type === "flip_decision")
-    .map((e) => `depth ${e.gate.disclosure_depth} ready ${e.gate.flip_ready} -> ${e.decision.flip ? "FLIP" : "hold"} (${e.decision.reason})`),
+    .map((e) => `depth ${e.gate.disclosure_depth} -> ${e.decision.flip ? "FLIP" : "hold"} (${e.decision.reason})`),
   closed: session.closed,
 };
 
@@ -129,4 +131,6 @@ if (wantPrompt) {
   console.log(`closed      ${record.closed}`);
   console.log("pacing:");
   for (const line of record.decisions) console.log(`  ${line}`);
+  console.log("flips:");
+  for (const line of record.flips) console.log(`  ${line}`);
 }

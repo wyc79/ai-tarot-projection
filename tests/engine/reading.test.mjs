@@ -32,9 +32,9 @@ test("a full seeded session runs draw -> projection -> flips -> anchor -> close"
   const { reading, events } = await run({
     // two exchanges per card, judge says ready each second time
     gates: [
-      gate(3, false), gate(3, true),   // situation
-      gate(3, false), gate(3, true),   // obstacle
-      gate(3, false), gate(3, true),   // advice
+      gate(3), gate(3),   // situation
+      gate(3), gate(3),   // obstacle
+      gate(3), gate(3),   // advice
     ],
     answers: ["it looks like leaving", "the job, I think", "money", "and my father",
               "start over", "somewhere quieter"],
@@ -52,7 +52,7 @@ test("a full seeded session runs draw -> projection -> flips -> anchor -> close"
 
 test("the turns run in the designed order: invite, then bridges, then close", async () => {
   const { client } = await run({
-    gates: [gate(3, false), gate(3, true), gate(3, false), gate(3, true), gate(3, false), gate(3, true)],
+    gates: [gate(3), gate(3), gate(3), gate(3), gate(3), gate(3)],
     answers: ["a", "b", "c", "d", "e", "f"],
   });
   assert.deepEqual(client.calls.chat.map((c) => c.turn),
@@ -60,21 +60,21 @@ test("the turns run in the designed order: invite, then bridges, then close", as
 });
 
 test("a bridge turn is credited to the card it answered, not the one it turned", async () => {
-  const { reading } = await run({ gates: [gate(4, true), gate(2, false)], answers: ["deep", "hm"] });
+  const { reading } = await run({ gates: [gate(4), gate(2)], answers: ["deep", "hm"] });
   const [first, second] = reading.session.cards;
   assert.equal(first.ai_reading, "[bridge]", "the bridge answered the first card");
   assert.equal(second.ai_reading, "[respond]", "the second card has its own reading");
 });
 
 test("the seed is emitted at the start, before anything can go wrong", async () => {
-  const { events } = await run({ gates: [gate(1, false)], answers: ["hm"] });
+  const { events } = await run({ gates: [gate(1)], answers: ["hm"] });
   assert.equal(events[0].type, "session_start");
   assert.equal(events[0].seed, SEED);
 });
 
 test("the same seed deals the same cards", async () => {
-  const a = await run({ gates: [gate(4, true), gate(4, true)], answers: ["deep", "deeper"] });
-  const b = await run({ gates: [gate(4, true), gate(4, true)], answers: ["deep", "deeper"] });
+  const a = await run({ gates: [gate(4), gate(4)], answers: ["deep", "deeper"] });
+  const b = await run({ gates: [gate(4), gate(4)], answers: ["deep", "deeper"] });
   assert.deepEqual(
     a.reading.session.cards.map((c) => c.card_id),
     b.reading.session.cards.map((c) => c.card_id),
@@ -82,8 +82,8 @@ test("the same seed deals the same cards", async () => {
 });
 
 test("a different seed deals different cards", async () => {
-  const a = await run({ gates: [gate(4, true)], answers: ["deep"] });
-  const b = await run({ gates: [gate(4, true)], answers: ["deep"], seed: "tower-000001" });
+  const a = await run({ gates: [gate(4)], answers: ["deep"] });
+  const b = await run({ gates: [gate(4)], answers: ["deep"], seed: "tower-000001" });
   assert.notDeepEqual(
     a.reading.session.cards.map((c) => c.card_id),
     b.reading.session.cards.map((c) => c.card_id),
@@ -91,23 +91,23 @@ test("a different seed deals different cards", async () => {
 });
 
 test("the reader is asked to invite first and never to interpret first", async () => {
-  const { client } = await run({ gates: [gate(2, false)], answers: ["dunno"] });
+  const { client } = await run({ gates: [gate(2)], answers: ["dunno"] });
   const first = systemFor(client, "invite");
   assert.match(first, /they read it first|have not spoken about it yet/i);
   assert.match(first, /have not earned the right/i);
 });
 
 test("a thin answer holds the card; a rich one earns the next", async () => {
-  const thin = await run({ gates: [gate(1, false)], answers: ["idk"] });
+  const thin = await run({ gates: [gate(1)], answers: ["idk"] });
   assert.equal(thin.reading.session.cards.length, 1, "a shrug must not advance the spread");
 
-  const rich = await run({ gates: [gate(4, false)], answers: ["my brother, and I haven't called him"] });
+  const rich = await run({ gates: [gate(4)], answers: ["my brother, and I haven't called him"] });
   assert.equal(rich.reading.session.cards.length, 2, "a rich answer earns the card early");
 });
 
 test("crisis drops the frame on the first answer and no card ever follows", async () => {
   const { reading, events } = await run({
-    gates: [gate(3, true, "crisis"), gate(3, true, "low")],
+    gates: [gate(3, "crisis"), gate(3, "low")],
     answers: ["my mother died last week", "yes"],
   });
   assert.equal(reading.session.safety_state, "drop_frame");
@@ -117,7 +117,7 @@ test("crisis drops the frame on the first answer and no card ever follows", asyn
 });
 
 test("the drop-frame instruction replaces the reader's voice, not decorates it", async () => {
-  const { client } = await run({ gates: [gate(3, true, "crisis")], answers: ["I don't want to be here"] });
+  const { client } = await run({ gates: [gate(3, "crisis")], answers: ["I don't want to be here"] });
   const system = client.calls.chat.at(-1).system;
   assert.match(system, /the frame is dropped/i);
   assert.match(system, /No cards\./);
@@ -125,14 +125,14 @@ test("the drop-frame instruction replaces the reader's voice, not decorates it",
 });
 
 test("high stakes hands agency back without dropping the frame", async () => {
-  const { client, reading } = await run({ gates: [gate(3, false, "high")], answers: ["whether to sue"] });
+  const { client, reading } = await run({ gates: [gate(3, "high")], answers: ["whether to sue"] });
   assert.equal(reading.session.safety_state, "normal");
   assert.match(client.calls.chat.at(-1).system, /hand agency back/i);
 });
 
 test("the anchor is committed from the first card and reaches later prompts", async () => {
   const { client, reading } = await run({
-    gates: [gate(4, true), gate(2, false)],
+    gates: [gate(4), gate(2)],
     answers: ["treading water", "yeah"],
   });
   assert.equal(reading.session.anchor.theme, "t");
@@ -143,7 +143,7 @@ test("the anchor is committed from the first card and reaches later prompts", as
 
 test("the anchor is not re-judged once committed", async () => {
   const { client } = await run({
-    gates: [gate(4, true), gate(4, true)],
+    gates: [gate(4), gate(4)],
     answers: ["a", "b"],
   });
   const anchorCalls = client.calls.judge.filter((c) => c.schema.properties.theme);
@@ -151,17 +151,17 @@ test("the anchor is not re-judged once committed", async () => {
 });
 
 test("the card on the table reaches the prompt with its imagery line and position sense", async () => {
-  const { client, pack } = await run({ gates: [gate(2, false)], answers: ["hm"] });
+  const { client, pack } = await run({ gates: [gate(2)], answers: ["hm"] });
   const system = systemFor(client, "invite");
   const card = pack.card(
-    (await run({ gates: [gate(2, false)], answers: ["hm"] })).reading.session.cards[0].card_id,
+    (await run({ gates: [gate(2)], answers: ["hm"] })).reading.session.cards[0].card_id,
   );
   assert.ok(system.includes(card.imagery_line), "the neutral imagery line is what they project onto");
   assert.ok(system.includes(card.meanings.situation), "position sense, not just the general one");
 });
 
 test("the transcript alternates and never ends on an assistant turn", async () => {
-  const { client } = await run({ gates: [gate(2, false), gate(2, false)], answers: ["a", "b"] });
+  const { client } = await run({ gates: [gate(2), gate(2)], answers: ["a", "b"] });
   for (const call of client.calls.chat) {
     assert.equal(call.messages.at(-1).role, "user",
                  "a trailing assistant message is a prefill, which current models reject");
@@ -170,7 +170,7 @@ test("the transcript alternates and never ends on an assistant turn", async () =
 
 test("the session is persisted as it goes, and survives a reload", async () => {
   const storage = makeStorage(memoryBackend());
-  const { reading } = await run({ gates: [gate(3, false)], answers: ["something"], storage });
+  const { reading } = await run({ gates: [gate(3)], answers: ["something"], storage });
   const saved = storage.get("session");
   assert.equal(saved.seed, SEED);
   assert.equal(saved.cards.length, reading.session.cards.length);
@@ -179,7 +179,7 @@ test("the session is persisted as it goes, and survives a reload", async () => {
 
 test("a closed reading refuses further turns", async () => {
   const { reading } = await run({
-    gates: [gate(4, true), gate(4, true), gate(4, true)],
+    gates: [gate(4), gate(4), gate(4)],
     answers: ["a", "b", "c"],
   });
   assert.equal(reading.session.closed, true);
@@ -187,7 +187,7 @@ test("a closed reading refuses further turns", async () => {
 });
 
 test("the reader is told not to invent what the user said", async () => {
-  const { client } = await run({ gates: [gate(3, false)], answers: ["they look like family"] });
+  const { client } = await run({ gates: [gate(3)], answers: ["they look like family"] });
   const system = client.calls.chat.at(-1).system;
   assert.match(system, /Never invent what they said/);
   assert.match(system, /One\nmention is one mention/);
@@ -195,7 +195,7 @@ test("the reader is told not to invent what the user said", async () => {
 
 test("every turn but the last is told to end on a question", async () => {
   const { client } = await run({
-    gates: [gate(3, false), gate(4, true), gate(4, true), gate(4, true)],
+    gates: [gate(3), gate(4), gate(4), gate(4)],
     answers: ["a", "b", "c", "d"],
   });
   for (const call of client.calls.chat) {
@@ -208,14 +208,14 @@ test("every turn but the last is told to end on a question", async () => {
 });
 
 test("the anchor's phrases are not presented as things they keep saying", async () => {
-  const { client } = await run({ gates: [gate(4, true), gate(2, false)], answers: ["treading water", "hm"] });
+  const { client } = await run({ gates: [gate(4), gate(2)], answers: ["treading water", "hm"] });
   const system = client.calls.chat.at(-1).system;
   assert.match(system, /a tidier synonym is a different word/);
   assert.doesNotMatch(system, /- their words:/);
 });
 
 test("the reader is given what is actually in the picture, not just the one line", async () => {
-  const { client, reading, pack } = await run({ gates: [gate(2, false)], answers: ["hm"] });
+  const { client, reading, pack } = await run({ gates: [gate(2)], answers: ["hm"] });
   const card = pack.card(reading.session.cards[0].card_id);
   const system = systemFor(client, "invite");
   for (const detail of card.details) {
@@ -224,7 +224,7 @@ test("the reader is given what is actually in the picture, not just the one line
 });
 
 test("the detail list is framed for recognition, never for narration", async () => {
-  const { client } = await run({ gates: [gate(2, false)], answers: ["hm"] });
+  const { client } = await run({ gates: [gate(2)], answers: ["hm"] });
   const system = systemFor(client, "invite");
   assert.match(system, /so you can recognise whatever they point at/);
   assert.match(system, /Do not tell them what is in the\npicture/);
@@ -233,7 +233,7 @@ test("the detail list is framed for recognition, never for narration", async () 
 
 test("agency is handed back once, not every turn the subject comes up", async () => {
   const { client, reading } = await run({
-    gates: [gate(3, false, "high"), gate(3, false, "high"), gate(3, false, "high")],
+    gates: [gate(3, "high"), gate(3, "high"), gate(3, "high")],
     answers: ["whether to sue", "still about the lawsuit", "and the money"],
   });
   // Match the injected block, not the persona's standing rule, which every
@@ -245,7 +245,7 @@ test("agency is handed back once, not every turn the subject comes up", async ()
 });
 
 test("the reader knows the user was given no words about the picture", async () => {
-  const { client, reading, pack } = await run({ gates: [gate(2, false)], answers: ["hm"] });
+  const { client, reading, pack } = await run({ gates: [gate(2)], answers: ["hm"] });
   const system = systemFor(client, "invite");
   assert.match(system, /They have not been given any words about it/);
   assert.match(system, /Only then, and never as an opening/);
@@ -255,7 +255,7 @@ test("the reader knows the user was given no words about the picture", async () 
 });
 
 test("the opening turn names the card; it does not just gesture at it", async () => {
-  const { client } = await run({ gates: [gate(2, false)], answers: ["hm"] });
+  const { client } = await run({ gates: [gate(2)], answers: ["hm"] });
   assert.match(systemFor(client, "invite"), /Name the\ncard and the position it landed in/);
 });
 
@@ -263,7 +263,7 @@ test("every turn is persisted to a capped history, unfinished ones included", as
   const { makeStorage, memoryBackend } = await import("../../web/js/storage.js");
   const { loadHistory } = await import("../../web/js/engine/journal.js");
   const storage = makeStorage(memoryBackend());
-  const { reading } = await run({ gates: [gate(2, false)], answers: ["abandoned here"], storage });
+  const { reading } = await run({ gates: [gate(2)], answers: ["abandoned here"], storage });
   const history = loadHistory(storage);
   assert.equal(history.length, 1, "one session, saved in place rather than appended per turn");
   assert.equal(history[0].session_id, reading.session.session_id);
@@ -282,7 +282,7 @@ test("nothing is dealt until they have been asked what they came for", async () 
 
 test("a named topic becomes the ground the reading is bent toward", async () => {
   const { client, reading } = await run({
-    gates: [gate(3, false)], answers: ["it looks stuck"],
+    gates: [gate(3)], answers: ["it looks stuck"],
     opening: wants("whether to leave my job"),
   });
   assert.equal(reading.session.topic, "whether to leave my job");
@@ -293,7 +293,7 @@ test("a named topic becomes the ground the reading is bent toward", async () => 
 });
 
 test("declining is a real answer, not a subject to be invented for them", async () => {
-  const { client, reading } = await run({ gates: [gate(3, false)], answers: ["it looks stuck"] });
+  const { client, reading } = await run({ gates: [gate(3)], answers: ["it looks stuck"] });
   assert.equal(reading.session.topic, null);
   const system = systemFor(client, "invite");
   assert.match(system, /They did not name a topic/);
@@ -302,7 +302,7 @@ test("declining is a real answer, not a subject to be invented for them", async 
 
 test("the anchor is told the topic, so the first card cannot change the subject", async () => {
   const { client } = await run({
-    gates: [gate(4, true), gate(2, false)], answers: ["a", "b"],
+    gates: [gate(4), gate(2)], answers: ["a", "b"],
     opening: wants("my brother"),
   });
   const anchorCall = client.calls.judge.find((c) => c.schema.properties.theme);
@@ -322,7 +322,7 @@ test("crisis in the opening answer means no card is ever dealt", async () => {
 
 test("the reader is told it does not turn cards, on every single turn", async () => {
   const { client } = await run({
-    gates: [gate(3, false), gate(4, true)], answers: ["a", "b"],
+    gates: [gate(3), gate(4)], answers: ["a", "b"],
   });
   for (const call of client.calls.chat) {
     assert.match(call.system, /You do not turn the cards/, `missing on the ${call.turn} turn`);
@@ -331,7 +331,7 @@ test("the reader is told it does not turn cards, on every single turn", async ()
 });
 
 test("a respond turn says outright that nothing flipped", async () => {
-  const { client } = await run({ gates: [gate(2, false), gate(2, false)], answers: ["a", "b"] });
+  const { client } = await run({ gates: [gate(2), gate(2)], answers: ["a", "b"] });
   const respond = systemFor(client, "respond");
   assert.match(respond, /\*\*No card turns over on this turn\.\*\*/);
   assert.match(respond, /do not hint that it is coming/);
@@ -339,7 +339,7 @@ test("a respond turn says outright that nothing flipped", async () => {
 });
 
 test("the reader is told how many positions remain and that it cannot know them", async () => {
-  const { client } = await run({ gates: [gate(4, true), gate(2, false)], answers: ["a", "b"] });
+  const { client } = await run({ gates: [gate(4), gate(2)], answers: ["a", "b"] });
   const system = systemFor(client, "respond");
   assert.match(system, /1 position still to come, cards unknown to you/);
 });
@@ -391,7 +391,7 @@ test("a frame dropped before any card lets the conversation continue", async () 
 
 test("the recap block is assembled from state, on every turn, and says it outranks history", async () => {
   const { client } = await run({
-    gates: [gate(4, true), gate(3, false), gate(4, true)],
+    gates: [gate(4), gate(3), gate(4)],
     answers: ["treading water", "the same job", "yes"],
     opening: wants("my job"),
   });
@@ -405,7 +405,7 @@ test("the recap block is assembled from state, on every turn, and says it outran
 test("the recap carries the anchor's phrases verbatim, marked as verbatim", async () => {
   const pack = await realPack();
   const client = fakeClient({
-    gates: [gate(4, true), gate(2, false)], opening: declines,
+    gates: [gate(4), gate(2)], opening: declines,
     anchor: { theme: "treading water", user_phrases: ["treading water", "can't stop kicking"], resolution_beat: "r" },
   });
   const reading = startReading({ pack, client, seed: SEED });
@@ -420,18 +420,18 @@ test("the recap carries the anchor's phrases verbatim, marked as verbatim", asyn
 
 test("the recap names the arc position, the depth so far, and the safety state", async () => {
   const { client } = await run({
-    gates: [gate(3, false), gate(3, false)], answers: ["a specific thing", "another"],
+    gates: [gate(2), gate(2)], answers: ["a general thing", "another"],
   });
   const system = client.calls.chat.at(-1).system;
   assert.match(system, /arc position: situation \(setup —/);
-  assert.match(system, /disclosure depth on this card: 3/);
+  assert.match(system, /disclosure depth on this card: 2/);
   assert.match(system, /safety: normal/);
 });
 
 test("each card's reading is recorded as one line, not the whole turn", async () => {
   const pack = await realPack();
   const long = "First sentence lands here. Then a second one that should not appear. And a third.";
-  const client = fakeClient({ gates: [gate(4, true), gate(2, false)], opening: declines, reply: () => long });
+  const client = fakeClient({ gates: [gate(4), gate(2)], opening: declines, reply: () => long });
   const reading = startReading({ pack, client, seed: SEED });
   await reading.begin();
   await reading.say("nothing in particular");
@@ -454,14 +454,14 @@ test("before anything is dealt the recap says so rather than inventing state", a
 
 test("the arc position's weighted moves reach the prompt from pack data", async () => {
   const { client } = await run({
-    gates: [gate(4, true), gate(3, false)], answers: ["something real", "and more"],
+    gates: [gate(4), gate(3)], answers: ["something real", "and more"],
   });
   assert.match(systemFor(client, "invite"), /moves weighted here: externalize, name/);
   assert.match(client.calls.chat.at(-1).system, /moves weighted here: explore, exception/);
 });
 
 test("the question policy is present and marked as never-to-be-named", async () => {
-  const { client } = await run({ gates: [gate(3, false)], answers: ["hm"] });
+  const { client } = await run({ gates: [gate(3)], answers: ["hm"] });
   const system = systemFor(client, "invite");
   assert.match(system, /## Choosing the question/);
   assert.match(system, /Never say any of these words to them/);
@@ -472,7 +472,7 @@ test("the question policy is present and marked as never-to-be-named", async () 
 });
 
 test("the ladder gates identity questions behind depth", async () => {
-  const { client } = await run({ gates: [gate(3, false)], answers: ["hm"] });
+  const { client } = await run({ gates: [gate(3)], answers: ["hm"] });
   const system = systemFor(client, "invite");
   assert.match(system, /Someone who has told you nothing cannot be asked\n  what it means to them/);
   assert.match(system, /asking it too\n  early is the single fastest way to make someone close/);
@@ -480,7 +480,7 @@ test("the ladder gates identity questions behind depth", async () => {
 });
 
 test("few-shots reach the prompt as exchanges, without their maintainer labels", async () => {
-  const { client, pack } = await run({ gates: [gate(3, false)], answers: ["hm"] });
+  const { client, pack } = await run({ gates: [gate(3)], answers: ["hm"] });
   const system = systemFor(client, "invite");
   assert.match(system, /## How this sounds/);
   assert.ok(pack.fewShots.length >= 3 && pack.fewShots.length <= 5);
@@ -515,7 +515,7 @@ test("every few-shot obeys the turn shape: one observation, one question, and sh
 
 test("the last card gets one follow-up at most, then closes whatever the depth", async () => {
   const { reading, client } = await run({
-    gates: [gate(4, false), gate(4, false), gate(1, false), gate(1, false)],
+    gates: [gate(4), gate(4), gate(1), gate(1)],
     answers: ["it looks tired", "money, mostly", "walking off, leaving the full ones", "dunno"],
   });
   const s = reading.session;
@@ -532,10 +532,35 @@ test("a reading of nothing but thin answers still closes", async () => {
   // shows up here rather than in a stalled session: three positions, three
   // exchanges each, and the last one cut short by the rule above.
   const { reading } = await run({
-    gates: Array.from({ length: 12 }, () => gate(1, false)),
+    gates: Array.from({ length: 12 }, () => gate(1)),
     answers: Array.from({ length: 12 }, (_, i) => `thin ${i}`),
   });
   assert.equal(reading.session.closed, true);
   assert.equal(reading.session.exchanges.filter((e) => e.position !== "opening").length, 8,
                "3 + 3 + 2: the last card does not get the third exchange");
+});
+
+// -- flip ownership (checkpoint fix 3) ------------------------------------
+
+test("every flip records why it happened", async () => {
+  const { reading } = await run({
+    gates: [gate(4), gate(2), gate(2), gate(2)],
+    answers: ["my brother, since March", "money", "dunno", "lighter maybe"],
+  });
+  const reasons = reading.session.cards.map((c) => c.flip_reason);
+  assert.equal(reasons.length, 3);
+  assert.ok(reasons.every(Boolean), "a card with no recorded reason turned over by nobody");
+  assert.match(reasons[0], /opening question was answered/, "the first card is dealt, not earned");
+  assert.match(reasons[1], /rich answer \(depth 4\)/);
+  assert.match(reasons[2], /3 exchanges on one card/);
+});
+
+test("a gate carrying an old flip_ready flag cannot move the decision", async () => {
+  // The judge used to get a vote and stopped: a stale field on the object must
+  // not quietly become an owner again.
+  const { reading } = await run({
+    gates: [{ ...gate(1), flip_ready: true }, { ...gate(1), flip_ready: true }],
+    answers: ["dunno", "still dunno"],
+  });
+  assert.equal(reading.session.cards.length, 1, "depth 1 twice does not earn a card");
 });

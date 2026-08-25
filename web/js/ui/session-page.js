@@ -122,7 +122,6 @@ function addLine(who, text) {
 function renderGate(gate, decision) {
   $("gate").innerHTML = `
     <div><span class="label">depth</span> ${gate.disclosure_depth} &nbsp;
-         <span class="label">flip_ready</span> ${gate.flip_ready} &nbsp;
          <span class="label">stakes</span> <b class="${gate.stakes !== "low" ? "bad" : ""}">${gate.stakes}</b></div>
     <div class="quote">${gate.reading_of_them ?? ""}</div>
     ${decision ? `<div class="${decision.flip ? "ok" : ""}">${decision.flip ? "FLIP" : "hold"} — ${decision.reason}</div>` : ""}`;

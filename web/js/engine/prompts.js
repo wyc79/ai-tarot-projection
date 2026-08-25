@@ -365,9 +365,6 @@ disclosure_depth is about self-revelation, on a scale of 1 to 4:
 Two answers can sit at the same length and different depths. Judge the
 disclosure, never the word count.
 
-flip_ready asks whether this card has been read for what it is worth. If there is
-an obvious unpulled thread in what they just said, it is not ready.
-
 stakes is about consequence, and you are deliberately quick to escalate:
   high    medical, legal, or financial decisions with real outcomes
   crisis  grief, self-harm, abuse, or anything where a tarot frame would be an

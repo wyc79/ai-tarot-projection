@@ -68,11 +68,11 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
     return text;
   }
 
-  function flipNext() {
+  function flipNext(reason) {
     const [cardId] = deal.take(1);
-    flipCard(session, cardId);
+    flipCard(session, cardId, { reason });
     const entry = currentCard(session);
-    onEvent({ type: "flip", card: pack.card(entry.card_id), position: entry.position });
+    onEvent({ type: "flip", card: pack.card(entry.card_id), position: entry.position, reason });
     return entry;
   }
 
@@ -153,7 +153,7 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
         return { gate, decision, closed: true };
       }
 
-      flipNext();
+      flipNext(decision.reason);
       // A bridge answers the card behind it while the new one is already up.
       await readerTurn("bridge", {
         stageDirection: flipDirection(pack, session),
@@ -181,7 +181,10 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
         return { opening, dealt: false };
       }
 
-      flipNext();
+      // The first card is not earned, it is dealt: the gate has nothing to
+      // judge yet. Saying so is better than leaving the one blank flip reason
+      // in the ledger to be read as a missing value.
+      flipNext("the opening question was answered; the reading begins");
       await readerTurn("invite", { stageDirection: flipDirection(pack, session) });
       return { opening, dealt: true };
     },
