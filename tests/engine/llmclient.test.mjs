@@ -59,7 +59,9 @@ test("relay mode posts the RELAY.md shape with a bearer token", async () => {
 });
 
 test("direct mode goes to the provider with its own auth header", async () => {
-  const { client, calls } = harness({ config: { mode: "direct" }, respond: () => sseResponse([STOP]) });
+  const { client, calls } = harness({
+    config: { mode: "direct", provider: "anthropic" }, respond: () => sseResponse([STOP]),
+  });
   await client.chat({ system: "s", messages: [] });
   assert.equal(calls[0].url, "https://api.anthropic.com/v1/messages");
   assert.equal(calls[0].init.headers["x-api-key"], KEY);
@@ -91,20 +93,114 @@ test("an upstream error is not labelled a relay error", async () => {
                                 { status: 529 }),
   });
   await assert.rejects(client.chat({ system: "s", messages: [] }),
-                       (e) => e.code === "provider_error" && /busy/.test(e.message));
+                       (e) => e.code === "provider_unavailable" && /busy/.test(e.message));
 });
 
+test("failures are told apart, because they need different fixes", async () => {
+  const cases = [
+    [401, "Invalid API key.", "invalid_key"],
+    [403, "forbidden", "invalid_key"],
+    [400, "Model Not Exist", "unknown_model"],
+    [404, "no route", "endpoint_not_found"],
+    [429, "slow down", "provider_rate_limited"],
+    [503, "overloaded", "provider_unavailable"],
+    [400, "unexpected parameter: output_config", "bad_payload"],
+  ];
+  for (const [status, message, expected] of cases) {
+    const { client } = harness({
+      respond: () => new Response(JSON.stringify({ error: { message } }), { status }),
+    });
+    await assert.rejects(client.chat({ system: "s", messages: [] }), (e) => {
+      assert.equal(e.code, expected, `${status} "${message}" should be ${expected}, got ${e.code}`);
+      assert.ok(e.message.includes(message), "the provider's own words are kept");
+      return true;
+    });
+  }
+});
+
+test("a request that never completed is a connection failure, not a bad key", async () => {
+  globalThis.fetch = async () => { throw new TypeError("Failed to fetch"); };
+  const client = makeLlmClient({ getKey: () => KEY, getConfig: () => ({ relayBase: "http://relay.test" }) });
+  await assert.rejects(client.chat({ system: "s", messages: [] }), (e) => {
+    assert.equal(e.code, "connection_failed");
+    assert.match(e.hint, /relay running/);
+    return true;
+  });
+});
+
+test("an abort is not disguised as a connection failure", async () => {
+  globalThis.fetch = async () => { const e = new Error("aborted"); e.name = "AbortError"; throw e; };
+  const client = makeLlmClient({ getKey: () => KEY, getConfig: () => ({ relayBase: "http://relay.test" }) });
+  await assert.rejects(client.chat({ system: "s", messages: [] }), (e) => e.name === "AbortError");
+});
+
+const GATE = { disclosure_depth: 2, flip_ready: true, stakes: "low", reading_of_them: "they said stuck" };
+const judgeReply = (text) => new Response(JSON.stringify({
+  stop_reason: "end_turn", content: [{ type: "text", text }],
+}), { status: 200 });
+
 test("judge returns the parsed object and is not streamed", async () => {
-  const gate = { disclosure_depth: 2, flip_ready: true, stakes: "low", reading_of_them: "they said stuck" };
   const { client, calls } = harness({
-    respond: () => new Response(JSON.stringify({
-      stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify(gate) }],
-    }), { status: 200 }),
+    config: { provider: "anthropic" }, respond: () => judgeReply(JSON.stringify(GATE)),
   });
   const result = await client.judge({ system: "s", messages: [], schema: GATE_SCHEMA });
-  assert.deepEqual(result, gate);
+  assert.deepEqual(result, GATE);
   assert.equal(calls[0].body.payload.stream, undefined, "judge must not stream");
   assert.equal(calls[0].body.payload.output_config.format.type, "json_schema");
+});
+
+test("a gateway gets the plain Messages shape and nothing newer", async () => {
+  const { client, calls } = harness({
+    config: { provider: "deepseek" }, respond: () => sseResponse([STOP]),
+  });
+  await client.chat({ system: "s", messages: [] });
+  const payload = calls[0].body.payload;
+  assert.equal(calls[0].body.provider, "deepseek", "the relay is told which entry to use");
+  assert.equal(payload.thinking, undefined, "gateways have not heard of adaptive thinking");
+  assert.equal(payload.output_config, undefined, "nor of effort");
+  assert.deepEqual(Object.keys(payload).sort(), ["max_tokens", "messages", "model", "stream", "system"]);
+});
+
+test("without native structured output the schema goes in the prompt instead", async () => {
+  const { client, calls } = harness({
+    config: { provider: "deepseek" }, respond: () => judgeReply(JSON.stringify(GATE)),
+  });
+  assert.deepEqual(await client.judge({ system: "s", messages: [], schema: GATE_SCHEMA }), GATE);
+  const payload = calls[0].body.payload;
+  assert.equal(payload.output_config, undefined);
+  assert.match(payload.system, /Return one JSON object and nothing else/);
+  assert.ok(payload.system.includes("disclosure_depth"), "the schema itself is in the prompt");
+});
+
+test("a model that fences its JSON, or chats first, is still understood", async () => {
+  for (const text of [
+    "```json\n" + JSON.stringify(GATE) + "\n```",
+    "Sure, here you go:\n\n" + JSON.stringify(GATE),
+    "```\n" + JSON.stringify(GATE) + "\n```",
+  ]) {
+    const { client } = harness({ config: { provider: "deepseek" }, respond: () => judgeReply(text) });
+    assert.deepEqual(await client.judge({ system: "s", messages: [], schema: GATE_SCHEMA }), GATE);
+  }
+});
+
+test("a judge reply with no object at all names what came back instead", async () => {
+  const { client } = harness({
+    config: { provider: "deepseek" }, respond: () => judgeReply("I'd rather just talk about the card."),
+  });
+  await assert.rejects(client.judge({ system: "s", messages: [], schema: GATE_SCHEMA }), (e) => {
+    assert.equal(e.code, "bad_judge_output");
+    assert.match(e.message, /rather just talk/, "the actual reply is quoted, not swallowed");
+    return true;
+  });
+});
+
+test("each provider carries its own default model, since ids are not portable", async () => {
+  const { PROVIDERS } = await import("../../web/js/llmClient.js");
+  assert.equal(PROVIDERS.deepseek.defaultModel, "deepseek-v4-flash");
+  assert.equal(PROVIDERS.anthropic.defaultModel, "claude-opus-5");
+  assert.equal(PROVIDERS.opencode.defaultModel, "claude-opus-4-8");
+  assert.equal(PROVIDERS.anthropic.features.structuredOutput, true);
+  assert.equal(PROVIDERS.deepseek.features.structuredOutput, false);
 });
 
 test("a refusal is caught even though it arrives as HTTP 200", async () => {

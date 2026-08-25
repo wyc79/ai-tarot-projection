@@ -9,6 +9,11 @@
  * Three details worth not relearning the hard way:
  *  - Assistant prefill (the old trick for forcing JSON) is rejected on current
  *    models. Structured output goes through output_config.format instead.
+ * Anthropic-compatible gateways (DeepSeek, OpenCode Zen) speak this same wire
+ * format but do not necessarily implement Anthropic's newest parameters, so the
+ * payload builders take a `features` object. With everything off they emit the
+ * plain Messages shape that any compatible endpoint has to accept.
+ *
  *  - Thinking is sent explicitly as adaptive rather than left off. On Opus 5,
  *    omitting it means adaptive anyway; on Opus 4.8 and 4.7, omitting it means
  *    no thinking, and a model with thinking off may write its reasoning into
@@ -36,31 +41,33 @@ export const ANTHROPIC = {
   },
 
   /** A reader turn: streamed, short, low effort -- this is voice, not analysis. */
-  chatPayload({ model, system, messages, maxTokens = 1024, effort = "low" }) {
-    return {
-      model,
-      max_tokens: maxTokens,
-      stream: true,
-      system,
-      messages,
-      thinking: { type: "adaptive" },
-      output_config: { effort },
-    };
+  chatPayload({ model, system, messages, maxTokens = 1024, effort = "low", features = {} }) {
+    const payload = { model, max_tokens: maxTokens, stream: true, system, messages };
+    if (features.thinking) payload.thinking = { type: "adaptive" };
+    if (features.effort) payload.output_config = { effort };
+    return payload;
   },
 
-  /** A judge call: not streamed, schema-constrained, nothing but the object. */
-  judgePayload({ model, system, messages, schema, maxTokens = 1024, effort = "medium" }) {
-    return {
-      model,
-      max_tokens: maxTokens,
-      system,
-      messages,
-      thinking: { type: "adaptive" },
-      output_config: {
-        effort,
-        format: { type: "json_schema", schema },
-      },
-    };
+  /**
+   * A judge call: not streamed, nothing but the object.
+   *
+   * With native structured output the schema is enforced by the API. Without it
+   * -- every Anthropic-compatible gateway so far -- the schema goes in the
+   * prompt and readText() has to cope with a model that wrapped its JSON in a
+   * code fence.
+   */
+  judgePayload({ model, system, messages, schema, maxTokens = 1024, effort = "medium", features = {} }) {
+    const payload = { model, max_tokens: maxTokens, system, messages };
+    if (features.thinking) payload.thinking = { type: "adaptive" };
+
+    if (features.structuredOutput) {
+      payload.output_config = { format: { type: "json_schema", schema } };
+      if (features.effort) payload.output_config.effort = effort;
+    } else {
+      payload.system = `${system}\n\n## Output\n\nReturn one JSON object and nothing else -- no prose before it, no code fence around it. It must match this schema exactly:\n\n${JSON.stringify(schema, null, 2)}`;
+      if (features.effort) payload.output_config = { effort };
+    }
+    return payload;
   },
 
   /**
@@ -111,5 +118,18 @@ export const ANTHROPIC = {
       .filter((block) => block.type === "text")
       .map((block) => block.text)
       .join("");
+  },
+
+  /**
+   * Find the JSON object in a reply that was only asked nicely for one. Handles
+   * a code fence and any preamble the model could not resist.
+   */
+  extractJson(text) {
+    const fenced = /```(?:json)?\s*([\s\S]*?)```/.exec(text);
+    const candidate = (fenced ? fenced[1] : text).trim();
+    const start = candidate.indexOf("{");
+    const end = candidate.lastIndexOf("}");
+    if (start === -1 || end <= start) throw new Error("no JSON object in the reply");
+    return JSON.parse(candidate.slice(start, end + 1));
   },
 };

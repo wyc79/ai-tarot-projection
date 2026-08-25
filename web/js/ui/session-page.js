@@ -8,7 +8,7 @@
  */
 
 import { loadPack } from "../pack.js";
-import { makeLlmClient, DEFAULT_CONFIG } from "../llmClient.js";
+import { makeLlmClient, DEFAULT_CONFIG, PROVIDERS } from "../llmClient.js";
 import { makeStorage, memoryBackend } from "../storage.js";
 import { startReading } from "../engine/reading.js";
 import { newSeed } from "../engine/rng.js";
@@ -30,6 +30,7 @@ function config() {
 
 function saveConfig() {
   store.set(CONFIG_KEY, {
+    provider: $("provider").value,
     mode: $("mode").value,
     relayBase: $("relay-base").value,
     chatModel: $("chat-model").value,
@@ -54,7 +55,7 @@ function reportError(error) {
   streamingLine = null;
   const code = error.code ?? error.name ?? "error";
   setStatus(`${code}: ${error.message}`, "bad");
-  addLine("error", `${code}: ${error.message}`);
+  addLine("error", error.hint ? `${code}: ${error.message}\n↳ ${error.hint}` : `${code}: ${error.message}`);
   console.error(error);
 }
 
@@ -185,6 +186,18 @@ async function say(text) {
 async function main() {
   pack = await loadPack("data");
   const c = config();
+  for (const [id, entry] of Object.entries(PROVIDERS)) {
+    $("provider").append(new Option(entry.label, id));
+  }
+  $("provider").value = c.provider;
+  // Switching provider swaps the model ids too: they are never portable between
+  // providers, and a stale one reads as "wrong key" until you look closely.
+  $("provider").addEventListener("change", () => {
+    const entry = PROVIDERS[$("provider").value];
+    $("chat-model").value = entry.defaultModel;
+    $("judge-model").value = entry.defaultModel;
+    saveConfig();
+  });
   $("mode").value = c.mode;
   $("relay-base").value = c.relayBase;
   $("chat-model").value = c.chatModel;

@@ -28,7 +28,20 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WEB_DIR = os.path.join(ROOT, "web")
 DATA_DIR = os.path.join(ROOT, "data")
 
+# Anthropic-compatible gateways only: the frontend builds the payload, so any
+# endpoint that speaks the Messages format is one config entry away. An
+# OpenAI-shaped provider would need an adapter in web/js/providers/, not a line
+# here. Adding to this map is still config, not code -- PROVIDERS in .env
+# replaces it wholesale.
 DEFAULT_PROVIDERS = {
+    "deepseek": {
+        "url": "https://api.deepseek.com/anthropic/v1/messages",
+        "auth": "x-api-key",
+    },
+    "opencode": {
+        "url": "https://opencode.ai/zen/v1/messages",
+        "auth": "x-api-key",
+    },
     "anthropic": {
         "url": "https://api.anthropic.com/v1/messages",
         "auth": "x-api-key",

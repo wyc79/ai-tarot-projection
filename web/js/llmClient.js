@@ -14,26 +14,61 @@
  * cannot leak it.
  */
 
-import { ANTHROPIC } from "./providers/anthropic.js";
+import { DEFAULT_PROVIDER, PROVIDERS } from "./providers/index.js";
 
-export const PROVIDERS = { anthropic: ANTHROPIC };
+export { PROVIDERS };
 
 export const DEFAULT_CONFIG = {
   mode: "relay",
   relayBase: "",
-  provider: "anthropic",
+  provider: DEFAULT_PROVIDER,
   // One model by default; the split exists for people who want to pay less for
   // the reader's voice than for its judgement.
-  chatModel: ANTHROPIC.defaultModel,
-  judgeModel: ANTHROPIC.defaultModel,
+  chatModel: PROVIDERS[DEFAULT_PROVIDER].defaultModel,
+  judgeModel: PROVIDERS[DEFAULT_PROVIDER].defaultModel,
 };
 
 class RelayError extends Error {
-  constructor(code, message) {
+  constructor(code, message, { hint = "" } = {}) {
     super(message);
     this.name = "RelayError";
     this.code = code;
+    this.hint = hint;
   }
+}
+
+/**
+ * Turn an upstream failure into something that names what to go and fix. A bad
+ * key, an unreachable host and a wrong model id all used to arrive as
+ * "provider_error", which is three different afternoons of debugging.
+ */
+function classifyUpstream(status, message) {
+  const said = message || `provider returned ${status}`;
+  if (status === 401 || status === 403) {
+    return new RelayError("invalid_key", `the provider rejected this key — ${said}`,
+      { hint: "check the key itself, and that the relay's banner names the host you meant" });
+  }
+  if (/model/i.test(said) && (status === 400 || status === 404 || status === 422)) {
+    return new RelayError("unknown_model", `the provider does not know that model — ${said}`,
+      { hint: "check the model id against the provider's list; ids differ between gateways" });
+  }
+  if (status === 404) {
+    return new RelayError("endpoint_not_found", `no such endpoint upstream — ${said}`,
+      { hint: "the provider's url in PROVIDERS is probably wrong" });
+  }
+  if (status === 429) {
+    return new RelayError("provider_rate_limited", `the provider is rate limiting — ${said}`,
+      { hint: "wait, or use a different key" });
+  }
+  if (status >= 500) {
+    return new RelayError("provider_unavailable", `the provider is failing — ${said}`,
+      { hint: "upstream problem, not yours; retry" });
+  }
+  if (status === 400) {
+    return new RelayError("bad_payload", `the provider rejected the request — ${said}`,
+      { hint: "a parameter this provider does not support; check its features flags" });
+  }
+  return new RelayError("provider_error", said);
 }
 
 /**
@@ -64,25 +99,37 @@ export function makeLlmClient({ getKey, getConfig, onDebug = () => {} }) {
     const body = relay ? { provider: provider.id, payload } : payload;
     const headers = relay
       ? { "content-type": "application/json", authorization: `Bearer ${key}` }
-      : provider.directHeaders(key);
+      : provider.wire.directHeaders(key);
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-      signal,
-    });
+    let response;
+    try {
+      response = await fetch(url, {
+        method: "POST", headers, body: JSON.stringify(body), signal,
+      });
+    } catch (error) {
+      // fetch only rejects when the request never completed: nothing listening,
+      // DNS, CORS, offline. That is a different failure from any HTTP status.
+      if (error.name === "AbortError") throw error;
+      throw new RelayError("connection_failed", `could not reach ${url}`, {
+        hint: relay
+          ? "is the relay running, and is the base URL right?"
+          : "direct mode needs the provider to allow browser origins; try relay mode",
+      });
+    }
 
     if (!response.ok) {
       // X-Relay-Error is the only thing that distinguishes "the relay refused"
       // from "the provider refused"; everything else passes through untouched.
       const detail = await response.json().catch(() => null);
       if (response.headers.get("X-Relay-Error") === "1") {
-        throw new RelayError(detail?.error?.code ?? "relay_error",
-                             detail?.error?.message ?? "relay refused the request");
+        const code = detail?.error?.code ?? "relay_error";
+        throw new RelayError(code, detail?.error?.message ?? "relay refused the request", {
+          hint: code === "upstream_unreachable"
+            ? "the relay is up but cannot reach the provider host"
+            : "",
+        });
       }
-      const message = detail?.error?.message ?? `provider returned ${response.status}`;
-      throw new RelayError("provider_error", message);
+      throw classifyUpstream(response.status, detail?.error?.message);
     }
     return response;
   }
@@ -94,8 +141,9 @@ export function makeLlmClient({ getKey, getConfig, onDebug = () => {} }) {
      */
     async chat({ system, messages, onDelta = () => {}, maxTokens, signal }) {
       const { config, provider } = resolve();
-      const payload = provider.chatPayload({
+      const payload = provider.wire.chatPayload({
         model: config.chatModel, system, messages, maxTokens,
+        features: provider.features,
       });
       const response = await send(payload, { provider, config, signal });
 
@@ -108,7 +156,7 @@ export function makeLlmClient({ getKey, getConfig, onDebug = () => {} }) {
         const { value, done } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-        const chunk = provider.readStreamChunk(buffer);
+        const chunk = provider.wire.readStreamChunk(buffer);
         buffer = chunk.rest;
         if (chunk.error) throw new RelayError(chunk.error.code, chunk.error.message);
         if (chunk.text) {
@@ -123,15 +171,31 @@ export function makeLlmClient({ getKey, getConfig, onDebug = () => {} }) {
     /** Returns the parsed object. Schema-constrained, so parsing is safe. */
     async judge({ system, messages, schema, maxTokens, signal }) {
       const { config, provider } = resolve();
-      const payload = provider.judgePayload({
+      const payload = provider.wire.judgePayload({
         model: config.judgeModel, system, messages, schema, maxTokens,
+        features: provider.features,
       });
       const response = await send(payload, { provider, config, signal });
-      const text = provider.readText(await response.json());
+
+      let body;
       try {
-        return JSON.parse(text);
+        body = await response.json();
       } catch {
-        throw new RelayError("bad_judge_output", "judge did not return the agreed shape");
+        // A provider that streamed when it was not asked to, or answered with
+        // HTML. Worth its own name: it looks nothing like a bad schema.
+        throw new RelayError("bad_provider_response",
+          `expected a JSON response from ${provider.id}, got ${response.headers.get("content-type") ?? "something else"}`,
+          { hint: "the provider ignored a non-streaming request; check its endpoint url" });
+      }
+      const text = provider.wire.readText(body);
+      try {
+        // Tolerant even where the schema was enforced: a fence costs nothing to
+        // strip, and a provider that quietly ignored output_config should fail
+        // as a bad object rather than as a parse error.
+        return provider.wire.extractJson(text);
+      } catch {
+        throw new RelayError("bad_judge_output",
+                             `judge did not return the agreed shape: ${text.slice(0, 120)}`);
       }
     },
 
