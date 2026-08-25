@@ -19,6 +19,15 @@ Tarot as a doorway, not divination. The cards are projective prompts that get pe
   frame can be dropped before a single card is turned
 - First card flips as soon as that is answered; each next card flips after ~2 question-answer exchanges
 - Depth-gated, not count-gated: rich answer can flip early, thin answer gets a softer follow-up instead of stalling
+- DWELL RULE (from river-89c1fb): a fresh life disclosure blocks the flip on the turn it arrives.
+  One exchange spent inside that material before the card is flip-eligible again; the dwell
+  follow-up moves horizontally or one step, never more, and stays on the life rail. A deflection
+  releases it immediately - never trap someone who regrets sharing. The counted exits still fire,
+  so a dwell delays a card by one exchange and never more; when the disclosure lands on the card's
+  last available exchange the cap wins and the flip reason records that it cut one short
+- TEMPO: eagerness is not readiness. The reader sets the pace and the reading has time. An eager
+  answer is met with one more question inside it, not a scene change - the flip is the reward
+  mechanic, so flipping on a disclosure teaches that opening up ends the subject
 - Co-interpretation (projection-first reading): card flips, AI speaks second
   1. Flip, show card name only. No caption describing the picture: a printed
      description is something to agree with, and agreeing is not projecting.
@@ -108,7 +117,13 @@ Per session:
   derived in commitAnchor from the tags, so it cannot disagree with them. theme and
   resolution_beat build from the life phrases when any exist. When none do, grounded is false,
   the resolution beat is about finding what matters to this person rather than about the
-  picture's plot, and the recap tells the reader the theme is a placeholder
+  picture's plot, and the recap tells the reader the theme is a placeholder.
+  ROLLING (from river-89c1fb): the anchor is revised as life material accumulates rather than
+  freezing on first commit - phrases append, theme and beat may be rewritten, hedged answers move
+  nothing. The resolution_beat must be phrased as a territory, naming the question the session is
+  walking toward with at least two live possibilities; a beat that reads as a conclusion is
+  re-asked once with the reason, because a beat phrased as a finding makes every later question
+  steer toward confirming it
 - cards: [{ card_id, position, user_projection, ai_reading, flipped_at }]
 - exchanges: [{ q, a, disclosure_depth, position, question_type, question_level, gate }] - position
   is a card's position, or "opening" (before the deal) or "off_frame" (after the frame is dropped).
@@ -117,8 +132,11 @@ Per session:
   the same words answering a life question are a deflection)
   question_level: which scaffolding level the question stood at (see M3.5). A parallel axis to
   question_type, not a finer one - a projection ask can target any level
-- flip gate: structured judge() output per turn { disclosure_depth, has_life_content, user_level,
-  stakes, reading_of_them }. has_life_content is whether the answer contained anything of their
+- flip gate: structured judge() output per turn { disclosure_depth, has_life_content, hedged,
+  user_level, stakes, reading_of_them }. hedged is a tentative marker on the answer ("i guess",
+  "maybe", a question mark on a statement); it does not lower depth. Hedged answers get a
+  same-level softening follow-up, are never built on as settled fact, and do not advance flip
+  eligibility - though the hard cap still counts them, so nothing stalls. has_life_content is whether the answer contained anything of their
   life at all; a pure card answer caps at disclosure_depth 2, and the two must agree. Early flips
   need one grounded exchange on the card; the counted flips still fire (never stall a resistant
   user) and record "ungrounded" in the flip reason when they do. No `reply` field: the reader's words come from chat(), streamed;
@@ -229,6 +247,9 @@ Internal machinery: the levels are never named to the user.
   question they must invent an answer to. Written into the recap block every turn
 - A CEILING ON DISTANCE, NOT A QUOTA: people jump levels unprompted, and when they do the
   reader meets them there. Follow them up, never march them up
+- DWELL AS A HORIZONTAL MOVE: arrival on the life rail is followed by at least one same-level
+  (or one-step) life-rail move before any flip. On the map, a flip line cutting through the same
+  column as a first life arrival is the violation shape
 - RAIL-CROSSING RULE (from c145c7): the staircase has two rails, the card medium and the life
   medium. A question that switches rails targets the user's CURRENT level, not +1 - crossing is
   itself the step, and climbing while crossing is two. The engine cannot know which rail the next
@@ -288,9 +309,17 @@ Internal machinery: the levels are never named to the user.
   referent lands or the attempts run out; then grounded:false is carried forward and card 2 tries
   a different bridge. Never pretend an ungrounded session has a theme
 - scripts/seeded_session.mjs is the canonical fixture: same seed, scripted model, diffable pacing
-- tests/fixtures/thread-c145c7.json is the named failing fixture beside it: a no-topic session
+- tests/fixtures/thread-c145c7.json is a named failing fixture beside it: a no-topic session
   where the reader answered card lore with card lore for five turns and never met the person.
   It is frozen, and tests assert what the scanner says about it
+- tests/fixtures/river-89c1fb.json is the other one, and the inverse failure: the ownership move
+  worked, a real life referent came back, and the card flipped on that same turn because grounding
+  had just unlocked the early flip. The fixture for the dwell rule, the hedge flag and
+  territory-phrased beats
+- Simulated user personas in scripts/personas/, for --user= runs of the A/B harness: bracer (has a
+  topic, responsive to question quality), browser (no topic, would rather describe pictures),
+  eager (discloses early and hedges it - what happens next is the whole test), regretful
+  (discloses once by accident then closes, and stays closed however good the next question is)
 - scripts/model_checkpoint.mjs runs one seeded session twice varying only the chat model
 - Playtest with 3-5 real tarot-curious non-dev people; log transcripts (with consent), fix the tells: over-explaining symbolism, clinical questions, hedging, assistant cadence
 - Done when: fix queue items 1-5 land and hold on seeded fixtures, then at least half of playtesters say something true about themselves unprompted by card 2, and no one calls it "a chatbot doing tarot"
@@ -368,6 +397,12 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-25): tempo round on branch m3-dwell, from the river-89c1fb session - the dwell
+  rule (a fresh disclosure blocks the flip that turn), the hedged flag, territory-phrased and
+  rolling resolution beats, the persona tempo section, flip_on_disclosure and built_on_hedge in
+  the scanner, arrivals and violating flips on both maps, and the eager/regretful personas.
+  river-89c1fb frozen as a fixture. Few-shots 3-8 with the dwell demonstrated. Sixteen existing
+  pacing fixtures moved by one exchange, which is the tempo change rather than a regression.
 - v1.5 (2026-08-25): grounding round on branch m3-grounding, from the c145c7 session -
   point-don't-name with a premise test and a scanner check, reveal-on-request (which removes the
   one-sentence traditional-flavour allowance), the ownership move, the rail-crossing rule,
