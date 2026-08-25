@@ -296,6 +296,68 @@ export function levelTrace(session) {
     .join(" ");
 }
 
+/**
+ * White's staircase, drawn. Levels are rows, exchanges are columns.
+ *
+ *   Q  the reader's question, on the card rail   q  the same, on the life rail
+ *   U  their answer, with something of their life in it       u  card only
+ *   *  both landed on the same rung
+ *   !  a ZPD violation in that column           |  a card turned over after it
+ *
+ * The point of it is the shape. A staircase that climbs looks like a staircase;
+ * c145c7 looks like a flat line along the bottom with one spike, and you can
+ * see that in a second where seven lines of findings take a minute.
+ */
+export function staircase(session, pack) {
+  const turns = session.exchanges
+    .map((e, index) => ({ e, index }))
+    .filter(({ e }) => e.position !== "opening" && e.position !== "off_frame" && e.q);
+  if (!turns.length) return "";
+
+  const flagged = new Set(
+    scanSession(session, pack)
+      .filter((f) => f.code === "level_jump" || f.code === "rail_switch_climb")
+      .map((f) => f.index));
+  // A card turns over on the turn that names it, which is the turn whose
+  // question opens that card's first exchange.
+  const flips = new Map();
+  for (const card of session.cards) {
+    const first = turns.find(({ e }) => e.position === card.position);
+    if (first) flips.set(first.index, card.flip_reason ?? "");
+  }
+
+  const width = Math.max(2, ...turns.map((t) => String(t.index + 1).length + 1));
+  const cell = (text) => String(text).padEnd(width);
+  const label = (text) => String(text).slice(0, 12).padEnd(13);
+
+  const rows = [...pack.levels].reverse().map((level) => {
+    const marks = turns.map(({ e }) => {
+      const asked = questionLevel(e.q) === level.id;
+      const landed = e.gate?.user_level === level.id;
+      if (asked && landed) return cell("*");
+      if (asked) return cell(questionType(e.q) === "projection" ? "Q" : "q");
+      if (landed) return cell(e.gate?.has_life_content ? "U" : "u");
+      return cell(".");
+    });
+    return `${label(level.id)}${marks.join("")}`;
+  });
+
+  const ruler = `${label("")}${turns.map((t) => cell(t.index + 1)).join("")}`;
+  const alerts = `${label("")}${turns.map((t) => cell(flagged.has(t.index) ? "!" :
+    (flips.has(t.index) ? "|" : " "))).join("")}`;
+  const notes = [...flips.entries()]
+    .filter(([, reason]) => reason)
+    .map(([index, reason]) => `    | at ${index + 1}: ${reason}`);
+  const noAnswers = turns.every(({ e }) => !e.gate?.user_level);
+
+  return [...rows, alerts, ruler, ...notes,
+          "    Q/q question (card/life rail)  U/u answer (life/card content)  * both  ! ZPD violation",
+          ...(noAnswers
+            ? ["    (no answer rows: this transcript predates user_level on the gate)"]
+            : [])]
+    .join("\n");
+}
+
 /** One line per finding, or one line saying there were none. */
 export function formatFindings(label, findings) {
   if (!findings.length) return `${label}: clean`;
@@ -318,9 +380,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   let total = 0;
   for (const file of files) {
     const parsed = JSON.parse(await readFile(file, "utf8"));
-    const findings = scanSession(parsed.session ?? parsed, pack);
+    const session = parsed.session ?? parsed;
+    const findings = scanSession(session, pack);
     total += findings.length;
     console.log(formatFindings(file, findings));
+    const drawn = staircase(session, pack);
+    if (drawn) console.log(`\n${drawn}\n`);
   }
   process.exit(total ? 1 : 0);
 }

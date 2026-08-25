@@ -127,3 +127,19 @@ h2.label { margin: 0 0 0.4rem; }
 .details { margin: 0.35rem 0 0; padding-left: 1.1rem; font-size: 0.85rem; color: var(--text); }
 .details li { margin-bottom: 0.2rem; }
 .dim-note { color: var(--dim); text-transform: none; letter-spacing: 0; }
+
+/* The scaffolding map. Plain SVG, drawn from session.exchanges and nothing
+   else -- this panel adds no state, it only reads what is already recorded. */
+.staircase { width: 100%; height: auto; display: block; }
+.staircase .grid { stroke: var(--line); stroke-width: 1; }
+.staircase .rung { fill: var(--dim); font-size: 7px; }
+.staircase .tick { fill: var(--dim); font-size: 6px; }
+.staircase .asked { stroke: var(--dim); stroke-width: 1.5; fill: none; }
+.staircase .q-card { fill: none; stroke: var(--text); stroke-width: 1.5; }
+.staircase .q-life { fill: var(--text); }
+.staircase .u-card { fill: none; stroke: var(--dim); stroke-width: 1.5; }
+.staircase .u-life { fill: var(--ok); }
+.staircase .flip { stroke: var(--line); stroke-dasharray: 2 2; }
+.staircase .violation { fill: none; stroke: var(--bad); stroke-width: 1.5; }
+.staircase .drop { stroke: var(--bad); stroke-width: 1.2; fill: none; }
+.staircase-key { color: var(--dim); font-size: 0.7rem; margin: 0.4rem 0 0; line-height: 1.5; }

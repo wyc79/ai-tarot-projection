@@ -13,6 +13,7 @@ import { makeStorage, memoryBackend } from "../storage.js";
 import { startReading } from "../engine/reading.js";
 import { describeSession, loadHistory, toJson, toMarkdown } from "../engine/journal.js";
 import { newSeed } from "../engine/rng.js";
+import { staircaseSvg } from "./staircase.js";
 
 const $ = (id) => document.getElementById(id);
 const CONFIG_KEY = "config";
@@ -128,6 +129,18 @@ function renderGate(gate, decision) {
     ${decision ? `<div class="${decision.flip ? "ok" : ""}">${decision.flip ? "FLIP" : "hold"} — ${decision.reason}</div>` : ""}`;
 }
 
+/** Redrawn whenever an exchange lands, which is the only thing it reads. */
+function renderStaircase() {
+  if (!reading || !pack) return;
+  const svg = staircaseSvg(reading.session, pack);
+  $("staircase").innerHTML = svg
+    ? `${svg}<p class="staircase-key">line: what was asked · ○ about the card,
+       ● about their life · ◇ where the answer landed, green when it carried
+       something of theirs · dashed: a flip, hover for why · red ring: asked
+       more than one rung above them, or crossed rails and climbed · ↓ deflection</p>`
+    : "nothing asked yet";
+}
+
 function renderAnchor(anchor) {
   $("anchor").innerHTML = `
     <div><span class="label">theme</span> ${anchor.theme}</div>
@@ -166,6 +179,7 @@ function onEvent(event) {
       break;
     case "gate":
       renderGate(event.gate, null);
+      renderStaircase();
       break;
     case "flip_decision":
       renderGate(event.gate, event.decision);
