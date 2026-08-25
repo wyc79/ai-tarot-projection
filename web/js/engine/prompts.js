@@ -31,7 +31,11 @@ const RULES_WHEN_STAKES_HIGH = `
 What they described has medical, legal or financial consequence. Stay in the
 reading -- do not go cold on them -- but hand agency back explicitly in this
 turn: the cards are useful for working out what they want, and this particular
-question needs a professional or real information. Do not advise on the substance.`;
+question needs a professional or real information. Do not advise on the substance.
+
+Say it once, plainly, and then get back to the reading. This is the only turn in
+which you will say it; repeating it every time the subject comes up turns a
+piece of honesty into a disclaimer they stop hearing.`;
 
 function describeSpread(pack) {
   return pack.positions
@@ -79,7 +83,8 @@ function describeCard(pack, session) {
 
 ${card.name}, in the ${position.label} position (${position.arc_role} — ${position.prompt_hint}).
 
-They can see the picture, and one line of text about it: "${card.imagery_line}"
+They can see the picture, and this line of text under it: "${card.imagery_line}"
+They have already read that line. Do not say it back to them.
 
 ### What is actually in the picture
 
@@ -106,7 +111,7 @@ from this position's sense and the general one. Never recite either.`;
 }
 
 /** The reader's system prompt for one turn. */
-export function readerSystem({ pack, session, turn }) {
+export function readerSystem({ pack, session, turn, handback = false }) {
   const parts = [
     pack.persona,
     `\n## The spread\n\n${describeSpread(pack)}`,
@@ -117,7 +122,7 @@ export function readerSystem({ pack, session, turn }) {
 
   if (session.safety_state === "drop_frame") {
     parts.push(RULES_WHEN_FRAME_DROPPED);
-  } else if (session.last_stakes === "high") {
+  } else if (handback) {
     parts.push(RULES_WHEN_STAKES_HIGH);
   }
 
@@ -129,9 +134,11 @@ const TURN_INSTRUCTIONS = {
   invite: `
 ## This turn
 
-The card has just turned over and they have not spoken about it yet. Hand it to
-them: one or two sentences, then ask what it looks like it is pointing at for
-them. Do not interpret it first. Do not mention its traditional meaning at all
+The card has just turned over and they have not spoken about it yet. Name the
+card and the position it landed in, then hand it straight to them: ask what it
+looks like it is pointing at for them.
+
+Do not interpret it first, and do not mention its traditional meaning at all
 yet — you have not earned the right to, because they have not told you anything.`,
 
   respond: `

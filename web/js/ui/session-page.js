@@ -11,6 +11,7 @@ import { loadPack } from "../pack.js";
 import { makeLlmClient, DEFAULT_CONFIG, PROVIDERS } from "../llmClient.js";
 import { makeStorage, memoryBackend } from "../storage.js";
 import { startReading } from "../engine/reading.js";
+import { describeSession, loadHistory, toJson, toMarkdown } from "../engine/journal.js";
 import { newSeed } from "../engine/rng.js";
 
 const $ = (id) => document.getElementById(id);
@@ -36,6 +37,41 @@ function saveConfig() {
     chatModel: $("chat-model").value,
     judgeModel: $("judge-model").value,
   });
+}
+
+/** Hand the file to the browser. Served locally, so a blob link is enough. */
+function download(filename, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function filenameFor(session, extension) {
+  return `reading-${new Date(session.started_at).toISOString().slice(0, 10)}-${session.seed}.${extension}`;
+}
+
+function saveSession(session, kind) {
+  if (kind === "md") {
+    download(filenameFor(session, "md"), toMarkdown(pack, session), "text/markdown");
+  } else {
+    download(filenameFor(session, "json"), toJson(session), "application/json");
+  }
+}
+
+function refreshHistory() {
+  const saved = loadHistory(store);
+  const picker = $("history");
+  picker.innerHTML = "";
+  for (const session of saved) {
+    picker.append(new Option(describeSession(session), session.session_id));
+  }
+  const has = saved.length > 0;
+  $("history-md").disabled = !has;
+  $("history-json").disabled = !has;
+  return saved;
 }
 
 function setStatus(text, cls = "") {
@@ -117,6 +153,11 @@ function onEvent(event) {
       break;
     case "reader_done":
       streamingLine = null;
+      // Downloadable from the first turn: an abandoned reading is often the
+      // one worth keeping.
+      $("save-md").disabled = false;
+      $("save-json").disabled = false;
+      refreshHistory();
       break;
     case "gate":
       renderGate(event.gate, null);
@@ -133,6 +174,9 @@ function onEvent(event) {
     case "closed":
       setStatus("reading closed", "ok");
       $("reply-form").hidden = true;
+      // The label is written before close() runs, so it would otherwise keep
+      // calling a finished reading unfinished until the next reload.
+      refreshHistory();
       break;
     default:
       break;
@@ -222,6 +266,15 @@ async function main() {
   });
 
   $("start").addEventListener("click", start);
+  $("save-md").addEventListener("click", () => saveSession(reading.session, "md"));
+  $("save-json").addEventListener("click", () => saveSession(reading.session, "json"));
+  for (const [id, kind] of [["history-md", "md"], ["history-json", "json"]]) {
+    $(id).addEventListener("click", () => {
+      const chosen = loadHistory(store).find((s) => s.session_id === $("history").value);
+      if (chosen) saveSession(chosen, kind);
+    });
+  }
+  refreshHistory();
   $("reply-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const text = $("reply").value.trim();

@@ -14,6 +14,7 @@
  */
 
 import { ANCHOR_SCHEMA, GATE_SCHEMA } from "./schemas.js";
+import { saveToHistory } from "./journal.js";
 import {
   ANCHOR_SYSTEM, JUDGE_SYSTEM, anchorMessages, flipDirection, judgeMessages,
   readerMessages, readerSystem,
@@ -38,11 +39,18 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
   let lastQuestion = "";
 
   function persist() {
-    storage?.set(SESSION_KEY, session);
+    if (!storage) return;
+    storage.set(SESSION_KEY, session);
+    // Into the history on every turn, not at the end: the readings worth
+    // keeping are often the ones that go somewhere unexpected and stop there.
+    saveToHistory(storage, session);
   }
 
   async function readerTurn(turn, { stageDirection = null, readingOffset = 0 } = {}) {
-    const system = readerSystem({ pack, session, turn });
+    // Hand agency back on the first high-stakes turn only. Saying it again every
+    // time the subject resurfaces turns honesty into a disclaimer.
+    const handback = session.last_stakes === "high" && !session.handback_given;
+    const system = readerSystem({ pack, session, turn, handback });
     const messages = readerMessages(pack, session, { stageDirection });
     onEvent({ type: "reader_start", turn });
 
@@ -52,6 +60,7 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
       onDelta: (delta, full) => onEvent({ type: "reader_delta", delta, full }),
     });
 
+    if (handback) session.handback_given = true;
     recordReading(session, text, { offset: readingOffset });
     lastQuestion = text;
     onEvent({ type: "reader_done", text, turn });
@@ -115,15 +124,17 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
           schema: ANCHOR_SCHEMA,
         });
         commitAnchor(session, anchor);
-        onEvent({ type: "anchor", anchor: session.anchor });
+        // Persist before announcing: a listener that reads storage on the event
+        // would otherwise see the state as it was a moment ago.
         persist();
+        onEvent({ type: "anchor", anchor: session.anchor });
       }
 
       if (spreadComplete(session)) {
         const text = await readerTurn("close");
         close(session, text);
-        onEvent({ type: "closed", reflection: text });
         persist();
+        onEvent({ type: "closed", reflection: text });
         return { gate, decision, closed: true };
       }
 

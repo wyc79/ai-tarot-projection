@@ -94,8 +94,16 @@ summary { cursor: pointer; font-size: 0.85rem; }
 .settings-grid label.inline { flex-direction: row; align-items: center; text-transform: none; letter-spacing: 0; font-size: 0.85rem; }
 .settings-grid input[type="checkbox"] { flex: 0 0 auto; }
 
+.save-row { gap: 0.6rem; margin-bottom: 1.5rem; align-items: center; }
+.save-row select { flex: 1 1 18rem; min-width: 0; }
+button:disabled { opacity: 0.4; cursor: default; }
+
 .session-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(15rem, 1fr); gap: 1.75rem; align-items: start; }
-@media (max-width: 60rem) { .session-layout { grid-template-columns: 1fr; } }
+@media (max-width: 60rem) { .save-row { gap: 0.6rem; margin-bottom: 1.5rem; align-items: center; }
+.save-row select { flex: 1 1 18rem; min-width: 0; }
+button:disabled { opacity: 0.4; cursor: default; }
+
+.session-layout { grid-template-columns: 1fr; } }
 
 .spread { display: flex; gap: 0.9rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
 .slot { margin: 0; width: 11rem; }

@@ -27,6 +27,9 @@ export const MAX_EXCHANGES = 3;
 export function createSession({ packId, seed, positions, startedAt = Date.now() }) {
   return {
     schema_version: STATE_VERSION,
+    // Seed plus start time: unique enough to key a history list, and readable
+    // enough to say out loud when reporting a reading that went wrong.
+    session_id: `${seed}-${startedAt}`,
     pack_id: packId,
     seed: String(seed),
     started_at: startedAt,
@@ -41,6 +44,8 @@ export function createSession({ packId, seed, positions, startedAt = Date.now() 
     safety_state: "normal",
     /** @type {"low"|"high"|"crisis"} most recent classification */
     last_stakes: "low",
+    /** Agency is handed back once, not every turn until they stop mentioning it. */
+    handback_given: false,
     closing_reflection: null,
     closed: false,
   };
@@ -90,6 +95,9 @@ export function recordExchange(session, { question, answer, gate }) {
     a: answer,
     disclosure_depth: gate.disclosure_depth,
     position: card.position,
+    // The whole verdict, not just the depth: re-running a transcript after a
+    // prompt change is only useful if you can see what the judge thought then.
+    gate: { ...gate },
   });
 
   session.last_stakes = gate.stakes;

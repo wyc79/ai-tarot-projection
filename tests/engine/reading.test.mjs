@@ -225,3 +225,37 @@ test("the detail list is framed for recognition, never for narration", async () 
   assert.match(system, /Do not tell them what is in the\npicture/);
   assert.match(system, /believe them and ask about it/);
 });
+
+test("agency is handed back once, not every turn the subject comes up", async () => {
+  const { client, reading } = await run({
+    gates: [gate(2, false, "high"), gate(2, false, "high"), gate(2, false, "high")],
+    answers: ["whether to sue", "still about the lawsuit", "and the money"],
+  });
+  // Match the injected block, not the persona's standing rule, which every
+  // system prompt carries.
+  const handbacks = client.calls.chat.filter((c) => /This is the only turn in\nwhich you will say it/.test(c.system));
+  assert.equal(handbacks.length, 1, "a disclaimer repeated every turn stops being heard");
+  assert.equal(reading.session.handback_given, true);
+  assert.equal(reading.session.safety_state, "normal", "high stakes never drops the frame");
+});
+
+test("the reader is told not to read the printed line back", async () => {
+  const { client } = await run({ gates: [gate(1, false)], answers: ["hm"] });
+  assert.match(client.calls.chat[0].system, /Do not say it back to them/);
+});
+
+test("the opening turn names the card; it does not just gesture at it", async () => {
+  const { client } = await run({ gates: [gate(1, false)], answers: ["hm"] });
+  assert.match(client.calls.chat[0].system, /Name the\ncard and the position it landed in/);
+});
+
+test("every turn is persisted to a capped history, unfinished ones included", async () => {
+  const { makeStorage, memoryBackend } = await import("../../web/js/storage.js");
+  const { loadHistory } = await import("../../web/js/engine/journal.js");
+  const storage = makeStorage(memoryBackend());
+  const { reading } = await run({ gates: [gate(1, false)], answers: ["abandoned here"], storage });
+  const history = loadHistory(storage);
+  assert.equal(history.length, 1, "one session, saved in place rather than appended per turn");
+  assert.equal(history[0].session_id, reading.session.session_id);
+  assert.equal(history[0].closed, false, "an unfinished reading is still worth keeping");
+});
