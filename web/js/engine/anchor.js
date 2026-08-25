@@ -9,12 +9,12 @@
  *   "...that the change isn't a break, it's a repurposing, and something from
  *    the before is still alive in it."
  *
- * They never said that. They said they used to have a different major. The beat
+ * They never said that. They said they used to have a different trade. The beat
  * decided what it meant, and would have spent two more cards proving it.
  *
  * The form that works names the question and leaves the answers open:
  *
- *   "where the old major stands in the new one — still feeding it, or genuinely
+ *   "where the old trade stands in the new one — still feeding it, or genuinely
  *    left behind."
  *
  * A string test, so it is fallible in both directions. It is used to re-ask the

@@ -574,7 +574,7 @@ That is the same judgement as **has_life_content**, and the two must agree: if
 has_life_content is false the depth is 1 or 2, always.
 
 **hedged** is separate from depth and does not lower it. "I guess so? I used to
-have a different major" is a real disclosure -- a 3, with life content -- offered
+have a different trade" is a real disclosure -- a 3, with life content -- offered
 with a way to take it back. Both things are true at once and the reader needs to
 know both: what they said, and that they are watching to see what you do with it.
 
@@ -665,7 +665,7 @@ of which could turn out to be true.
 
   no:  "the change isn't a break, it's a repurposing, and something from the
        before is still alive in it"
-  yes: "where the old major stands in the new one — still feeding it, or
+  yes: "where the old trade stands in the new one — still feeding it, or
        genuinely left behind"
 
 The first one decided the finding from a single sentence they said once, and

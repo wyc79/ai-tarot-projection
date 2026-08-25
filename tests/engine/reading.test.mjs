@@ -166,7 +166,7 @@ test("the anchor is revised as more of their life arrives, not frozen on card on
 test("a hedged answer does not move the anchor", async () => {
   const { client } = await run({
     gates: [gate(4), gate(4), { ...gate(3), hedged: true }],
-    answers: ["treading water", "since the move", "i guess so? a different major"],
+    answers: ["treading water", "since the move", "i guess so? a different trade"],
   });
   const anchorCalls = client.calls.judge.filter((c) => c.schema.properties.theme);
   assert.equal(anchorCalls.length, 1, "they have not decided to give it yet");
@@ -683,10 +683,10 @@ test("a session with a topic is not told to go looking for one", async () => {
 test("a beat that reads as a verdict is asked for again, once", async () => {
   // river-89c1fb's beat, verbatim: it decided the finding off one sentence.
   const verdict = {
-    theme: "a different major",
+    theme: "a different trade",
     resolution_beat: "that the change isn't a break, it's a repurposing, and something "
       + "from the before is still alive in it",
-    user_phrases: [{ phrase: "a different major", source: "life" }],
+    user_phrases: [{ phrase: "a different trade", source: "life" }],
   };
   const pack = await realPack();
   let asked = 0;
@@ -696,12 +696,12 @@ test("a beat that reads as a verdict is asked for again, once", async () => {
     if (!call.schema.properties.theme) return judge(call);
     asked += 1;
     return asked === 1 ? verdict
-      : { ...verdict, resolution_beat: "where the old major stands in the new one — still feeding it, or genuinely left behind" };
+      : { ...verdict, resolution_beat: "where the old trade stands in the new one — still feeding it, or genuinely left behind" };
   };
   const reading = startReading({ pack, client, seed: SEED });
   await reading.begin();
   await reading.say("nothing in particular");
-  await reading.say("a different major");
+  await reading.say("a different trade");
   await reading.say("since the move");
 
   assert.equal(asked, 2, "asked once, told why, asked again");

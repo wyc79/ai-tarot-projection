@@ -231,3 +231,6 @@ checkpoint/
 # Reference papers: read locally, not redistributed. The Semetsky article is
 # paywalled and republishing it from a public repo is not our call to make.
 references/
+
+# Redaction maps: these are what would let someone reverse a fixture.
+redactions/

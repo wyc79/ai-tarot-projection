@@ -139,7 +139,7 @@ test("the reader is told not to build on something they hedged", async () => {
   await reading.begin();
   await reading.say("just curious");
   await reading.say("each cup is filled with flowers, probably repurposed from something else");
-  await reading.say("i guess so?i used to have a different major");
+  await reading.say("i guess so?i used to have a different trade");
 
   const system = client.calls.chat.at(-1).prompt.replace(/\s+/g, " ");
   assert.match(system, /THEY HEDGED THAT/);
@@ -197,7 +197,7 @@ test("someone who discloses early and hedges it gets dwelt on, not moved past", 
       { asks: "What does it look like it's pointing at for you?",
         answer: "the cups are all full of flowers", gate: at({ depth: 2, life: false }) },
       { asks: "Whose repurposing is that, in your world?",
-        answer: "i guess so? i used to have a different major",
+        answer: "i guess so? i used to have a different trade",
         gate: at({ depth: 3, life: true, level: "consequences", hedged: true }) },
       { asks: "Could be nothing — how long ago did you switch?",
         answer: "eighteen months, and nobody's asked me about it since",
@@ -269,7 +269,7 @@ test("river's resolution beat is the shape the anchor judge now rejects", async 
   assert.equal(beatIsTerritory(session.anchor.resolution_beat), false,
                "it decided the finding from one sentence they said once");
   assert.equal(beatIsTerritory(
-    "where the old major stands in the new one — still feeding it, or genuinely left behind"),
+    "where the old trade stands in the new one — still feeding it, or genuinely left behind"),
                true);
 });
 
@@ -312,7 +312,7 @@ test("the reader turn starts before the anchor revision comes back", async () =>
   const reading = startReading({ pack, client, seed: "river-89c1fb" });
   await reading.begin();
   await reading.say("just curious");
-  await reading.say("a different major");          // dwell holds the card
+  await reading.say("a different trade");          // dwell holds the card
   await reading.say("eighteen months ago");        // flips it, commits the anchor
   assert.equal(anchorCalls, 1, "committed, blocking, on the flip");
 
@@ -351,7 +351,7 @@ test("a revision that fails leaves the reading with the plan it had", async () =
   const reading = startReading({ pack, client, seed: "river-89c1fb", onEvent: (e) => events.push(e) });
   await reading.begin();
   await reading.say("just curious");
-  await reading.say("a different major");
+  await reading.say("a different trade");
   await reading.say("eighteen months ago");
   await reading.say("nobody's asked me about it since");
 
