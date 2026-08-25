@@ -20,6 +20,7 @@ import re
 import socketserver
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -256,8 +257,14 @@ def main():
         if not sys.argv[1].isdigit():
             sys.exit("usage: python3 server/relay.py [port]  (got %r)" % sys.argv[1])
         port = int(sys.argv[1])
-    print("relay on http://localhost:%d  providers=%s  DEV_LOG=%s"
-          % (port, ",".join(sorted(PROVIDERS)), "on" if DEV_LOG else "off"), flush=True)
+    # Print where each provider actually points: "it is configured" and "it is
+    # configured at the host you meant" are different claims, and the second one
+    # is the one that matters when a key keeps coming back invalid.
+    routes = ", ".join(
+        "%s -> %s" % (name, urllib.parse.urlparse(entry.get("url", "")).netloc or "?")
+        for name, entry in sorted(PROVIDERS.items()))
+    print("relay on http://localhost:%d  DEV_LOG=%s\n  %s"
+          % (port, "on" if DEV_LOG else "off", routes), flush=True)
     Server(("127.0.0.1", port), Handler).serve_forever()
 
 
