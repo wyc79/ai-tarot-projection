@@ -24,11 +24,27 @@ Tarot as a doorway, not divination. The cards are projective prompts that get pe
      description is something to agree with, and agreeing is not projecting.
      The imagery line stays as alt text and as the reader's fallback (below)
   2. AI asks the user to read it first ("what does this card feel like it's pointing at for you?")
-  3. User's projection is the disclosure; AI builds on their words, adds light traditional flavor
+  3. User's projection is the disclosure; AI builds on their words
   4. Rhythm per card: flip -> user projection -> AI follow-up -> next flip
   - HARD RULE (from the A/B run): the turn that deals a card MUST ask the projection question.
     Life questions wait until the projection is in. Pro-tier models drift on this; it is a
     protocol violation, not cleverness, and the scanner checks for it
+  - POINT, DON'T NAME (from c145c7): details[] is deictic vocabulary. The reader may use it to
+    recognise what the user pointed at and to reference regions spatially ("the ones below him"),
+    never to assert what a thing is or what a figure is doing ("holding the plans", "building
+    what they want"). Premise test, per turn: every fact a turn asserts about the picture must
+    trace to the user's words or to literal pointing. Once they name a thing it is theirs and the
+    reader may use it back. The scanner flags pack vocabulary that reached a turn without passing
+    through the person
+  - REVEAL ON REQUEST: if the user asks what a card traditionally means, answer plainly and
+    briefly, then hand it back to their read - correction-wins honesty extends to card tradition.
+    Otherwise traditional meaning enters only as the two sides of a forced choice, phrased from
+    what the user noticed. There is no "light traditional flavor" allowance any more; it read as
+    permission and was used as one
+  - The ownership move (`own` in the question policy) is the bridge from projection to life:
+    offer the connection at the user's current level, never assume it. "<their phrase> - whose is
+    that, in your world: yours about something, or someone's about you?", or Clinton's "when have
+    you felt this way?". Weighted first on the situation position
 - Closing is unconditional: after the advice-card exchange, at most one follow-up, then the
   closing beat fires regardless of depth. A session can never hang unclosed (B run proved it can)
 - Fallbacks: "I don't know tarot" -> point at imagery; one-word answers -> forced choice between two contrasting meanings drawn from the position's meaning space
@@ -87,7 +103,12 @@ Per session:
 - session_id, seed, pack_id, started_at
 - phase: opening | reading (nothing is dealt until the opening question is answered)
 - topic: what they said they wanted to look at, in their words, or null if they declined
-- anchor: { theme, user_phrases[], resolution_beat } (narrative plan, not a static string)
+- anchor: { theme, user_phrases[{ phrase, source: card|life }], resolution_beat, grounded }
+  (narrative plan, not a static string). The judge tags each phrase as it writes it; grounded is
+  derived in commitAnchor from the tags, so it cannot disagree with them. theme and
+  resolution_beat build from the life phrases when any exist. When none do, grounded is false,
+  the resolution beat is about finding what matters to this person rather than about the
+  picture's plot, and the recap tells the reader the theme is a placeholder
 - cards: [{ card_id, position, user_projection, ai_reading, flipped_at }]
 - exchanges: [{ q, a, disclosure_depth, position, question_type, question_level, gate }] - position
   is a card's position, or "opening" (before the deal) or "off_frame" (after the frame is dropped).
@@ -96,8 +117,11 @@ Per session:
   the same words answering a life question are a deflection)
   question_level: which scaffolding level the question stood at (see M3.5). A parallel axis to
   question_type, not a finer one - a projection ask can target any level
-- flip gate: structured judge() output per turn { disclosure_depth, user_level, stakes,
-  reading_of_them }. No `reply` field: the reader's words come from chat(), streamed;
+- flip gate: structured judge() output per turn { disclosure_depth, has_life_content, user_level,
+  stakes, reading_of_them }. has_life_content is whether the answer contained anything of their
+  life at all; a pure card answer caps at disclosure_depth 2, and the two must agree. Early flips
+  need one grounded exchange on the card; the counted flips still fire (never stall a resistant
+  user) and record "ungrounded" in the flip reason when they do. No `reply` field: the reader's words come from chat(), streamed;
   judge() returns JSON and nothing else. The two use separately configurable models.
   user_level is the scaffolding level the ANSWER operated at (see M3.5) - a separate axis
   from disclosure_depth: depth is how much they revealed, level is what kind of operation
@@ -205,6 +229,11 @@ Internal machinery: the levels are never named to the user.
   question they must invent an answer to. Written into the recap block every turn
 - A CEILING ON DISTANCE, NOT A QUOTA: people jump levels unprompted, and when they do the
   reader meets them there. Follow them up, never march them up
+- RAIL-CROSSING RULE (from c145c7): the staircase has two rails, the card medium and the life
+  medium. A question that switches rails targets the user's CURRENT level, not +1 - crossing is
+  itself the step, and climbing while crossing is two. The engine cannot know which rail the next
+  question will run on, so the recap names both targets and the reader chooses. Scanner flags a
+  crossing question that also climbed
 - Step-down rule: a deflection drops user_level and the next question does not climb - it asks
   at the same height, more concretely. At the bottom rung that is the existing forced-choice
   fallback, wired as the step-down rather than duplicated
@@ -253,7 +282,15 @@ Internal machinery: the levels are never named to the user.
   clinical cadence this reader does not have
 - Judge determinism: labelled depth rubric with worked examples, and temperature 0 where the provider
   still accepts sampling params (removed on current Anthropic models, which answer 400)
+- No-topic playbook: when topic is null, card 1's job is to find the ground - projection gives
+  the menu, the ownership move makes the offer, and a hand-back to the picture is an answer
+  rather than a cue to ask harder. Situation does not end (within pacing bounds) until a life
+  referent lands or the attempts run out; then grounded:false is carried forward and card 2 tries
+  a different bridge. Never pretend an ungrounded session has a theme
 - scripts/seeded_session.mjs is the canonical fixture: same seed, scripted model, diffable pacing
+- tests/fixtures/thread-c145c7.json is the named failing fixture beside it: a no-topic session
+  where the reader answered card lore with card lore for five turns and never met the person.
+  It is frozen, and tests assert what the scanner says about it
 - scripts/model_checkpoint.mjs runs one seeded session twice varying only the chat model
 - Playtest with 3-5 real tarot-curious non-dev people; log transcripts (with consent), fix the tells: over-explaining symbolism, clinical questions, hedging, assistant cadence
 - Done when: fix queue items 1-5 land and hold on seeded fixtures, then at least half of playtesters say something true about themselves unprompted by card 2, and no one calls it "a chatbot doing tarot"
@@ -263,6 +300,11 @@ Internal machinery: the levels are never named to the user.
 - The table reads as a bounded, stable container the conversation keeps returning to - the chat
   serves the table, not the reverse (Semetsky: the layout's boundedness is itself grounding;
   the material is visibly "out of the head and on the table")
+- Scaffolding map panel on the debug page: plain SVG, x = exchange, y = the five levels, one
+  trace for what was asked and one for where the answer landed, rail encoded by mark, flips as
+  dashed rules carrying flip_reason, ZPD violations ringed. Dev tooling - it stays on the debug
+  page and never reaches the styled UI. The ASCII form of the same thing goes in scanner and A/B
+  output
 - Key management: paste key, localStorage vs session-only toggle, provider/model settings
 - Session journal export (Markdown) and per-session JSON: DONE early in M3, because playtesting
   without transcripts loses the sessions worth reading. Every turn is saved to a capped history in
@@ -326,6 +368,12 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-25): grounding round on branch m3-grounding, from the c145c7 session -
+  point-don't-name with a premise test and a scanner check, reveal-on-request (which removes the
+  one-sentence traditional-flavour allowance), the ownership move, the rail-crossing rule,
+  has_life_content and depth honesty for card-only answers, anchor phrase tagging with a grounded
+  flag, the no-topic playbook, and the scaffolding map in SVG and ASCII. c145c7 frozen as a
+  fixture. Few-shots 3-6 -> 3-8; two of the shipped six were teaching the violations.
 - v1.5 (2026-08-25): M3.5 scaffolded question targeting on branch m3-scaffolding - level enum,
   target_level rule, ceilings and exemplars in pack data (schema v4 -> v5), step-down rule,
   scanner metric, three regression fixtures. State schema updated for user_level and
