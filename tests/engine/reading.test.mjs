@@ -60,7 +60,9 @@ test("the turns run in the designed order: invite, then bridges, then close", as
 });
 
 test("a bridge turn is credited to the card it answered, not the one it turned", async () => {
-  const { reading } = await run({ gates: [gate(4), gate(2)], answers: ["deep", "hm"] });
+  const { reading } = await run({
+    gates: [gate(4), gate(4), gate(2)], answers: ["deep", "and my brother", "hm"],
+  });
   const [first, second] = reading.session.cards;
   assert.equal(first.ai_reading, "[bridge]", "the bridge answered the first card");
   assert.equal(second.ai_reading, "[respond]", "the second card has its own reading");
@@ -101,8 +103,12 @@ test("a thin answer holds the card; a rich one earns the next", async () => {
   const thin = await run({ gates: [gate(1)], answers: ["idk"] });
   assert.equal(thin.reading.session.cards.length, 1, "a shrug must not advance the spread");
 
-  const rich = await run({ gates: [gate(4)], answers: ["my brother, and I haven't called him"] });
-  assert.equal(rich.reading.session.cards.length, 2, "a rich answer earns the card early");
+  const rich = await run({
+    gates: [gate(4), gate(4)],
+    answers: ["my brother, and I haven't called him", "since March"],
+  });
+  assert.equal(rich.reading.session.cards.length, 2,
+               "a rich answer earns the card, one dwell exchange later");
 });
 
 test("crisis drops the frame on the first answer and no card ever follows", async () => {
@@ -132,8 +138,8 @@ test("high stakes hands agency back without dropping the frame", async () => {
 
 test("the anchor is committed from the first card and reaches later prompts", async () => {
   const { client, reading } = await run({
-    gates: [gate(4), gate(2)],
-    answers: ["treading water", "yeah"],
+    gates: [gate(4), gate(4)],
+    answers: ["treading water", "yeah, since the move"],
   });
   assert.equal(reading.session.anchor.theme, "t");
   const later = client.calls.chat.at(-1).system;
@@ -179,8 +185,8 @@ test("the session is persisted as it goes, and survives a reload", async () => {
 
 test("a closed reading refuses further turns", async () => {
   const { reading } = await run({
-    gates: [gate(4), gate(4), gate(4)],
-    answers: ["a", "b", "c"],
+    gates: [gate(4), gate(4), gate(4), gate(4), gate(4), gate(4)],
+    answers: ["a", "b", "c", "d", "e", "f"],
   });
   assert.equal(reading.session.closed, true);
   await assert.rejects(reading.say("more"), /closed/);
@@ -208,7 +214,9 @@ test("every turn but the last is told to end on a question", async () => {
 });
 
 test("the anchor's phrases are not presented as things they keep saying", async () => {
-  const { client } = await run({ gates: [gate(4), gate(2)], answers: ["treading water", "hm"] });
+  const { client } = await run({
+    gates: [gate(4), gate(4)], answers: ["treading water", "since the move"],
+  });
   const system = client.calls.chat.at(-1).system;
   assert.match(system, /a tidier synonym is a different word/);
   assert.doesNotMatch(system, /- their words:/);
@@ -306,7 +314,7 @@ test("declining is a real answer, not a subject to be invented for them", async 
 
 test("the anchor is told the topic, so the first card cannot change the subject", async () => {
   const { client } = await run({
-    gates: [gate(4), gate(2)], answers: ["a", "b"],
+    gates: [gate(4), gate(4)], answers: ["a", "b"],
     opening: wants("my brother"),
   });
   const anchorCall = client.calls.judge.find((c) => c.schema.properties.theme);
@@ -343,8 +351,8 @@ test("a respond turn says outright that nothing flipped", async () => {
 });
 
 test("the reader is told how many positions remain and that it cannot know them", async () => {
-  const { client } = await run({ gates: [gate(4), gate(2)], answers: ["a", "b"] });
-  const system = systemFor(client, "respond");
+  const { client } = await run({ gates: [gate(4), gate(4), gate(2)], answers: ["a", "b", "c"] });
+  const system = client.calls.chat.at(-1).system;
   assert.match(system, /1 position still to come, cards unknown to you/);
 });
 
@@ -415,7 +423,7 @@ test("the recap block is assembled from state, on every turn, and says it outran
 test("the recap carries the anchor's phrases verbatim, marked as verbatim", async () => {
   const pack = await realPack();
   const client = fakeClient({
-    gates: [gate(4), gate(2)], opening: declines,
+    gates: [gate(4), gate(4)], opening: declines,
     anchor: { theme: "treading water", resolution_beat: "r",
               user_phrases: [{ phrase: "treading water", source: "life" },
                              { phrase: "can't stop kicking", source: "life" }] },
@@ -541,8 +549,9 @@ test("every few-shot obeys the turn shape: one observation, one question, and sh
 
 test("the last card gets one follow-up at most, then closes whatever the depth", async () => {
   const { reading, client } = await run({
-    gates: [gate(4), gate(4), gate(1), gate(1)],
-    answers: ["it looks tired", "money, mostly", "walking off, leaving the full ones", "dunno"],
+    gates: [gate(4), gate(4), gate(4), gate(4), gate(1), gate(1)],
+    answers: ["it looks tired", "since March", "money, mostly", "if I spend it I'm staying",
+              "walking off, leaving the full ones", "dunno"],
   });
   const s = reading.session;
   assert.equal(s.closed, true, "run B stopped here instead");
@@ -570,8 +579,8 @@ test("a reading of nothing but thin answers still closes", async () => {
 
 test("every flip records why it happened", async () => {
   const { reading } = await run({
-    gates: [gate(4), gate(2), gate(2), gate(2)],
-    answers: ["my brother, since March", "money", "dunno", "lighter maybe"],
+    gates: [gate(4), gate(4), gate(2), gate(2), gate(2)],
+    answers: ["my brother, since March", "we stopped talking", "money", "dunno", "lighter maybe"],
   });
   const reasons = reading.session.cards.map((c) => c.flip_reason);
   assert.equal(reasons.length, 3);
@@ -595,15 +604,18 @@ test("a gate carrying an old flip_ready flag cannot move the decision", async ()
 
 test("each exchange records which kind of question it answered", async () => {
   const { reading } = await run({
-    gates: [gate(4), gate(2), gate(2), gate(2)],
-    answers: ["my brother, since March", "money", "dunno", "lighter maybe"],
+    gates: [gate(4), gate(4), gate(2), gate(2)],
+    answers: ["my brother, since March", "we stopped talking", "money", "dunno"],
     // The reader's turns are canned, so script the two kinds explicitly.
     reply: (turn) => (turn === "respond"
       ? "So that is where it started. What happened next?"
       : "The card turns over. What does it look like it is pointing at for you?"),
   });
   const kinds = reading.session.exchanges.map((e) => e.question_type);
-  assert.deepEqual(kinds, [undefined, "projection", "projection", "life", "life"],
+  // invite, then the dwell follow-up, then the bridge that deals the next card,
+  // then its own follow-up. The dwell turn is why two life questions no longer
+  // sit next to each other.
+  assert.deepEqual(kinds, [undefined, "projection", "life", "projection", "life"],
                    "the opening exchange has no card and no kind");
 });
 

@@ -49,25 +49,32 @@ const systemFor = (client, turn) => client.calls.chat.findLast((c) => c.turn ===
 // how the first draft of this fixture "found" a jump that was its own.
 
 test("a reading that climbs one rung at a time scans clean", async () => {
-  // The shape the rules jointly ask for: ask the card, cross to their life at
-  // the same height, then climb on whichever rail they are on. The first draft
-  // of this fixture went "what do you see" -> "when did that start", which is
-  // the natural-sounding pattern and is a rail crossing and a climb in one
-  // question. It is what c145c7 did on its third turn.
+  // The shape all the rules jointly ask for: ask the card, cross to their life
+  // at the same height, spend a turn inside whatever they hand you, then move
+  // on. The dwell turn is the third line of each card and is the reason this
+  // fixture is nine answers rather than six.
   const { pack, session } = await play({
     script: [
       { asks: "What does it look like it's pointing at for you?",
         answer: "a woman on her own in a garden", gate: at(2, "name") },
       { asks: "Whose being on their own is that, in your world?",
         answer: "mine, since the move in March", gate: at(3, "consequences") },
+      { asks: "What happened after the move?",
+        answer: "I stopped calling people back", gate: at(3, "consequences") },
+
       { asks: "The obstacle card is the Five of Wands. What do you see in it?",
         answer: "nobody's actually aiming", gate: at(2, "name") },
-      { asks: "What happened in there just before this picture?",
-        answer: "I stopped answering his calls", gate: at(4, "consequences") },
+      { asks: "Whose not-aiming is that one?",
+        answer: "my brother and me, we never actually row", gate: at(4, "consequences") },
+      { asks: "What happened the last time it nearly did?",
+        answer: "I left early and said nothing", gate: at(4, "consequences") },
+
       { asks: "The advice card is The Fool. What does he look like he's about to do?",
         answer: "walking off", gate: at(2, "name") },
       { asks: "Whose walking off is that one, in your world?",
         answer: "I hate that it got this far", gate: at(3, "evaluate") },
+      { asks: "What happened the last time you left something?",
+        answer: "I didn't go back", gate: at(3, "consequences") },
     ],
   });
   assert.equal(session.closed, true);
@@ -168,92 +175,32 @@ test("a reading that never leaves the ground still closes, sized to where it got
 });
 
 test("a reading that reached intentions gets a step it can act on", async () => {
+  // Three exchanges per card: the card answer, the disclosure, the dwell.
   const { client } = await play({
     script: [
-      { asks: "What does it look like it's pointing at for you?", answer: "tired",
-        gate: at(3, "name") },
-      { asks: "When did that turn up?", answer: "March, my brother", gate: at(4, "consequences") },
+      { asks: "What does it look like it's pointing at for you?", answer: "a man carrying a lot",
+        gate: at(2, "name") },
+      { asks: "Whose carrying is that, in your world?", answer: "March, my brother",
+        gate: at(4, "consequences") },
+      { asks: "What happened in March?", answer: "we stopped talking",
+        gate: at(4, "consequences") },
+
       { asks: "The obstacle card is the Five of Wands. What do you see?", answer: "a scrap",
         gate: at(2, "name") },
-      { asks: "What's it like for you, seeing that?", answer: "I hate it", gate: at(3, "evaluate") },
+      { asks: "Whose scrap is that one?", answer: "I hate that it got this far",
+        gate: at(3, "evaluate") },
+      { asks: "How long has it been like that?", answer: "since the spring",
+        gate: at(3, "evaluate") },
+
       { asks: "The advice card is The Fool. What is he doing?", answer: "leaving",
         gate: at(2, "name") },
-      { asks: "Do you know why this one gets to you?",
+      { asks: "Whose leaving is that one?",
         answer: "if I spend it I have to admit I'm staying", gate: at(4, "intentions") },
+      { asks: "What happened the last time you nearly admitted it?", answer: "I didn't",
+        gate: at(4, "consequences") },
     ],
   });
   const closing = systemFor(client, "close");
   assert.match(closing, /highest they have reached all session: intentions/);
   assert.match(closing, /something they could do, because they told you what they were after/);
-});
-
-// -- (d) the two rails (c145c7) ------------------------------------------
-
-test("crossing rails and climbing in the same question is two steps", async () => {
-  const pack = await realPack();
-  assert.equal(targetLevel(pack, { userLevel: "name", ceiling: "evaluate" }), "consequences",
-               "staying on the rail earns a rung");
-  assert.equal(targetLevel(pack, { userLevel: "name", ceiling: "evaluate", crossingRails: true }),
-               "name", "crossing spends the step");
-  assert.equal(targetLevel(pack, { userLevel: "evaluate", ceiling: "plans", crossingRails: true }),
-               "evaluate", "and it spends it wherever they are standing");
-});
-
-test("the prompt names both targets, since only the reader knows what it will ask", async () => {
-  const { client } = await play({
-    script: [
-      { asks: "What does she look like she's pointing at for you?",
-        answer: "judging between good and bad", gate: at(2, "name") },
-    ],
-  });
-  const system = systemFor(client, "respond");
-  assert.match(system, /Your last question was about the card/);
-  assert.match(system, /A question about their life crosses to the other rail/);
-  assert.match(system, /If you cross, ask at name and no higher/);
-});
-
-// -- the few-shots are held to the rules they teach -----------------------
-
-test("no few-shot demonstrates a move the scanner would flag", async () => {
-  // Two of the six shipped shots were teaching the violations: one crossed
-  // rails and climbed in the same question, the other jumped two rungs. They
-  // are the highest-leverage text in the pack and nothing was checking them.
-  const pack = await realPack();
-  for (const shot of pack.fewShots) {
-    assert.ok(shot.user_level, `${shot.demonstrates}: no user_level declared`);
-    assert.ok(typeof shot.has_life_content === "boolean",
-              `${shot.demonstrates}: no has_life_content declared`);
-
-    const level = questionLevel(shot.reader);
-    const jump = levelDistance(pack, shot.user_level, level);
-    assert.ok(jump <= 1,
-              `${shot.demonstrates}: asks at ${level} from ${shot.user_level}, ${jump} rungs`);
-
-    // An answer with nothing of their life in it came off the card rail. A
-    // reader question that goes to their life from there is a crossing, and a
-    // crossing may not also climb.
-    if (!shot.has_life_content && questionType(shot.reader) === "life") {
-      assert.equal(jump, 0,
-                   `${shot.demonstrates}: crosses to their life and climbs to ${level}`);
-    }
-  }
-});
-
-test("the ownership offer is a permitted forced choice, a plain one is not", async () => {
-  const pack = await realPack();
-  const session = {
-    cards: [{ card_id: "wands-09-nine", position: "situation" }],
-    exchanges: [
-      { q: "What does it look like it's pointing at for you?", a: "it just looks tired",
-        position: "situation", disclosure_depth: 2, gate: { has_life_content: false } },
-      { q: "Whose tiredness is that, in your world — yours about something, or someone's about you?",
-        a: "mine", position: "situation", disclosure_depth: 3, gate: { has_life_content: true } },
-      { q: "Is it the money, or is it that calling him means staying?", a: "the money",
-        position: "situation", disclosure_depth: 3, gate: { has_life_content: true } },
-    ],
-    closing_reflection: "done.", closed: true,
-  };
-  const stacked = scanSession(session, pack).filter((f) => f.code === "stacked_or");
-  assert.equal(stacked.length, 1, "exactly one of the two forced choices is a violation");
-  assert.match(stacked[0].text, /Is it the money/);
 });

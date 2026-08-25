@@ -39,6 +39,8 @@ export const TARGET_EXCHANGES = 2;
 /** Hard cap. A thin answer gets one softer follow-up, then the reading moves on
  *  regardless -- a gate the user cannot satisfy is a stalled meter. */
 export const MAX_EXCHANGES = 3;
+/** Exchanges to spend inside a fresh disclosure before the card may turn. */
+export const DWELL_MIN = 1;
 
 export function createSession({ packId, seed, positions, startedAt = Date.now() }) {
   return {
@@ -99,6 +101,30 @@ export function exchangesOnCurrentCard(session) {
  * that tells the two apart, and the flip rule below is the only place it
  * changes anything: a card moves on early only when something landed.
  */
+/**
+ * Whether the card is holding something they have only just said, and how much
+ * has been spent inside it.
+ *
+ * The flip is the reward mechanic, so what it rewards is what the reading
+ * teaches. Flipping on the turn someone first says something real teaches that
+ * opening up ends the subject -- which is the gradient this whole design exists
+ * to run the other way. So the first life disclosure on a card buys a turn
+ * inside itself before the card can turn over.
+ *
+ * Hedged answers do not count toward the dwell. "I guess so?" is someone
+ * checking whether it was safe to say, and answering that with a scene change
+ * is the same mistake in a smaller font.
+ */
+export function dwellOnCurrentCard(session) {
+  const card = currentCard(session);
+  if (!card) return { arrived: false, spent: 0, satisfied: true };
+  const here = session.exchanges.filter((e) => e.position === card.position);
+  const arrival = here.findIndex((e) => e.gate?.has_life_content === true);
+  if (arrival === -1) return { arrived: false, spent: 0, satisfied: true };
+  const spent = here.slice(arrival + 1).filter((e) => !e.gate?.hedged).length;
+  return { arrived: true, spent, satisfied: spent >= DWELL_MIN };
+}
+
 export function groundedOnCurrentCard(session) {
   const card = currentCard(session);
   if (!card) return false;
@@ -242,8 +268,35 @@ export function flipDecision(session, gate) {
   const grounded = groundedOnCurrentCard(session);
   const ungrounded = grounded ? "" : " — ungrounded, nothing of theirs landed on this card";
 
+  // They have just handed you something. Stay in it for a turn.
+  //
+  // Released the moment they deflect: someone who wishes they had not said it
+  // is not held in the subject, and the counted exits below still apply, so the
+  // dwell can delay a card by one exchange and never more than that.
+  const dwell = dwellOnCurrentCard(session);
+  const dwelt = dwell.arrived && dwell.satisfied ? ", dwelt on first" : "";
+  if (!dwell.satisfied && gate.disclosure_depth > 1) {
+    if (count < MAX_EXCHANGES) {
+      return {
+        flip: false,
+        reason: "they just told you something of their own; one exchange inside it "
+          + "before the reading moves on",
+      };
+    }
+    // The disclosure arrived on the card's last available exchange, so the cap
+    // and the dwell want opposite things and the cap wins -- a card that cannot
+    // be satisfied is worse than a dwell cut short. Recorded as its own reason,
+    // because "they opened up just as we ran out of room" is a thing worth
+    // being able to count across sessions.
+    return {
+      flip: true,
+      reason: `${count} exchanges on one card; moving on rather than stalling `
+        + "— cutting a fresh disclosure short",
+    };
+  }
+
   if (grounded && gate.disclosure_depth >= DEPTH_RICH) {
-    return { flip: true, reason: `rich answer (depth ${gate.disclosure_depth}) earns the next card early` };
+    return { flip: true, reason: `rich answer (depth ${gate.disclosure_depth}) earns the next card early${dwelt}` };
   }
   // The last card has nowhere to advance to: flipping it means closing. So its
   // budget is tighter than the others' and depth stops being a condition --
@@ -253,7 +306,7 @@ export function flipDecision(session, gate) {
     return { flip: true, reason: `last card and ${count} exchanges; closing regardless of depth${ungrounded}` };
   }
   if (grounded && gate.disclosure_depth >= DEPTH_ENOUGH && count >= TARGET_EXCHANGES) {
-    return { flip: true, reason: `depth ${gate.disclosure_depth} after ${count} exchanges` };
+    return { flip: true, reason: `depth ${gate.disclosure_depth} after ${count} exchanges${dwelt}` };
   }
   if (count >= MAX_EXCHANGES) {
     return { flip: true, reason: `${count} exchanges on one card; moving on rather than stalling${ungrounded}` };

@@ -36,6 +36,10 @@ const SCRIPT = [
   { answer: "it looks tired I guess", gate: { disclosure_depth: 2, user_level: "name", has_life_content: false, stakes: "low" } },
   { answer: "my brother, and I haven't called him since March",
     gate: { disclosure_depth: 4, user_level: "consequences", has_life_content: true, stakes: "low" } },
+  // The dwell exchange: they have just said something of their own, so the card
+  // stays put for one turn before the reading moves on.
+  { answer: "there wasn't a row, it just got later and later",
+    gate: { disclosure_depth: 4, user_level: "consequences", has_life_content: true, stakes: "low" } },
   { answer: "money, mostly", gate: { disclosure_depth: 2, user_level: "name", has_life_content: true, stakes: "low" } },
   { answer: "if I spend it I have to admit I'm staying",
     gate: { disclosure_depth: 4, user_level: "intentions", has_life_content: true, stakes: "low" } },
@@ -44,6 +48,10 @@ const SCRIPT = [
   // it the canonical session ended unclosed and --prompt=close had no turn to
   // print, which is how run B's failure mode sat in our own fixture unnoticed.
   { answer: "lighter, maybe", gate: { disclosure_depth: 2, user_level: "evaluate", has_life_content: true, stakes: "low" } },
+  // And the dwell on that one, before the closing beat. A disclosure on the
+  // last card buys its turn like any other, so the advice card runs to three.
+  { answer: "not carrying the phone around, mostly",
+    gate: { disclosure_depth: 3, user_level: "evaluate", has_life_content: true, stakes: "low" } },
 ];
 
 function scriptedClient(prompts) {

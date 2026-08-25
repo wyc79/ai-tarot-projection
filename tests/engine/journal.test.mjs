@@ -12,7 +12,7 @@ async function finished(seed = "moon-4f2a91") {
   const reading = startReading({
     pack,
     client: fakeClient({
-      gates: [gate(3), gate(4), gate(4), gate(4)],
+      gates: [gate(3), gate(4), gate(4), gate(4), gate(4), gate(4)],
       opening: declines,
       reply: (turn) => (turn === "close" ? "this week, notice the bracing" : `[${turn}]`),
     }),
@@ -20,7 +20,8 @@ async function finished(seed = "moon-4f2a91") {
   });
   await reading.begin();
   await reading.say("no, nothing in particular");
-  for (const answer of ["it looks tired", "nobody is attacking me", "money", "not the money"]) {
+  for (const answer of ["it looks tired", "nobody is attacking me", "money", "not the money",
+                        "the flat, I think", "if I spend it I'm staying"]) {
     if (reading.session.closed) break;
     await reading.say(answer);
   }
@@ -126,7 +127,7 @@ test("state is persisted before it is announced, so listeners read the new state
   const seenAtEvent = {};
   const reading = startReading({
     pack, storage, seed: "moon-4f2a91",
-    client: fakeClient({ gates: [gate(4), gate(4), gate(4)], opening: declines }),
+    client: fakeClient({ gates: Array.from({ length: 6 }, () => gate(4)), opening: declines }),
     onEvent: (e) => {
       if (e.type === "anchor" || e.type === "closed") {
         const saved = loadHistory(storage)[0];
@@ -136,7 +137,7 @@ test("state is persisted before it is announced, so listeners read the new state
   });
   await reading.begin();
   await reading.say("nothing in particular");
-  for (const a of ["a", "b", "c"]) {
+  for (const a of ["a", "b", "c", "d", "e", "f"]) {
     if (reading.session.closed) break;
     await reading.say(a);
   }

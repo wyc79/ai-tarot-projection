@@ -72,13 +72,19 @@ test("no flip before the user has said anything", () => {
   assert.equal(flipDecision(s, gate(4)).flip, false);
 });
 
-test("a rich answer earns the next card after one exchange", () => {
+test("a rich answer earns the next card, one exchange after it lands", () => {
   const s = fresh();
   flipCard(s, "a");
   answer(s, 3);
+  // The dwell rule owns this turn: they have just said something of their own
+  // and the card stays put for one exchange. Before it existed, this flipped
+  // here -- which is what river-89c1fb did, on the turn someone opened up.
+  assert.equal(flipDecision(s, gate(4)).flip, false);
+  answer(s, 4);
   const decision = flipDecision(s, gate(4));
   assert.equal(decision.flip, true);
   assert.match(decision.reason, /early/);
+  assert.match(decision.reason, /dwelt on first/);
 });
 
 test("the default rhythm is two exchanges when the judge agrees", () => {
@@ -212,6 +218,9 @@ test("one grounded answer on the card is enough to restore the early exits", () 
   flipCard(s, "a");
   recordExchange(s, { question: "what do you see?", answer: "a woman in blue", gate: cardOnly(2) });
   recordExchange(s, { question: "when?", answer: "my sister, last March", gate: gate(4) });
+  // That was the arrival, so this turn is the dwell...
+  assert.equal(flipDecision(s, gate(4)).flip, false);
+  recordExchange(s, { question: "and then?", answer: "we stopped talking", gate: gate(4) });
   const decision = flipDecision(s, gate(4));
   assert.equal(decision.flip, true);
   assert.match(decision.reason, /early/);

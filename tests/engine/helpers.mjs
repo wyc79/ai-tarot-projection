@@ -50,9 +50,12 @@ export function fakeClient({
   };
 }
 
-/** An ordinary answer: they said something about their life. */
+/**
+ * An ordinary answer. A shrug carries nothing of their life by definition, so
+ * depth 1 is ungrounded here the way the judge's own rule says it must be.
+ */
 export const gate = (depth, stakes = "low") =>
-  ({ disclosure_depth: depth, has_life_content: true, stakes, reading_of_them: "noted" });
+  ({ disclosure_depth: depth, has_life_content: depth > 1, stakes, reading_of_them: "noted" });
 
 /**
  * An answer entirely about the picture. Depth caps at 2 by the judge's own
