@@ -99,6 +99,13 @@ Tarot as a doorway, not divination. The cards are projective prompts that get pe
   terminal state and only a person sets it. Turns after the beat live under their own position so
   they touch no card's rhythm, and the gate still runs on them - stakes do not stop mattering
   because a reading finished
+- A QUESTION BACK IS NOT AN ANSWER (`asked_back` on the gate). "what do you mean whose heading
+  out is that?" was being scored as a depth-1 deflection and charged to the card, so a question
+  that did not land cost the user one of their exchanges instead of costing the reader a turn.
+  It is now an aside: recorded at the card's position so the transcript and keepsake read in
+  order, flagged so nothing counts it - not the budget, not the dwell, not the settle, not the
+  ladder, not either map. The reader answers plainly and asks again smaller, and is told never to
+  repeat the question that just failed. state.turnsOn() is the single place that filter lives
 - Fallbacks: "I don't know tarot" -> point at imagery; one-word answers -> forced choice between two contrasting meanings drawn from the position's meaning space
 - Position-aware meanings (from claude-tarot-skill): pack stores per-position meaning hints per card (meanings: { situation, obstacle, advice } + general fallback); same card reads differently by position, and the AI bends the user's projection toward the position's role in the arc
 - Closing actionable step: session's last beat converts the resolution into one small concrete real-world reflection or action ("this week, notice when X happens"); makes the session feel complete. It should tie to something the user said they value, and quietly reinforce that whatever was found came from them, not the cards
@@ -196,6 +203,11 @@ DECIDED: frontend is plain HTML/CSS/JS (no framework, no build step). Prompt ass
 - scripts/judge_probe.mjs sends one frozen judge call several ways - thinking off, absent, capped;
   temperature pinned or not; schema echoed, compact, or described - and reports tokens and
   verdict per variant. It is how the above was found rather than guessed at
+- A provider can hang up mid-response: chunked transfer with no terminating chunk, which arrives
+  as IncompleteRead. By then the status and headers are already sent, so there is no error shape
+  left - the relay ends the stream where it stopped and the client's own truncation handling
+  takes it. What is NOT acceptable is the default traceback, which prints the request being
+  served into the log of a relay whose whole promise is that it keeps nothing. Contract-tested
 - Failures are classified, because they need different fixes: invalid_key, unknown_model,
   endpoint_not_found, provider_rate_limited, provider_unavailable, bad_payload, connection_failed,
   bad_provider_response, response_truncated
@@ -528,6 +540,9 @@ Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider
 - v1.5 (2026-08-26): the earned 4th card built rather than deferred, since the conversation
   staying open after the beat is what makes it reachable. Pack data, earned once by a real
   disclosure after the beat, and it closes the reading a second time with the step re-sized.
+- v1.5 (2026-08-26): from the first live session on this branch - asked_back and the aside turn,
+  the relay surviving a provider that hangs up mid-response, and the card's budget on the debug
+  panel now that "3 exchanges on one card" no longer says whether that is nearly done.
 - v1.5 (2026-08-25): session transcripts committed as fixtures are redacted derivatives now,
   with the originals in gitignored checkpoint/ and the maps in gitignored redactions/.
 - v1.5 (2026-08-25): latency work on the same branch - the anchor revision moved off the
