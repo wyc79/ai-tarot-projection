@@ -166,6 +166,14 @@ function ladderPlan(pack, session, standing = cardStanding(session)) {
     target,
     targetIfCrossing: targetLevel(pack, { userLevel, ceiling, deflected, crossingRails: true }),
     highest,
+    /**
+     * Whether the "how far to reach" section is written out this turn.
+     *
+     * Not the same question as whether there is a ladder: the session record
+     * quotes the target on every turn including the opening one, where there is
+     * nothing dealt to stand on and the section itself would be noise.
+     */
+    shown: session.phase !== "opening",
     /** The rungs low to high, and which one they are standing on. */
     rungs: pack.levels.map((level) => ({ id: level.id, here: level.id === userLevel })),
     /** The target rung's own words. Only its exemplars are ever shown. */
@@ -186,7 +194,7 @@ function ladderPlan(pack, session, standing = cardStanding(session)) {
  * front of it writes questions that sound chosen.
  */
 function describeLadder(plan) {
-  if (!plan.ladder) return "";
+  if (!plan.ladder.shown) return "";
   const { userLevel, target, targetIfCrossing, rail, ceiling, deflected, highest,
           aim, reachedIntentions } = plan.ladder;
   const turn = plan.kind;
@@ -391,9 +399,9 @@ function describeRecap(plan) {
     lines.push("    now is an interview. Go up, into what they already said — never sideways");
     lines.push("    into what else there is.");
   }
-  lines.push(`  they are standing at: ${ladder?.userLevel ?? "nothing said on this card yet"}`);
-  lines.push(`  reach no further than: ${ladder?.target}${ladder?.ceiling ? ` (this position tops out at ${ladder.ceiling})` : ""}`);
-  lines.push(`  highest they have reached all session: ${ladder?.highest ?? "nothing yet"}`);
+  lines.push(`  they are standing at: ${ladder.userLevel ?? "nothing said on this card yet"}`);
+  lines.push(`  reach no further than: ${ladder.target}${ladder.ceiling ? ` (this position tops out at ${ladder.ceiling})` : ""}`);
+  lines.push(`  highest they have reached all session: ${ladder.highest ?? "nothing yet"}`);
   lines.push(`  safety: ${record.safety}`);
   return lines.join("\n");
 }
@@ -507,8 +515,7 @@ export function turnPlan({ pack, session, turn, handback = false }) {
      * question is settled and the count is final.
      */
     face_down: turn === "close" ? tableau(session).filter((s) => !s.face_up).length : 0,
-    /** Null before anything is dealt: there is no card to stand on yet. */
-    ladder: session.phase === "opening" ? null : ladderPlan(pack, session, standing),
+    ladder: ladderPlan(pack, session, standing),
     /** What the reply must stay consistent with. The constraint, not the context. */
     record: recapPlan(pack, session, standing),
     /** The card in front of them, resolved out of the pack. Null before the deal. */

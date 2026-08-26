@@ -174,11 +174,14 @@ test("crisis drops the frame on the first answer and no card ever follows", asyn
 });
 
 test("the drop-frame instruction replaces the reader's voice, not decorates it", async () => {
-  const { client } = await run({ gates: [gate(3, "crisis")], answers: ["I don't want to be here"] });
-  const system = client.calls.chat.at(-1).prompt;
+  const { client, events } = await run({ gates: [gate(3, "crisis")], answers: ["I don't want to be here"] });
+  const system = client.calls.chat.at(-1).prompt.replace(/\s+/g, " ");
   assert.match(system, /the frame is dropped/i);
   assert.match(system, /No cards\./);
-  assert.doesNotMatch(system, /## This turn\n\nThe card has just turned over/);
+  // The rule, asked of the plan rather than of the paragraph that expresses it.
+  const plan = events.filter((e) => e.type === "reader_start").at(-1).plan;
+  assert.deepEqual(plan.rules, ["frame_dropped"], "it replaces the voice, it does not decorate it");
+  assert.equal(plan.kind, "respond", "and no card turned over into it");
 });
 
 test("high stakes hands agency back without dropping the frame", async () => {
@@ -208,7 +211,7 @@ test("the anchor is revised as more of their life arrives, not frozen on card on
     gates: [gate(4), gate(4), gate(4)],
     answers: ["treading water", "since the move in March", "I stopped calling people back"],
   });
-  const anchorCalls = client.calls.judge.filter((c) => c.schema.properties.theme);
+  const anchorCalls = client.calls.judge.filter((c) => c.kind === "anchor");
   assert.equal(anchorCalls.length, 2, "committed on the first card, revised on the next disclosure");
   assert.match(anchorCalls[1].messages[0].content, /revising rather than replacing/);
   assert.match(anchorCalls[1].messages[0].content, /since the move in March/);
@@ -219,7 +222,7 @@ test("a hedged answer does not move the anchor", async () => {
     gates: [gate(4), gate(4), { ...gate(3), hedged: true }],
     answers: ["treading water", "since the move", "i guess so? a different trade"],
   });
-  const anchorCalls = client.calls.judge.filter((c) => c.schema.properties.theme);
+  const anchorCalls = client.calls.judge.filter((c) => c.kind === "anchor");
   assert.equal(anchorCalls.length, 1, "they have not decided to give it yet");
 });
 
@@ -318,9 +321,9 @@ test("someone can still say the thing after the beat, and the frame still drops"
 
 test("the reader is told not to invent what the user said", async () => {
   const { client } = await run({ gates: [gate(3)], answers: ["they look like family"] });
-  const system = client.calls.chat.at(-1).prompt;
+  const system = client.calls.chat.at(-1).prompt.replace(/\s+/g, " ");
   assert.match(system, /Never invent what they said/);
-  assert.match(system, /One\nmention is one mention/);
+  assert.match(system, /One mention is one mention/);
 });
 
 test("every turn but the last is told to end on a question", async () => {
@@ -391,7 +394,8 @@ test("the reader knows the user was given no words about the picture", async () 
 
 test("the opening turn names the card; it does not just gesture at it", async () => {
   const { client } = await run({ gates: [gate(2)], answers: ["hm"] });
-  assert.match(systemFor(client, "invite"), /Name the\ncard and the position it landed in/);
+  assert.match(systemFor(client, "invite").replace(/\s+/g, " "),
+               /Name the card and the position it landed in/);
 });
 
 test("every turn is persisted to a capped history, unfinished ones included", async () => {
@@ -444,9 +448,9 @@ test("the anchor is told the topic, so the first card cannot change the subject"
     gates: [gate(4), gate(4)], answers: ["a", "b"],
     opening: wants("my brother"),
   });
-  const anchorCall = client.calls.judge.find((c) => c.schema.properties.theme);
+  const anchorCall = client.calls.judge.find((c) => c.kind === "anchor");
   assert.match(anchorCall.messages[0].content, /wanted to look at: "my brother"/);
-  assert.match(anchorCall.system, /the theme belongs to that\ntopic/);
+  assert.match(anchorCall.system.replace(/\s+/g, " "), /the theme belongs to that topic/);
 });
 
 test("crisis in the opening answer means no card is ever dealt", async () => {
@@ -481,7 +485,7 @@ test("the reader is told how many positions remain and that it cannot know them"
   const { client } = await run({ gates: [gate(4), gate(4), gate(2)], answers: ["a", "b", "c"] });
   const system = client.calls.chat.at(-1).prompt;
   assert.match(system, /2 still face down/);
-  assert.match(system, /you have not seen them and you\n    do not know what they are/);
+  assert.match(system.replace(/\s+/g, " "), /you have not seen them and you do not know what they are/);
 });
 
 test("every turn instruction still carries the rules it is supposed to", async () => {
@@ -774,7 +778,7 @@ test("the judge is told which scale to use before it is shown the question", asy
     gates: [gate(2)], answers: ["dunno"],
     reply: () => "What does it look like it is pointing at for you?",
   });
-  const judged = client.calls.judge.find((c) => c.schema.properties.disclosure_depth);
+  const judged = client.calls.judge.find((c) => c.kind === "gate");
   const content = judged.messages[0].content;
   assert.match(content, /Kind of question: PROJECTION/);
   assert.ok(content.indexOf("Kind of question") < content.indexOf("The reader asked"),
@@ -824,7 +828,7 @@ test("a beat that reads as a verdict is asked for again, once", async () => {
   const client = fakeClient({ gates: [gate(4), gate(4)], opening: declines });
   const judge = client.judge;
   client.judge = async (call) => {
-    if (!call.schema.properties.theme) return judge(call);
+    if (call.kind !== "anchor") return judge(call);
     asked += 1;
     return asked === 1 ? verdict
       : { ...verdict, resolution_beat: "where the old trade stands in the new one — still feeding it, or genuinely left behind" };

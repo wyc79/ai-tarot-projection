@@ -358,9 +358,9 @@ test("the reader turn starts before the anchor revision comes back", async () =>
       onDelta(t, t);
       return t;
     },
-    async judge({ schema }) {
-      if (schema.properties.has_topic) return { has_topic: false, topic: "", stakes: "low" };
-      if (schema.properties.theme) {
+    async judge({ kind }) {
+      if (kind === "opening") return { has_topic: false, topic: "", stakes: "low" };
+      if (kind === "anchor") {
         anchorCalls += 1;
         // Only the revision is held. The first commit still blocks, on purpose:
         // the bridge turn names the next card and wants the plan in hand.
@@ -400,9 +400,9 @@ test("a revision that fails leaves the reading with the plan it had", async () =
   const events = [];
   const client = {
     async chat({ onDelta = () => {} }) { const t = "and then?"; onDelta(t, t); return t; },
-    async judge({ schema }) {
-      if (schema.properties.has_topic) return { has_topic: false, topic: "", stakes: "low" };
-      if (schema.properties.theme) {
+    async judge({ kind }) {
+      if (kind === "opening") return { has_topic: false, topic: "", stakes: "low" };
+      if (kind === "anchor") {
         asked += 1;
         if (asked > 1) throw new Error("provider_unavailable");
         return { theme: "the first plan", resolution_beat: "whether it holds, or has outlived itself",
