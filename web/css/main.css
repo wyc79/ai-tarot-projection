@@ -1,0 +1,282 @@
+/* The styled reading. The debug page has its own stylesheet and shares nothing
+   with this one on purpose: the two pages are allowed to diverge completely.
+
+   The thesis of the layout, from the plan: the table is a bounded, stable
+   container the conversation keeps returning to. So the page itself never
+   scrolls -- the spread holds its place and the chat scrolls inside its own
+   box, on a phone as much as on a desktop. */
+
+:root {
+  color-scheme: dark;
+
+  --ink:    #100e16;  /* the page */
+  --felt:   #191527;  /* the table */
+  --raised: #211c31;  /* anything sitting on top of either */
+  --line:   #332c47;
+  --text:   #ece9f4;
+  --dim:    #9c94b3;
+  --gold:   #d8b46a;
+  --ok:     #8fd6a0;
+  --bad:    #f28b8b;
+
+  --sans: ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  /* The reader speaks in serif and the interface does not. It is the cheapest
+     way to say that the voice in the transcript is not the app talking. */
+  --serif: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
+}
+
+* { box-sizing: border-box; }
+
+html { height: 100%; }
+
+body {
+  margin: 0;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--text);
+  font: 16px/1.6 var(--sans);
+}
+
+a { color: var(--gold); }
+
+input, select, button {
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--text);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+}
+button { cursor: pointer; }
+button:hover:not(:disabled) { border-color: var(--dim); }
+button:disabled { opacity: 0.4; cursor: default; }
+button.primary { background: var(--gold); border-color: var(--gold); color: #17121f; font-weight: 600; }
+button.primary:hover:not(:disabled) { filter: brightness(1.08); }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.note { color: var(--dim); font-size: 0.78rem; text-transform: none; letter-spacing: 0; }
+
+/* --- the bar across the top ---------------------------------------------- */
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+  padding: 0.7rem clamp(0.7rem, 2.5vw, 2rem);
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(var(--felt), var(--ink));
+}
+
+.wordmark {
+  margin: 0;
+  font: 600 0.95rem/1 var(--serif);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.status-bar { flex: 1 1 10rem; min-width: 0; font-size: 0.78rem; color: var(--dim); }
+.status-bar.ok #status { color: var(--ok); }
+.status-bar.bad #status { color: var(--bad); font-weight: 600; }
+
+/* Collapsed, a settings panel is a pill in the bar. Open, it takes a row of its
+   own -- which is all "collapsed across the top" needs to mean. */
+.top > details { flex: 0 0 auto; }
+.top > details[open] { flex: 1 1 100%; }
+
+.top summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.3rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.top summary::-webkit-details-marker { display: none; }
+.top summary:hover { color: var(--text); }
+.top details[open] > summary { color: var(--text); border-color: var(--gold); }
+.top details[open] > summary + * { margin-top: 0.85rem; }
+
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.75rem; }
+.settings-grid .wide { grid-column: 1 / -1; }
+.settings-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.settings-grid label.inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text);
+}
+.settings-grid input[type="checkbox"] { flex: 0 0 auto; width: auto; }
+.settings-grid p { margin: 0; }
+.advanced { grid-column: 1 / -1; }
+
+.journal-grid { display: grid; gap: 0.6rem; }
+.journal-grid .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+#history { flex: 1 1 16rem; min-width: 0; }
+
+/* --- before the first card ----------------------------------------------- */
+
+#intro { overflow-y: auto; display: grid; place-items: center; padding: clamp(1rem, 4vw, 3rem); }
+body[data-phase="reading"] #intro { display: none; }
+
+.intro-inner { max-width: 34rem; }
+.intro-inner h2 { margin: 0 0 1.1rem; font: 400 clamp(1.5rem, 4.5vw, 2.1rem)/1.25 var(--serif); }
+.intro-inner p { margin: 0 0 1.1rem; color: var(--dim); }
+.intro-inner .primary { padding: 0.7rem 1.7rem; font-size: 1rem; }
+.intro-inner .primary + .note { margin: 0.6rem 0 0; }
+
+.quiet { border-left: 2px solid var(--line); padding-left: 0.95rem; font-size: 0.88rem; }
+
+/* --- the reading --------------------------------------------------------- */
+
+#stage {
+  display: grid;
+  grid-template-columns: minmax(14rem, 26rem) minmax(0, 1fr);
+  gap: clamp(0.9rem, 2.5vw, 2.5rem);
+  min-height: 0;
+  padding: clamp(0.7rem, 2.2vw, 1.8rem);
+}
+body[data-phase="idle"] #stage { display: none; }
+
+#table {
+  min-height: 0;
+  overflow: auto;
+  padding: clamp(0.6rem, 1.6vw, 1.3rem);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: radial-gradient(115% 85% at 50% 0%, #241d38 0%, var(--felt) 55%, #14111f 100%);
+}
+
+/* Two columns, and the card width comes from the height there is room for
+   rather than from the column -- otherwise a short laptop screen puts half the
+   spread below the fold, which is the one thing this layout exists to prevent.
+   The 15rem is everything that is not card: the bar, the paddings, captions. */
+.spread {
+  --card-w: clamp(5.5rem, calc((100dvh - 15rem) / 2 * 300 / 527), 13rem);
+  display: grid;
+  grid-template-columns: repeat(2, var(--card-w));
+  justify-content: center;
+  align-content: start;
+  gap: clamp(0.6rem, 1.4vw, 1.1rem);
+}
+
+.slot { margin: 0; perspective: 1000px; }
+
+.card {
+  position: relative;
+  aspect-ratio: 300 / 527;
+  transform-style: preserve-3d;
+}
+.card img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  /* The two faces are stacked; each is invisible from behind, which is what
+     makes the turn one rotation instead of a swap. */
+  backface-visibility: hidden;
+  box-shadow: 0 10px 26px rgb(0 0 0 / 0.5);
+}
+.card .front { transform: rotateY(180deg); }
+.slot.up .card { transform: rotateY(180deg); }
+/* Face down from the start, and recessed rather than hidden: the point of
+   dealing the whole spread at once is that the positions ahead are visibly
+   there, waiting, and that the reading is visibly walking toward them. */
+.card .back { filter: brightness(0.62) saturate(0.55); }
+
+.slot figcaption {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  /* Reserved before the name exists, so a card turning over does not shove the
+     row below it down the table. */
+  min-height: 2.5em;
+}
+.card-name { font: 600 0.8rem/1.3 var(--serif); }
+.position-label { font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); }
+
+#chat { display: grid; grid-template-rows: minmax(0, 1fr); grid-auto-rows: auto; gap: 0.8rem; min-height: 0; }
+
+.transcript {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding-right: 0.4rem;
+}
+
+.line { margin: 0; padding: 0.75rem 1rem; border-radius: 12px; white-space: pre-wrap; max-width: 44rem; }
+.line.reader {
+  font-family: var(--serif);
+  font-size: 1.02rem;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--gold);
+}
+.line.user { align-self: flex-end; border: 1px solid var(--line); color: var(--dim); }
+.line.error { border: 1px solid var(--bad); color: var(--bad); font-size: 0.85rem; }
+
+.reply { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.reply[hidden] { display: none; }
+#reply { flex: 1 1 12rem; min-width: 0; }
+
+/* --- phones -------------------------------------------------------------- */
+
+@media (max-width: 52rem) {
+  .top { padding: 0.5rem 0.7rem; gap: 0.4rem 0.6rem; }
+  .wordmark { font-size: 0.82rem; }
+  /* The bar has to stay one row: a second one is a strip of card taken off the
+     top of the table. A quiet status is truncated to whatever is left over; an
+     error takes a row of its own, because an error is the one thing here worth
+     pushing the table down for. */
+  .status-bar { flex: 1 1 3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .status-bar.bad { flex-basis: 100%; white-space: normal; overflow: visible; }
+
+  /* The table stops being a column and becomes a strip pinned at the top, with
+     the chat scrolling under it. Same DOM, same table -- a screen that cannot
+     hold two columns still holds every card at once. */
+  #stage {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0.7rem;
+    padding: 0.7rem;
+    padding-bottom: max(0.7rem, env(safe-area-inset-bottom));
+  }
+  #table { padding: 0.5rem; border-radius: 10px; overflow: visible; }
+  .spread { display: flex; gap: 0.4rem; }
+  .slot { flex: 1 1 0; min-width: 0; }
+
+  .slot figcaption { min-height: 0; margin-top: 0.35rem; text-align: center; }
+  /* One line per card at strip size. Both would wrap to three on a 360px
+     screen, so the position label hands over to the name when the card turns. */
+  .slot.up .position-label { display: none; }
+  .card-name { font-size: 0.66rem; }
+  .position-label { font-size: 0.56rem; letter-spacing: 0.05em; }
+
+  .line { max-width: 100%; padding: 0.65rem 0.85rem; }
+  .line.reader { font-size: 1rem; }
+  /* 16px or iOS zooms the whole layout when the reply field takes focus. */
+  input, select { font-size: 16px; }
+}

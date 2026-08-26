@@ -102,12 +102,15 @@ summary { cursor: pointer; font-size: 0.85rem; }
 .save-row select { flex: 1 1 18rem; min-width: 0; }
 button:disabled { opacity: 0.4; cursor: default; }
 
-.session-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(15rem, 1fr); gap: 1.75rem; align-items: start; }
-@media (max-width: 60rem) { .save-row { gap: 0.6rem; margin-bottom: 1.5rem; align-items: center; }
-.save-row select { flex: 1 1 18rem; min-width: 0; }
-button:disabled { opacity: 0.4; cursor: default; }
-
-.session-layout { grid-template-columns: 1fr; } }
+/* The machinery column is `auto`, so a collapsed panel costs a summary's width
+   and the transcript takes the rest. Open, it takes a readable fixed width --
+   these panels are dense and reflowing them with the window makes them worse. */
+.session-layout { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1.75rem; align-items: start; }
+.debug-panels { margin-bottom: 0; }
+.debug-panels[open] { width: 22rem; max-width: 100%; }
+.debug-panels[open] > summary { margin-bottom: 0.9rem; }
+.debug-panels .panel-details { margin-bottom: 0; }
+@media (max-width: 60rem) { .session-layout { grid-template-columns: 1fr; } }
 
 .spread { display: flex; gap: 0.9rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
 .slot { margin: 0; width: 11rem; }

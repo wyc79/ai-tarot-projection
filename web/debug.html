@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Tarot — session debug</title>
+  <!-- Relative paths only: served from / locally and from /ai-tarot/ on Pages. -->
+  <link rel="stylesheet" href="css/debug.css">
+</head>
+<body>
+<main class="wide">
+  <h1>AI Tarot — session debug</h1>
+  <p>A seeded reading end to end, with the machinery showing. The styled table
+     is <a href="index.html">index.html</a>; this page is where the gate, the
+     anchor, the scaffolding map and the assembled prompt live, and they never
+     reach it. <a href="pack.html">Browse the pack &rarr;</a></p>
+
+  <div id="status-bar" class="status-bar"><span id="status" class="label"></span></div>
+
+  <details id="settings" open>
+    <summary>Settings</summary>
+    <div class="settings-grid">
+      <label>API key
+        <input id="api-key" type="password" placeholder="sk-ant-…" autocomplete="off">
+      </label>
+      <label class="inline">
+        <input id="key-persist" type="checkbox">
+        remember on this device <span id="key-note" class="label"></span>
+      </label>
+
+      <label>Provider
+        <select id="provider"></select>
+      </label>
+      <label>Mode
+        <select id="mode">
+          <option value="relay">relay (local Python or hosted Worker)</option>
+          <option value="direct">direct (browser → provider)</option>
+        </select>
+      </label>
+      <label>Relay base URL
+        <input id="relay-base" placeholder="blank = same origin">
+      </label>
+
+      <label>Chat model
+        <input id="chat-model">
+      </label>
+      <label>Judge model
+        <input id="judge-model">
+      </label>
+
+      <label>Seed
+        <input id="seed" placeholder="blank = new seed each reading">
+      </label>
+      <div class="row">
+        <button id="start">Start reading</button>
+      </div>
+    </div>
+  </details>
+
+  <div class="row save-row">
+    <span class="label">this reading</span>
+    <button id="save-md" disabled>Download .md</button>
+    <button id="save-json" disabled>Download .json</button>
+    <span class="label">past readings</span>
+    <select id="history"></select>
+    <button id="history-md" disabled>.md</button>
+    <button id="history-json" disabled>.json</button>
+  </div>
+
+  <div class="session-layout">
+    <section>
+      <div id="spread" class="spread"></div>
+      <div id="transcript" class="transcript"></div>
+      <form id="reply-form" class="row" hidden>
+        <input id="reply" placeholder="what does it look like it is pointing at?" autocomplete="off">
+        <button type="submit">Send</button>
+        <button type="button" id="end-reading" hidden>End</button>
+      </form>
+      <!-- After the farewell. The reading is over; staying is a choice, and it
+           is offered rather than assumed. -->
+      <div id="ended-row" class="row" hidden>
+        <button type="button" id="new-reading">New reading</button>
+        <button type="button" id="stay-a-while">Stay a while</button>
+      </div>
+    </section>
+
+    <details class="debug-panels">
+      <summary class="label">Machinery</summary>
+
+      <h2 class="label">Flip gate</h2>
+      <div id="gate" class="panel">—</div>
+
+      <h2 class="label">Anchor</h2>
+      <div id="anchor" class="panel">not committed yet</div>
+
+      <h2 class="label">Scaffolding</h2>
+      <div id="staircase" class="panel">nothing asked yet</div>
+
+      <details class="panel-details">
+        <summary class="label">Assembled prompt (last request)</summary>
+        <pre id="debug-payload">—</pre>
+      </details>
+    </details>
+  </div>
+</main>
+<script type="module" src="js/ui/debug-page.js"></script>
+</body>
+</html>

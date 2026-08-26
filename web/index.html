@@ -2,103 +2,122 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AI Tarot — session debug</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>AI Tarot</title>
   <!-- Relative paths only: served from / locally and from /ai-tarot/ on Pages. -->
-  <link rel="stylesheet" href="css/debug.css">
+  <link rel="stylesheet" href="css/main.css">
 </head>
-<body>
-<main class="wide">
-  <h1>AI Tarot — M2 session debug</h1>
-  <p>A seeded reading end to end. Unstyled on purpose; the card table is M4.
-     <a href="pack.html">Browse the pack &rarr;</a></p>
+<!-- idle until a reading starts, and then never idle again: "new reading"
+     deals a fresh spread onto the same table rather than going back. -->
+<body data-phase="idle">
 
-  <div id="status-bar" class="status-bar"><span id="status" class="label"></span></div>
+<header class="top">
+  <h1 class="wordmark">AI&nbsp;Tarot</h1>
 
-  <details id="settings" open>
+  <div id="status-bar" class="status-bar"><span id="status"></span></div>
+
+  <details id="settings">
     <summary>Settings</summary>
     <div class="settings-grid">
-      <label>API key
-        <input id="api-key" type="password" placeholder="sk-ant-…" autocomplete="off">
+      <label class="wide">API key
+        <input id="api-key" type="password" placeholder="paste your provider key" autocomplete="off">
       </label>
       <label class="inline">
         <input id="key-persist" type="checkbox">
-        remember on this device <span id="key-note" class="label"></span>
+        remember on this device <span id="key-note" class="note"></span>
       </label>
+      <p class="note wide">The key is sent with each request and kept nowhere else — not on the
+         relay, not in a log. Leave the box unticked and it is gone when you close the tab.</p>
 
       <label>Provider
         <select id="provider"></select>
       </label>
-      <label>Mode
-        <select id="mode">
-          <option value="relay">relay (local Python or hosted Worker)</option>
-          <option value="direct">direct (browser → provider)</option>
-        </select>
-      </label>
-      <label>Relay base URL
-        <input id="relay-base" placeholder="blank = same origin">
-      </label>
 
-      <label>Chat model
-        <input id="chat-model">
-      </label>
-      <label>Judge model
-        <input id="judge-model">
-      </label>
-
-      <label>Seed
-        <input id="seed" placeholder="blank = new seed each reading">
-      </label>
-      <div class="row">
-        <button id="start">Start reading</button>
-      </div>
+      <details class="advanced wide">
+        <summary>Advanced</summary>
+        <div class="settings-grid">
+          <label>Mode
+            <select id="mode">
+              <option value="relay">relay (local Python or hosted Worker)</option>
+              <option value="direct">direct (browser → provider)</option>
+            </select>
+          </label>
+          <label>Relay base URL
+            <input id="relay-base" placeholder="blank = same origin">
+          </label>
+          <label>Chat model
+            <input id="chat-model">
+          </label>
+          <label>Judge model
+            <input id="judge-model">
+          </label>
+        </div>
+      </details>
     </div>
   </details>
 
-  <div class="row save-row">
-    <span class="label">this reading</span>
-    <button id="save-md" disabled>Download .md</button>
-    <button id="save-json" disabled>Download .json</button>
-    <span class="label">past readings</span>
-    <select id="history"></select>
-    <button id="history-md" disabled>.md</button>
-    <button id="history-json" disabled>.json</button>
-  </div>
-
-  <div class="session-layout">
-    <section>
-      <div id="spread" class="spread"></div>
-      <div id="transcript" class="transcript"></div>
-      <form id="reply-form" class="row" hidden>
-        <input id="reply" placeholder="what does it look like it is pointing at?" autocomplete="off">
-        <button type="submit">Send</button>
-        <button type="button" id="end-reading" hidden>End</button>
-      </form>
-      <!-- After the farewell. The reading is over; staying is a choice, and it
-           is offered rather than assumed. -->
-      <div id="ended-row" class="row" hidden>
-        <button type="button" id="new-reading">New reading</button>
-        <button type="button" id="stay-a-while">Stay a while</button>
+  <!-- Exports. Out of the reading's way on purpose: keeping the transcript is
+       something you decide afterwards, not part of getting through a session. -->
+  <details id="journal">
+    <summary>Readings</summary>
+    <div class="journal-grid">
+      <div class="row">
+        <span class="note">this one</span>
+        <button id="save-md" disabled>Download .md</button>
+        <button id="save-json" disabled>Download .json</button>
       </div>
-    </section>
+      <div class="row">
+        <span class="note">earlier</span>
+        <select id="history"></select>
+        <button id="history-md" disabled>.md</button>
+        <button id="history-json" disabled>.json</button>
+      </div>
+    </div>
+  </details>
+</header>
 
-    <aside>
-      <h2 class="label">Flip gate</h2>
-      <div id="gate" class="panel">—</div>
-
-      <h2 class="label">Anchor</h2>
-      <div id="anchor" class="panel">not committed yet</div>
-
-      <h2 class="label">Scaffolding</h2>
-      <div id="staircase" class="panel">nothing asked yet</div>
-
-      <details class="panel-details">
-        <summary class="label">Assembled prompt (last request)</summary>
-        <pre id="debug-payload">—</pre>
-      </details>
-    </aside>
+<!-- Before the first card. Everything a stranger needs in order to press one
+     button, and the quiet line about what this is not. -->
+<section id="intro">
+  <div class="intro-inner">
+    <h2>Three cards, and what you make of them.</h2>
+    <p>The spread goes face down on the table before anything is said. You are asked what you
+       see in the card in front of you; it turns over when the conversation has somewhere to go.
+       Nothing here predicts anything — the cards are something to think out loud at.</p>
+    <p>Bring your own API key. What you say goes to the model you chose and nowhere else.</p>
+    <p class="quiet">This is a space for reflection, not therapy or crisis support. If things are
+       heavy right now, <a href="https://findahelpline.com" target="_blank" rel="noopener">findahelpline.com</a>
+       lists people who can actually help.</p>
+    <button id="start" class="primary">Begin</button>
+    <p class="note">Your key goes in Settings, above.</p>
   </div>
+</section>
+
+<main id="stage">
+  <!-- The table. Fixed on the left, a pinned strip on a phone, and never
+       scrolled away from in either case. -->
+  <section id="table">
+    <div id="spread" class="spread"></div>
+  </section>
+
+  <section id="chat">
+    <div id="transcript" class="transcript"></div>
+
+    <form id="reply-form" class="reply" hidden>
+      <input id="reply" placeholder="in your own words…" autocomplete="off">
+      <button type="submit" class="primary">Say it</button>
+      <button type="button" id="end-reading" hidden>End</button>
+    </form>
+
+    <!-- After the farewell. The reading is over; staying is a choice, and it
+         is offered rather than assumed. -->
+    <div id="ended-row" class="reply" hidden>
+      <button type="button" id="new-reading" class="primary">New reading</button>
+      <button type="button" id="stay-a-while">Stay a while</button>
+    </div>
+  </section>
 </main>
-<script type="module" src="js/ui/session-page.js"></script>
+
+<script type="module" src="js/ui/reading-page.js"></script>
 </body>
 </html>
