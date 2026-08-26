@@ -15,9 +15,7 @@
 
 import { saveToHistory } from "./journal.js";
 import { judgements } from "./judgements.js";
-import {
-  flipDirection, readerMessages, readerSystem, readerTurnBlock,
-} from "./prompts.js";
+import { flipDirection, readerCall } from "./prompts.js";
 import {
   afterglowDrift, close, commitAnchor, createSession, currentCard, dealtCardFor, end,
   epilogueEarned, farewellDue, flipCard, flipDecision, flipEpilogue, nextPosition,
@@ -98,14 +96,12 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
     // Hand agency back on the first high-stakes turn only. Saying it again every
     // time the subject resurfaces turns honesty into a disclaimer.
     const handback = session.last_stakes === "high" && !session.handback_given;
-    const system = readerSystem({ pack, session });
-    const messages = readerMessages(pack, session, {
-      stageDirection,
-      turnBlock: readerTurnBlock({ pack, session, turn, handback }),
-    });
-    onEvent({ type: "reader_start", turn });
+    const { kind, plan, system, messages } =
+      readerCall({ pack, session, turn, handback, stageDirection });
+    onEvent({ type: "reader_start", turn: kind, plan });
 
     const raw = await client.chat({
+      kind,
       system,
       messages,
       onDelta: (delta, full) => onEvent({ type: "reader_delta", delta, full }),

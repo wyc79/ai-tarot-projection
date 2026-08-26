@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { startReading } from "../../web/js/engine/reading.js";
 import { makeStorage, memoryBackend } from "../../web/js/storage.js";
 import {
-  cardOnly, declines, fakeClient, gate, realPack, sessionShowing, wants,
+  cardOnly, declines, fakeClient, gate, promptFor, realPack, sessionShowing, wants,
 } from "./helpers.mjs";
 
 const SEED = "moon-4f2a91";
@@ -488,7 +488,6 @@ test("every turn instruction still carries the rules it is supposed to", async (
   // A guard against edits that silently fail to apply: each turn's instruction
   // is checked for the thing it exists to say. Two prompt fixes were lost this
   // way before this test existed.
-  const { readerSystem, readerTurnBlock } = await import("../../web/js/engine/prompts.js");
   const pack = await realPack();
   const base = sessionShowing(pack, "major-00-fool");
   // Patterns are matched against the prompt with its whitespace collapsed, so
@@ -507,7 +506,7 @@ test("every turn instruction still carries the rules it is supposed to", async (
              /in a clause, not a paragraph/, /Then one question/],
     close: [/one small concrete thing/, /Then stop/],
   };
-  const flat = (turn) => `${readerSystem({ pack, session: base })}\n${readerTurnBlock({ pack, session: base, turn })}`.replace(/\s+/g, " ");
+  const flat = (turn) => promptFor(pack, base, turn).replace(/\s+/g, " ");
   // The shape itself is a standing rule, so it must reach every turn.
   for (const turn of Object.keys(required)) {
     assert.match(flat(turn), /## The shape of every turn/,

@@ -139,7 +139,7 @@ function firstSentence(text) {
  * then climbs again from whatever they say, and because the ceiling rises
  * across the spread, each card can go further than the one before it.
  */
-function ladderState(pack, session, standing = cardStanding(session)) {
+function ladderPlan(pack, session, standing = cardStanding(session)) {
   const position = standing.card && pack.position(standing.position);
   const userLevel = standing.last?.gate?.user_level ?? null;
   const deflected = standing.last?.disclosure_depth === 1;
@@ -174,10 +174,10 @@ function ladderState(pack, session, standing = cardStanding(session)) {
  * page of questions to choose from, and a reader with a page of questions in
  * front of it writes questions that sound chosen.
  */
-function describeLadder(pack, session, turn) {
-  if (session.phase === "opening") return "";
-  const { userLevel, target, targetIfCrossing, rail, ceiling, deflected, highest } =
-    ladderState(pack, session);
+function describeLadder(pack, plan) {
+  if (!plan.ladder) return "";
+  const { userLevel, target, targetIfCrossing, rail, ceiling, deflected, highest } = plan.ladder;
+  const turn = plan.kind;
   const rungs = pack.levels
     .map((level) => (level.id === userLevel ? `  ${level.id}  <- they are here` : `  ${level.id}`))
     .join("\n");
@@ -338,7 +338,7 @@ function describeRecap(pack, session) {
     lines.push("    now is an interview. Go up, into what they already said — never sideways");
     lines.push("    into what else there is.");
   }
-  const ladder = ladderState(pack, session, standing);
+  const ladder = ladderPlan(pack, session, standing);
   lines.push(`  they are standing at: ${ladder.userLevel ?? "nothing said on this card yet"}`);
   lines.push(`  reach no further than: ${ladder.target}${ladder.ceiling ? ` (this position tops out at ${ladder.ceiling})` : ""}`);
   lines.push(`  highest they have reached all session: ${ladder.highest ?? "nothing yet"}`);
@@ -401,7 +401,57 @@ export function readerSystem({ pack, session }) {
 }
 
 /**
- * What is true right now and what this turn is for.
+ * What is true for this turn, before a word of it is written.
+ *
+ * The seam this module did not have. Everything below it is wording; everything
+ * in here is a decision -- which turn this is, how far it may reach, whether the
+ * frame is dropped, whether the close owes a face-down card a line. They used to
+ * be interleaved, one `lines.push` at a time, which meant the only way to assert
+ * a rule was to match the sentence that expressed it. 108 assertions did, and
+ * seven of them matched its line breaks, so reflowing a paragraph failed tests
+ * about the pacing.
+ *
+ * Now a rule is a field. Tests read the plan; a handful of golden tests read the
+ * prose. Rewording is free and changing a rule is loud, which is the way round
+ * it should have been.
+ *
+ * The turn kind is validated here rather than defaulted. TURN_INSTRUCTIONS used
+ * to be indexed with `?? TURN_INSTRUCTIONS.respond`, so a typo in the controller
+ * was a respond turn that nothing caught.
+ *
+ * @param {object} options
+ * @param {object} options.pack
+ * @param {object} options.session
+ * @param {string} options.turn      one of TURN_INSTRUCTIONS
+ * @param {boolean} [options.handback] hand agency back in this turn; the
+ *   controller decides it, because only it knows whether it has happened yet
+ */
+export function turnPlan({ pack, session, turn, handback = false }) {
+  if (!TURN_INSTRUCTIONS[turn]) {
+    throw new Error(`no instruction for turn kind "${turn}"`);
+  }
+  const rules = [];
+  // Safety outranks everything, and it replaces the reader's voice rather than
+  // decorating it -- so the two are exclusive, not additive.
+  if (session.safety_state === "drop_frame") rules.push("frame_dropped");
+  else if (handback) rules.push("stakes_high");
+
+  return {
+    kind: turn,
+    rules,
+    /**
+     * Cards that never turned, and only on the turn that owes them a line. The
+     * fourth card is decided before the close, so by the time this runs the
+     * question is settled and the count is final.
+     */
+    face_down: turn === "close" ? tableau(session).filter((t) => !t.face_up).length : 0,
+    /** Null before anything is dealt: there is no card to stand on yet. */
+    ladder: session.phase === "opening" ? null : ladderPlan(pack, session),
+  };
+}
+
+/**
+ * What is true right now and what this turn is for, as prose.
  *
  * Goes last, after the transcript, and that ordering is not only about caching:
  * the session record is declared to outrank the conversation above it, and a
@@ -409,24 +459,18 @@ export function readerSystem({ pack, session }) {
  * before. The turn instruction lands last of all, which is where an instruction
  * belongs.
  */
-export function readerTurnBlock({ pack, session, turn, handback = false }) {
+export function readerTurnBlock({ pack, session, plan }) {
   const parts = [
     describeRecap(pack, session),
     describeCard(pack, session),
-    describeLadder(pack, session, turn),
+    describeLadder(pack, plan),
   ];
 
-  if (session.safety_state === "drop_frame") {
-    parts.push(RULES_WHEN_FRAME_DROPPED);
-  } else if (handback) {
-    parts.push(RULES_WHEN_STAKES_HIGH);
-  }
+  if (plan.rules.includes("frame_dropped")) parts.push(RULES_WHEN_FRAME_DROPPED);
+  else if (plan.rules.includes("stakes_high")) parts.push(RULES_WHEN_STAKES_HIGH);
 
-  // Before the instruction, not after it: turnKindOf reads the tail of the
-  // assembled prompt to say which turn this was, and anything appended past the
-  // instruction makes every turn read as "unknown".
-  parts.push(deckKeepsOne(session, turn));
-  parts.push(TURN_INSTRUCTIONS[turn] ?? TURN_INSTRUCTIONS.respond);
+  if (plan.face_down) parts.push(deckKeepsOne(plan.face_down));
+  parts.push(TURN_INSTRUCTIONS[plan.kind]);
   return parts.filter(Boolean).join("\n");
 }
 
@@ -439,15 +483,12 @@ export function readerTurnBlock({ pack, session, turn, handback = false }) {
  * close owes it a line. The line is the return hook and it must not land as a
  * grade -- "you did not earn it" is exactly what a reading is not for.
  */
-function deckKeepsOne(session, turn) {
-  if (turn !== "close") return "";
-  const down = tableau(session).filter((t) => !t.face_up);
-  if (!down.length) return "";
+function deckKeepsOne(count) {
   return `
 ## One card stays face down
 
-There ${down.length === 1 ? "is a card" : `are ${down.length} cards`} on the table that never turned over, and
-they can see ${down.length === 1 ? "it" : "them"}. Say so, once, in one line near the end — something of the
+There ${count === 1 ? "is a card" : `are ${count} cards`} on the table that never turned over, and
+they can see ${count === 1 ? "it" : "them"}. Say so, once, in one line near the end — something of the
 order of "one card stays with the deck today; it'll be there when you come back."
 
 **As an invitation, never as a verdict.** Not withheld, not unearned, not
@@ -694,17 +735,29 @@ someone. Just turn back, or open the door.`,
 };
 
 /**
- * Which turn instruction a system prompt ends with.
+ * One reader turn, assembled: what to send, and what it was decided to be.
  *
- * readerTurnBlock appends one of TURN_INSTRUCTIONS verbatim, so this is exact.
- * It exists because the test helpers and the fixture script each kept their own
- * table of marker regexes against these strings, and both drifted: the fixture's
- * bridge marker had not matched anything for some time, so --prompt=bridge
- * printed "no bridge turn in this session" for a session with two of them.
+ * The front door. It used to take three calls in the right order with the right
+ * arguments -- readerSystem, then readerTurnBlock, then readerMessages with the
+ * block folded in -- and the caller had to know that the block goes in the
+ * messages rather than the system, which is the sort of thing you get right by
+ * copying the last place that did it.
+ *
+ * `kind` goes on the call so the far end knows what it was asked for without
+ * reading the prose back. `plan` does not go on the wire; it is the turn's
+ * reasoning, for events, the debug page, and tests.
  */
-export function turnKindOf(system) {
-  return Object.keys(TURN_INSTRUCTIONS).find((kind) => system.endsWith(TURN_INSTRUCTIONS[kind]))
-    ?? "unknown";
+export function readerCall({ pack, session, turn, handback = false, stageDirection = null }) {
+  const plan = turnPlan({ pack, session, turn, handback });
+  return {
+    kind: plan.kind,
+    plan,
+    system: readerSystem({ pack, session }),
+    messages: readerMessages(pack, session, {
+      stageDirection,
+      turnBlock: readerTurnBlock({ pack, session, plan }),
+    }),
+  };
 }
 
 /**
