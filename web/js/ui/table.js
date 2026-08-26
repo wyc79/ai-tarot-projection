@@ -64,9 +64,12 @@ export function makeTable(container, pack) {
     turn(session) {
       for (const slot of tableau(session)) {
         const figure = slots.get(slot.position);
-        if (!figure || !slot.face_up || figure.classList.contains("up")) continue;
-        const card = pack.card(slot.card_id);
+        if (!figure || !slot.face_up) continue;
         const front = figure.querySelector(".front");
+        // The face is the record of whether this one has already turned. Not
+        // the .up class, which arrives a moment later than this decides.
+        if (front.getAttribute("src")) continue;
+        const card = pack.card(slot.card_id);
         front.src = pack.imageUrl(card);
         // No caption describing the picture. A printed description is something
         // to agree with, and agreeing is not projecting -- whatever they say
@@ -81,7 +84,11 @@ export function makeTable(container, pack) {
         // what the pack calls it.
         figure.querySelector(".position-label").textContent =
           pack.position(slot.position)?.label ?? slot.position;
-        figure.classList.add("up");
+        // The rotation exposes the front halfway through, so the face has to be
+        // decoded before it starts -- otherwise the card turns over onto a
+        // blank rectangle and fills in afterwards. A decode that fails still
+        // flips: a broken image is better than a card that never turns.
+        front.decode().catch(() => {}).then(() => figure.classList.add("up"));
       }
     },
   };
