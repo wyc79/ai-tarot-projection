@@ -200,10 +200,18 @@ function onEvent(event) {
       break;
     case "closed":
       renderStaircase();
-      setStatus("reading closed", "ok");
-      $("reply-form").hidden = true;
+      // The reading is finished; the conversation is not. The form stays, and
+      // the person decides when to stop rather than being hung up on.
+      setStatus("reading closed — keep talking, or end it when you want", "ok");
+      $("end-reading").hidden = false;
       // The label is written before close() runs, so it would otherwise keep
       // calling a finished reading unfinished until the next reload.
+      refreshHistory();
+      break;
+    case "ended":
+      setStatus("ended", "ok");
+      $("reply-form").hidden = true;
+      $("end-reading").hidden = true;
       refreshHistory();
       break;
     default:
@@ -236,6 +244,7 @@ async function start() {
   });
 
   $("reply-form").hidden = false;
+  $("end-reading").hidden = true;
   $("settings").open = false;
   try {
     await reading.begin();
@@ -310,6 +319,9 @@ async function main() {
     $("reply").value = "";
     say(text);
   });
+  // Only a person ends a reading. The button appears when the closing beat has
+  // been given and does nothing before that.
+  $("end-reading").addEventListener("click", () => reading?.end());
 
   setStatus(`${pack.name}, ${pack.cards.length} cards`);
 }

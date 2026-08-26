@@ -63,6 +63,18 @@ export function toMarkdown(pack, session) {
   if (session.closing_reflection) {
     lines.push("## The step", "", session.closing_reflection.trim(), "");
   }
+
+  // After the step, because that is where it happened. The reading closes on
+  // its beat and the conversation carries on if they want it to, so the keepsake
+  // has to be able to show both without pretending the beat came last.
+  const afterward = exchangesFor(session, "afterward");
+  if (afterward.length) {
+    lines.push("## After that", "");
+    for (const exchange of afterward) {
+      if (exchange.q) lines.push(exchange.q.trim(), "");
+      lines.push(`**You:** ${exchange.a.trim()}`, "");
+    }
+  }
   if (session.safety_state === "drop_frame") {
     lines.push("---", "", "_This reading stopped being a reading partway through._", "");
   }

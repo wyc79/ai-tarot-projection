@@ -88,7 +88,10 @@ export function createSession({ packId, seed, positions, startedAt = Date.now() 
     /** Agency is handed back once, not every turn until they stop mentioning it. */
     handback_given: false,
     closing_reflection: null,
+    /** The spread is done and the closing beat has been given. */
     closed: false,
+    /** They said they were done. Only a person sets this. */
+    ended: false,
   };
 }
 
@@ -488,5 +491,42 @@ export function isReadyToClose(session, gate) {
 export function close(session, reflection) {
   session.closing_reflection = reflection;
   session.closed = true;
+  return session;
+}
+
+/**
+ * A turn after the reading closed.
+ *
+ * Under its own position rather than the advice card's, for the same reason the
+ * opening turn has one: it must not count toward a card's rhythm. Nothing here
+ * can flip anything -- the spread is full and the beat has been given -- but the
+ * stakes still land, because a person is still talking and the frame can still
+ * need dropping.
+ */
+export function recordAfterward(session, { question, answer, gate }) {
+  session.exchanges.push({
+    q: question,
+    a: answer,
+    disclosure_depth: gate.disclosure_depth ?? 0,
+    position: "afterward",
+    question_type: questionType(question),
+    question_level: questionLevel(question),
+    gate: { ...gate },
+  });
+  session.last_stakes = gate.stakes ?? session.last_stakes;
+  if (gate.stakes === "crisis") session.safety_state = "drop_frame";
+  return session;
+}
+
+/**
+ * They said they were done.
+ *
+ * The reading closes on its own -- that rule is not negotiable and nothing here
+ * touches it. What changes is that closing no longer hangs up on them. The beat
+ * is given, the ledger is sealed, and if they keep talking the reader keeps
+ * answering until they stop. Ending is theirs.
+ */
+export function end(session) {
+  session.ended = true;
   return session;
 }

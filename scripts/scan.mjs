@@ -118,7 +118,9 @@ export function scanSession(session, pack = null) {
     const question = finalQuestion(turn.text);
     const questions = (turn.text.match(/\?/g) ?? []).length;
     const sentences = sentencesIn(turn.text);
-    const closing = turn.position === "close";
+    // The closing beat ends on a step, and a turn after the reading has closed
+    // may end on a goodbye. Neither owes anyone a question.
+    const closing = turn.position === "close" || turn.position === "afterward";
 
     if (deals.has(turn.index) && question && questionType(turn.text) !== "projection") {
       add(turn, "deal_turn_life_question",

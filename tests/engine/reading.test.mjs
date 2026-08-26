@@ -202,13 +202,59 @@ test("the session is persisted as it goes, and survives a reload", async () => {
   assert.equal(saved.exchanges.at(-1).a, "something");
 });
 
-test("a closed reading refuses further turns", async () => {
-  const { reading } = await run({
-    gates: Array.from({ length: 8 }, () => gate(4)),
+test("a closed reading keeps talking; only the person ends it", async () => {
+  const { reading, client } = await run({
+    gates: Array.from({ length: 10 }, () => gate(4)),
     answers: ["a", "b", "c", "d", "e", "f", "g", "h"],
   });
-  assert.equal(reading.session.closed, true);
-  await assert.rejects(reading.say("more"), /closed/);
+  const s = reading.session;
+  assert.equal(s.closed, true);
+  assert.equal(s.ended, false);
+  assert.equal(client.calls.chat.at(-1).turn, "close");
+
+  await reading.say("that last bit landed, actually");
+  assert.equal(client.calls.chat.at(-1).turn, "after", "it answered rather than hanging up");
+  assert.equal(s.cards.length, 3, "and it did not deal a fourth card");
+  assert.equal(s.closing_reflection, "[close]", "the beat it ended on is still the beat");
+  assert.equal(s.cards.at(-1).ai_reading, "[close]",
+               "the advice card still records how the reading ended, not what came after");
+
+  const afterward = s.exchanges.filter((e) => e.position === "afterward");
+  assert.equal(afterward.length, 1, "under its own position, off every card's rhythm");
+  assert.equal(afterward[0].a, "that last bit landed, actually");
+
+  reading.end();
+  assert.equal(s.ended, true);
+  await assert.rejects(reading.say("more"), /ended/);
+});
+
+test("the reader is told the spread is spent, and told to let them go", async () => {
+  const { reading, client } = await run({
+    gates: Array.from({ length: 10 }, () => gate(4)),
+    answers: ["a", "b", "c", "d", "e", "f", "g", "h"],
+  });
+  await reading.say("thanks, that was interesting");
+  const prompt = client.calls.chat.at(-1).prompt.replace(/\s+/g, " ");
+  assert.match(prompt, /THE READING IS FINISHED/);
+  assert.match(prompt, /No card turns over, now or ever again/);
+  assert.match(prompt, /If they are saying goodbye, say goodbye/);
+  assert.match(prompt, /none of the pacing applies any more/);
+  // The ladder is still there on purpose. "Do not ask two rungs above where
+  // they are standing" is about not making someone invent an answer, and that
+  // does not stop being true because the cards are spent.
+  assert.match(prompt, /reach no further than/);
+});
+
+test("someone can still say the thing after the beat, and the frame still drops", async () => {
+  const { reading, events } = await run({
+    // Eight to reach the beat, then the one that arrives after it.
+    gates: [...Array.from({ length: 8 }, () => gate(4)), gate(4, "crisis")],
+    answers: ["a", "b", "c", "d", "e", "f", "g", "h"],
+  });
+  await reading.say("actually my brother died in March");
+  assert.equal(reading.session.safety_state, "drop_frame",
+               "a closing beat is not a reason to stop listening");
+  assert.ok(events.some((e) => e.type === "frame_dropped"));
 });
 
 test("the reader is told not to invent what the user said", async () => {

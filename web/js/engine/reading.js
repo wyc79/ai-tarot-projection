@@ -21,9 +21,9 @@ import {
   judgeMessages, openingMessages, readerMessages, readerSystem, readerTurnBlock,
 } from "./prompts.js";
 import {
-  close, commitAnchor, createSession, currentCard, flipCard, flipDecision,
-  recordExchange, recordOffFrame, recordOpening, recordReading, spreadComplete,
-  updateAnchor,
+  close, commitAnchor, createSession, currentCard, end, flipCard, flipDecision,
+  recordAfterward, recordExchange, recordOffFrame, recordOpening, recordReading,
+  spreadComplete, updateAnchor,
 } from "./state.js";
 import { makeDeal } from "./draw.js";
 import { newSeed } from "./rng.js";
@@ -75,7 +75,7 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
     saveToHistory(storage, session);
   }
 
-  async function readerTurn(turn, { stageDirection = null, readingOffset = 0 } = {}) {
+  async function readerTurn(turn, { stageDirection = null, readingOffset = 0, onCard = true } = {}) {
     // Hand agency back on the first high-stakes turn only. Saying it again every
     // time the subject resurfaces turns honesty into a disclaimer.
     const handback = session.last_stakes === "high" && !session.handback_given;
@@ -97,7 +97,10 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
     const text = unwrapQuotes(raw);
 
     if (handback) session.handback_given = true;
-    recordReading(session, text, { offset: readingOffset });
+    // A turn after the reading closed belongs to no card: the advice card's
+    // ai_reading is the closing beat, and overwriting it with whatever was said
+    // afterwards rewrites how the reading ended.
+    if (onCard) recordReading(session, text, { offset: readingOffset });
     lastQuestion = text;
     onEvent({ type: "reader_done", text, turn });
     persist();
@@ -220,9 +223,19 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
       return session;
     },
 
+    /**
+     * They are done. The only thing that sets it, and only a person calls it.
+     */
+    end() {
+      end(session);
+      persist();
+      onEvent({ type: "ended" });
+      return session;
+    },
+
     /** One user turn. Everything that follows from it happens here. */
     async say(answer) {
-      if (session.closed) throw new Error("this reading is closed");
+      if (session.ended) throw new Error("this reading has ended");
 
       if (session.phase === "opening") return this.openWith(answer);
 
@@ -241,6 +254,24 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
         messages: judgeMessages(pack, session, { question: lastQuestion, answer }),
         schema: gateSchema(pack),
       });
+
+      // The reading is over and they are still talking. That is allowed, and it
+      // is not a reason to hang up on them or to start a second reading: the
+      // beat has been given, the ledger is sealed, and the three cards are
+      // still on the table to route through. They end it, not the spread.
+      //
+      // The gate still runs, because stakes still do. Someone can say the thing
+      // they came in not planning to say after the closing beat as easily as
+      // before it, and the frame has to be droppable here too.
+      if (session.closed) {
+        recordAfterward(session, { question: lastQuestion, answer, gate });
+        onEvent({ type: "gate", gate });
+        if (session.safety_state === "drop_frame") onEvent({ type: "frame_dropped" });
+        await readerTurn("after", { onCard: false });
+        persist();
+        return { gate, decision: { flip: false, reason: "the reading is closed; this is after it" } };
+      }
+
       recordExchange(session, { question: lastQuestion, answer, gate });
       onEvent({ type: "gate", gate });
 

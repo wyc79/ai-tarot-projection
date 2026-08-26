@@ -276,6 +276,11 @@ function describeRecap(pack, session) {
   const position = entry && pack.positions.find((p) => p.id === entry.position);
   const depth = depthOnCurrentCard(session);
   lines.push("", "now:");
+  if (session.closed) {
+    lines.push("  THE READING IS FINISHED. The closing beat is given and the spread is spent.");
+    lines.push("    They are still here and still talking, which is theirs to do. Nothing below");
+    lines.push("    can turn another card, and none of the pacing applies any more.");
+  }
   lines.push(`  arc position: ${position ? `${position.id} (${position.arc_role} — ${position.prompt_hint})` : "nothing dealt yet"}`);
   if (position) lines.push(`  moves weighted here: ${position.moves.join(", ")}`);
   lines.push(`  disclosure depth on this card: ${depth === null ? "they have not answered yet" : depth}`);
@@ -463,6 +468,26 @@ This is the turn most often got wrong, and it is got wrong by being clever:
 the observation opens something up, and the question chases that instead of
 the card that just landed. The chase costs them the projection.`,
 
+  after: `
+## This turn
+
+The reading is finished. You gave the closing beat and they have kept talking,
+which is a normal thing for someone to do and is not a signal to start again.
+
+**No card turns over, now or ever again in this conversation.** There is no
+fourth card and there is no second reading. If they ask for one, say so plainly
+and briefly rather than performing reluctance about it.
+
+Do not restate the step you left them with and do not summarise the session --
+they were there. Answer what they actually said, in their words, and keep
+routing it through the three cards on the table. Those are what you have, and
+they are the difference between this and a stranger asking personal questions.
+
+Same shape as any other turn: one observation, one question. The exception is
+someone winding down. If they are saying goodbye, say goodbye — a short reply
+that asks nothing is the right answer to "thanks, that was interesting", and
+holding them with one more question is the worst possible last impression.`,
+
   close: `
 ## This turn
 
@@ -497,6 +522,29 @@ export function turnKindOf(system) {
 }
 
 /**
+ * How many exchanges go into the prompt verbatim.
+ *
+ * The transcript is texture; the session record is the record. Everything a
+ * later turn is required to be consistent with -- the anchor and their exact
+ * phrases, every card with what they read into it and what was said back, the
+ * topic, the safety state -- is assembled from state on every turn and declared
+ * to outrank the history. So the oldest turns can fall off the front without
+ * anything structural falling off with them.
+ *
+ * Ten is chosen against the longest reading the pacing allows, which is twelve
+ * exchanges plus the opening: a reading that runs to its caps drops its first
+ * two or three turns near the end, and those are the ones about the first card,
+ * which the record carries in full. Where this really earns itself is after the
+ * closing beat, when the conversation can run as long as the person wants it
+ * to and there is no card left to bound it.
+ *
+ * The cost is that the message list stops being a stable prefix once it starts
+ * sliding, so a provider doing incremental caching over messages loses it. The
+ * 22 KB that actually matters is the system prompt, which does not move.
+ */
+export const TRANSCRIPT_WINDOW = 10;
+
+/**
  * The transcript so far, then what is true now and what this turn is for.
  *
  * The turn block is folded into the final user message rather than sent as its
@@ -505,7 +553,16 @@ export function turnKindOf(system) {
  */
 export function readerMessages(pack, session, { stageDirection = null, turnBlock = "" } = {}) {
   const messages = [];
-  for (const exchange of session.exchanges) {
+  const shown = session.exchanges.slice(-TRANSCRIPT_WINDOW);
+  const elided = session.exchanges.length - shown.length;
+  if (elided) {
+    messages.push({ role: "user", content:
+      `(${elided} earlier exchange${elided === 1 ? "" : "s"} in this session are not `
+      + "repeated here. They happened, and the session record below is the record of "
+      + "them — it is assembled from the table and it is complete. Do not say or imply "
+      + "that the conversation began where this transcript begins.)" });
+  }
+  for (const exchange of shown) {
     if (exchange.q) messages.push({ role: "assistant", content: exchange.q });
     messages.push({ role: "user", content: exchange.a });
   }

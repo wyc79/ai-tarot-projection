@@ -399,3 +399,36 @@ test("the strip is wired into the turn, not just exported", async () => {
   assert.equal(card.ai_reading, "What does it look like it is pointing at for you?");
   assert.ok(!card.ai_reading.startsWith('"'), "it reached the ledger with quotes on it");
 });
+
+// -- the transcript window ------------------------------------------------
+
+test("a long conversation stops re-sending the whole transcript", async () => {
+  const { TRANSCRIPT_WINDOW, readerMessages } = await import("../../web/js/engine/prompts.js");
+  const pack = await realPack();
+  const session = {
+    positions: ["situation", "obstacle", "advice"], anchor: null, safety_state: "normal",
+    last_stakes: "low", phase: "reading", topic: null, cards: [],
+    exchanges: Array.from({ length: TRANSCRIPT_WINDOW + 4 },
+                          (_, i) => ({ q: `question ${i}`, a: `answer ${i}`, position: "situation" })),
+  };
+  const messages = readerMessages(pack, session, { turnBlock: "TURN" });
+
+  const elision = messages[0].content;
+  assert.match(elision, /4 earlier exchanges in this session are not repeated here/);
+  assert.match(elision, /Do not say or imply/);
+  assert.ok(!messages.some((m) => m.content === "question 3"), "an elided turn came through");
+  assert.ok(messages.some((m) => m.content === "question 4"), "the window is off by one");
+  assert.ok(messages.at(-1).content.includes("TURN"), "the turn block still lands last");
+});
+
+test("a reading short enough to fit is sent whole, with nothing said about eliding", async () => {
+  const { readerMessages } = await import("../../web/js/engine/prompts.js");
+  const pack = await realPack();
+  const session = {
+    positions: ["situation"], anchor: null, safety_state: "normal", last_stakes: "low",
+    phase: "reading", topic: null, cards: [],
+    exchanges: [{ q: "q", a: "a", position: "situation" }],
+  };
+  const messages = readerMessages(pack, session, { turnBlock: "TURN" });
+  assert.ok(!messages.some((m) => /not repeated here/.test(m.content)));
+});
