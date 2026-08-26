@@ -24,6 +24,12 @@ function onStart(reading) {
 
 function onEvent(event) {
   if (event.type === "flip") table.turn(ui.reading.session);
+  // A reading that never got a word out is not a reading to sit in front of:
+  // back to the door, where the button and the settings are. The error is in
+  // the status bar, which is in the header and visible either way.
+  if (event.type === "reading_failed" && !event.spoke) {
+    document.body.dataset.phase = "idle";
+  }
 }
 
 async function main() {

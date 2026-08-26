@@ -76,6 +76,9 @@ export async function mountSession({
   let keyStore = makeStorage(memoryBackend());
   let reading = null;
   let streamingLine = null;
+  // Whether this reading has ever got a word out. A failure before that is a
+  // reading that never began, and a page may want to undo whatever it showed.
+  let spoke = false;
 
   const pack = await loadPack(packDir);
 
@@ -124,9 +127,17 @@ export async function mountSession({
     if (streamingLine && !streamingLine.textContent) streamingLine.remove();
     streamingLine = null;
     const code = error.code ?? error.name ?? "error";
-    setStatus(`${code}: ${error.message}`, "bad");
+    // The hint goes in the bar as well as the transcript. It is the half that
+    // says what to go and do, and the transcript is not always the thing still
+    // on screen once a failed reading has been taken back off it.
+    setStatus(error.hint ? `${code}: ${error.message} — ${error.hint}` : `${code}: ${error.message}`, "bad");
     addLine("error", error.hint ? `${code}: ${error.message}\n↳ ${error.hint}` : `${code}: ${error.message}`);
     console.error(error);
+    // A first turn that failed leaves a page showing a reading that does not
+    // exist, with no way back to the button that starts one. The styled page
+    // returns to its door on this; the debug page, whose start button never
+    // goes anywhere, ignores it.
+    onEvent({ type: "reading_failed", error, spoke });
   }
 
   /**
@@ -144,6 +155,7 @@ export async function mountSession({
         break;
       case "reader_done":
         streamingLine = null;
+        spoke = true;
         // Downloadable from the first turn: an abandoned reading is often the
         // one worth keeping.
         $("save-md").disabled = false;
@@ -194,6 +206,7 @@ export async function mountSession({
     if (!$("api-key").value.trim()) return setStatus("no API key", "bad");
     saveConfig();
     $("transcript").innerHTML = "";
+    spoke = false;
 
     reading = startReading({
       pack,

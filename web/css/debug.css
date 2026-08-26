@@ -27,6 +27,11 @@ h1 { font-size: 1.1rem; font-weight: 600; margin: 0 0 0.25rem; }
 h1 + p { margin: 0 0 2rem; color: var(--dim); font-size: 0.85rem; }
 
 .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem; }
+/* An author `display` beats the UA rule for [hidden], so without this the
+   reply form and the ended row were laid out whatever the attribute said --
+   which meant the end of a reading never actually took the input away, and
+   "new reading" / "stay a while" sat there from page load. */
+.row[hidden] { display: none; }
 
 select, input, button {
   font: inherit;
