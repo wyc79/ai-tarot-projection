@@ -12,7 +12,14 @@ Tarot as a doorway, not divination. The cards are projective prompts that get pe
   4. Symbol packs as data: fork it, drop in your own deck
 
 ## Core mechanics
-- 3-card spread (situation / obstacle / advice), optional 4th "advice earned" card later
+- 3-card spread (situation / obstacle / advice), plus an EARNED 4th card that reads as epilogue.
+  Pack data (deck.json `epilogue`), deliberately not a fourth entry in positions[]: the spread is
+  three and this one only exists when a session goes past its own ending. Earned means a real
+  disclosure AFTER the closing beat - life content, unhedged, at the depth that buys a card
+  anywhere else. Politeness does not earn it and neither does asking for one. Once per session,
+  ever. Then it behaves like any card, down to the flip rule: the spread is full, so the last-card
+  branch fires and flipping it means closing again, with the step re-sized to how far they got in
+  the end. The first beat is not lost - it is on the advice card, where it was said
 - Before anything is dealt, ask whether there is something particular they want to look at.
   A named topic becomes the ground the reading is bent toward and seeds the anchor; declining
   is a normal answer and proceeds as before. Stakes are classified on that answer too, so the
@@ -98,7 +105,7 @@ Tarot as a doorway, not divination. The cards are projective prompts that get pe
 - User-provided cards mode: skip the draw, interpret cards the user names (physical-deck users); same engine
 - Seeded draws (from magicli_tarot): deterministic card sequence for reproducible playtests and prompt-version comparisons; date-seeded "daily card" is a possible later ritual hook
 - Session coherence:
-  - Anchor as narrative arc (not a static theme string): 3-card spread maps to setup -> tension -> resolution; anchor stores the theme + where the session should land, follow-up questions steer toward the resolution beat; earned 4th card reads as epilogue
+  - Anchor as narrative arc (not a static theme string): 3-card spread maps to setup -> tension -> resolution; anchor stores the theme + where the session should land, follow-up questions steer toward the resolution beat; the earned 4th card reads as epilogue (see Core mechanics - built, not deferred)
   - Ledger: record of cards drawn + interpretations given; new draws elaborate, never contradict
   - Spam re-draws handled diegetically ("the deck answers the same question the same way")
 
@@ -518,6 +525,9 @@ Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider
   data rising across the arc, the rich-answer exit losing its exemption, the reading staying open
   after its closing beat until the person ends it, and a 10-exchange transcript window. Plus the
   reader no longer emitting its own turn wrapped in quotation marks, which the few-shots taught it.
+- v1.5 (2026-08-26): the earned 4th card built rather than deferred, since the conversation
+  staying open after the beat is what makes it reachable. Pack data, earned once by a real
+  disclosure after the beat, and it closes the reading a second time with the step re-sized.
 - v1.5 (2026-08-25): session transcripts committed as fixtures are redacted derivatives now,
   with the originals in gitignored checkpoint/ and the maps in gitignored redactions/.
 - v1.5 (2026-08-25): latency work on the same branch - the anchor revision moved off the
