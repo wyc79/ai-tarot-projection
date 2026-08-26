@@ -166,6 +166,15 @@ Tarot as a doorway, not divination. The cards are projective prompts that get pe
 - Explicit "drop the frame" state: if user discloses crisis-level content (grief, self-harm), AI exits tarot voice, responds plainly, points to real resources. Reachable from turn one.
 - Onboarding carries one quiet line that this is reflection, not therapy or crisis support, with a pointer to real help (Clinton 2024)
 
+## Working agreements
+AGENTS.md at the repo root, and CLAUDE.md points at it. The short form: build forward rather
+than sideways (no compatibility layers, fallbacks or migrations beside a shape that changed -
+delete the old path, and the tests that pinned it), the simplest implementation that fully meets
+the current requirement, grow in layers from something that already works end to end, decide for
+the long term rather than accepting a stopgap, keep concerns separated, and lean on what is
+already here before adding to it. The key-handling rules and the transcript policy live there
+too, since they were only ever written in commit messages.
+
 ## Architecture (v1: plain web frontend + dumb relays)
 DECIDED: frontend is plain HTML/CSS/JS (no framework, no build step). Prompt assembly lives in frontend JS - packs are static files the frontend fetches, so assembly works identically everywhere. Two deployment targets share one llmClient:
 - Local / self-host: Python serves the page + relays LLM calls (browser -> local Python -> provider)
@@ -209,7 +218,12 @@ DECIDED: frontend is plain HTML/CSS/JS (no framework, no build step). Prompt ass
   per-turn value in readerSystem breaks caching silently, so it is worth checking
 - Dev-mode logging (Python relay only): since every call passes through the relay with the fully assembled prompt in the body, a DEV_LOG=1 .env flag logs full request/response bodies (auth header redacted) for M3 iteration and consented playtest transcripts. Default off. The Worker has no logging code path at all - hosted users' conversations are unloggable by construction. Frontend debug panel shows the assembled prompt pre-send.
 - Open-relay protection on the Worker: origin checks + per-IP rate limits (+ lightweight app token if abused)
-- Session state + draw ledger in localStorage: same-device "session 2+" memory for free
+- Session state + draw ledger in localStorage: same-device "session 2+" memory for free.
+  STATE_VERSION is bumped when the session shape changes and saved readings at an older version
+  are DROPPED rather than upgraded. There is no migration path and there is not going to be one:
+  twenty sessions in one browser is not something to carry compatibility code for. Frozen
+  fixtures are the exception and are not rewritten to match - they are transcripts the scanner
+  reads, not sessions anything loads back as live state
 - Two-model split (BYOK config): remains a config option, not a quality requirement - the
   2026-08-25 checkpoint showed flash-tier is past the quality bar for chat turns
 - Abstractions: one llmClient module (relay mode with configurable base URL / direct mode), one storage module
@@ -521,6 +535,11 @@ Internal machinery: the levels are never named to the user.
 
 ### M4 - UI + polish (2-3 days)
 - Card table UI: draw-in, flip (CSS rotateY + backface-visibility), spread layout, mobile-first; plain CSS/JS, no animation libs unless clearly needed
+- The face-down deal is already on the debug page and is the table's real shape: all four dealt
+  at the start with their position labels showing, the fourth subtly marked rather than named,
+  flipping in place. M4 is the treatment, not the topology
+- ended: true disables the input and offers "new reading" / "stay a while". An unearned fourth
+  card stays face down through the farewell and is never flipped for display
 - The table reads as a bounded, stable container the conversation keeps returning to - the chat
   serves the table, not the reverse (Semetsky: the layout's boundedness is itself grounding;
   the material is visibly "out of the head and on the table")
@@ -599,7 +618,9 @@ Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider
   an afterglow with a territory contract. Amends two things the plan said outright: that the
   fourth card is earned after the beat, and that only a person sets session.ended. Scanner gains
   double_close, off_territory and heavy_material_dropped; harbor-4c81de frozen as a fixture,
-  invented rather than redacted, and the fixtures policy written down as its own line.
+  invented rather than redacted, and the fixtures policy written down as its own line. Same
+  branch: AGENTS.md, and the compatibility paths this round had added removed under it -
+  STATE_VERSION to 2, saved readings at an older version dropped rather than upgraded.
 - v1.5 (2026-08-25): settle round on branch m3-settle, from the lantern-be7743 session - the
   settle rule and the elaborate move (the tempo trio: settle, bridge, dwell), rail switches
   launching from established positions with rail_switch_unsettled in the scanner, whiff recovery
