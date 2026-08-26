@@ -565,6 +565,16 @@ Internal machinery: the levels are never named to the user.
 - The face-down deal is already on the debug page and is the table's real shape: all four dealt
   at the start with their position labels showing, the fourth subtly marked rather than named,
   flipping in place. M4 is the treatment, not the topology
+- Two pages, decided before the branch: index.html is the styled UI for real users; the current
+  debug page moves to debug.html functionally unchanged, its right-hand panel collapsible and
+  collapsed by default. The gate / anchor / staircase / prompt-dump panels stay there and never
+  reach the styled UI
+- Styled layout: settings collapsed across the top; the spread always visible on the left; the
+  chat beside it scrolling internally, so the table never scrolls away - the bounded-container
+  thesis below made literal
+- On phones the spread becomes a compact card strip pinned at the top with the chat scrolling
+  under it. Cards stay always-visible on every viewport, which is what "always on the table"
+  means on a screen that cannot hold two columns
 - ended: true disables the input and offers "new reading" / "stay a while". An unearned fourth
   card stays face down through the farewell and is never flipped for display
 - The table reads as a bounded, stable container the conversation keeps returning to - the chat
@@ -638,6 +648,11 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-26): M4 layout decided before the branch - two pages (styled index.html for
+  real users; the debug page moves to debug.html, its panel collapsible), the spread fixed on
+  the left with the chat scrolling internally beside it, and a pinned card strip on phones.
+  M3's playtest half moves to after M4: "a stranger on a phone" needs the styled UI to exist
+  first, so the milestone gate re-orders rather than blocks.
 - v1.5 (2026-08-26): seams round on branch m3-seams - four deepenings, no behaviour change. The
   reader turn gets a plan (turnPlan) with the prose rendering from it and readerCall as the single
   front door; the three judgements get one module each with `kind` on the call; the card face up
@@ -711,6 +726,7 @@ Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider
 - v1: initial plan through the architecture decisions (dual dumb relays, client-side assembly)
 
 ## Open items (next working session)
-- Land M3 fix queue 1-5 on seeded fixtures; add judge_replay.mjs (6); decide on simulated-user harness (7)
-- Fold the persona additions into persona.md + one few-shot demonstrating the mirror observation
-- Then: playtests with real tarot-curious non-dev people
+- Build M4 on branch m4-ui: the two-page split, the styled desktop + phone layout, the
+  draw-in/flip treatment. The rest of M4 (profile/full export with warning line,
+  user-provided cards mode) is later commits on the same branch
+- Then: playtests with real tarot-curious non-dev people (the second half of M3's done-when)
