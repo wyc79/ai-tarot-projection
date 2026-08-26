@@ -177,8 +177,7 @@ export function nextPosition(session) {
  * own pacing, which is what "fork it, drop in your own deck" has to mean: a
  * pack is not required to have opinions about tempo.
  */
-export function budgetOnCurrentCard(session) {
-  const card = currentCard(session);
+function budgetFor(session, card) {
   const budget = card && session.budget?.[card.position];
   return {
     target: budget?.target ?? TARGET_EXCHANGES,
@@ -200,38 +199,77 @@ export function turnsOn(session, position) {
   return session.exchanges.filter((e) => e.position === position && !e.aside);
 }
 
-export function exchangesOnCurrentCard(session) {
+/**
+ * Everything true of the card currently face up, in one object.
+ *
+ * There used to be six exported functions asking one question each, plus a
+ * seventh copy of the depth one privately inside prompts.js. Each re-found the
+ * card and re-walked the ledger, flipDecision called five of them in a row, and
+ * the debug page gave up and filtered session.exchanges by hand -- which meant
+ * the aside rule, whose entire point is that it lives in exactly one place, had
+ * a second implementation counting the other way.
+ *
+ * So: one lookup, one walk, one shape, always. The rules themselves did not
+ * move and did not change; they are the functions below this one, and their
+ * reasoning stays with them. What changed is that a caller learns one name
+ * instead of seven, and the ledger is read once instead of six times.
+ *
+ * The no-card shape is the same shape. Every field means what it meant before a
+ * card was dealt, so nothing downstream needs a null check of its own.
+ *
+ * @typedef {{card: DrawnCard|null, position: string|null, turns: Exchange[],
+ *            last: Exchange|null, exchanges: number, counting: number,
+ *            asides: number, depth: number|null, grounded: boolean,
+ *            dwell: {arrived: boolean, spent: number, satisfied: boolean},
+ *            settle: {spent: number, selfReferent: boolean, settled: boolean},
+ *            budget: {target: number, max: number}}} CardStanding
+ * @returns {CardStanding}
+ */
+export function cardStanding(session) {
   const card = currentCard(session);
-  if (!card) return 0;
-  return turnsOn(session, card.position).length;
+  const turns = card ? turnsOn(session, card.position) : [];
+  return {
+    card,
+    position: card?.position ?? null,
+    turns,
+    /** The most recent answer on this card. What the ladder reads off. */
+    last: turns[turns.length - 1] ?? null,
+    /** Against the hard cap, which counts everything so nothing can stall. */
+    exchanges: turns.length,
+    counting: countingTurns(turns).length,
+    // Not turns of theirs, and not in any count above. Shown on the debug page,
+    // and derived by subtraction rather than by a second `!e.aside` filter --
+    // turnsOn stays the one place that rule is written down.
+    asides: card
+      ? session.exchanges.filter((e) => e.position === card.position).length - turns.length
+      : 0,
+    depth: turns.length ? turns[turns.length - 1].disclosure_depth : null,
+    grounded: turns.some(hasLifeContent),
+    dwell: dwellIn(turns),
+    settle: settleIn(turns),
+    budget: budgetFor(session, card),
+  };
 }
 
-/**
- * The same count, minus the answers they held at arm's length.
- *
- * A hedged answer does not advance the card toward its early exits: someone
- * saying "i guess so?" is checking whether it was safe, and treating that as
- * progress is how a reading walks off with something the person had not decided
- * to give it.
- *
- * The hard cap still counts every exchange. Otherwise a person who hedges
- * everything is a person the reading can never move on from, which is the
- * stalled meter this design has been avoiding since the first flip rule.
- */
-export function countingExchangesOnCurrentCard(session) {
-  const card = currentCard(session);
-  if (!card) return 0;
-  return turnsOn(session, card.position).filter((e) => !e.gate?.hedged).length;
-}
+const hasLifeContent = (e) => e.gate?.has_life_content === true;
 
 /**
- * Has anything of their own life reached this card yet?
+ * The turns that count toward a card's early exits, minus the answers they held
+ * at arm's length.
  *
- * A card can collect three answers, all of them about the picture, and look
- * from the outside exactly like a card that is going well. This is the question
- * that tells the two apart, and the flip rule below is the only place it
- * changes anything: a card moves on early only when something landed.
+ * A hedged answer does not advance the card: someone saying "i guess so?" is
+ * checking whether it was safe, and treating that as progress is how a reading
+ * walks off with something the person had not decided to give it.
+ *
+ * The hard cap still counts every exchange -- that is `exchanges`, not this.
+ * Otherwise a person who hedges everything is a person the reading can never
+ * move on from, which is the stalled meter this design has been avoiding since
+ * the first flip rule.
  */
+function countingTurns(turns) {
+  return turns.filter((e) => !e.gate?.hedged);
+}
+
 /**
  * Whether the card is holding something they have only just said, and how much
  * has been spent inside it.
@@ -246,13 +284,10 @@ export function countingExchangesOnCurrentCard(session) {
  * checking whether it was safe to say, and answering that with a scene change
  * is the same mistake in a smaller font.
  */
-export function dwellOnCurrentCard(session) {
-  const card = currentCard(session);
-  if (!card) return { arrived: false, spent: 0, satisfied: true };
-  const here = turnsOn(session, card.position);
-  const arrival = here.findIndex((e) => e.gate?.has_life_content === true);
+function dwellIn(turns) {
+  const arrival = turns.findIndex(hasLifeContent);
   if (arrival === -1) return { arrived: false, spent: 0, satisfied: true };
-  const spent = here.slice(arrival + 1).filter((e) => !e.gate?.hedged).length;
+  const spent = countingTurns(turns.slice(arrival + 1)).length;
   return { arrived: true, spent, satisfied: spent >= DWELL_MIN };
 }
 
@@ -275,15 +310,12 @@ export function dwellOnCurrentCard(session) {
  * path; or one answer that already had something of theirs in it, in which case
  * they crossed on their own and there is nothing left to earn.
  */
-export function settleOnCurrentCard(session) {
-  const card = currentCard(session);
-  if (!card) return { spent: 0, selfReferent: false, settled: false };
-  const here = turnsOn(session, card.position);
-  const selfReferent = here.some((e) => e.gate?.has_life_content === true);
+function settleIn(turns) {
+  const selfReferent = turns.some(hasLifeContent);
   return {
-    spent: here.length,
+    spent: turns.length,
     selfReferent,
-    settled: selfReferent || here.length >= SETTLE_MIN,
+    settled: selfReferent || turns.length >= SETTLE_MIN,
   };
 }
 
@@ -326,12 +358,6 @@ export function disclosureArrivals(session) {
     arrivals.add(index);
   }
   return arrivals;
-}
-
-export function groundedOnCurrentCard(session) {
-  const card = currentCard(session);
-  if (!card) return false;
-  return turnsOn(session, card.position).some((e) => e.gate?.has_life_content === true);
 }
 
 export function flipCard(session, cardId, { flippedAt = Date.now(), reason = "" } = {}) {
@@ -500,14 +526,13 @@ export function flipDecision(session, gate) {
   if (session.safety_state === "drop_frame") {
     return { flip: false, reason: "frame dropped; cards are not the point now" };
   }
-  const count = exchangesOnCurrentCard(session);
+  // One read of the ledger. Everything this gate weighs comes off it.
+  const {
+    exchanges: count, counting: earned, grounded, dwell, budget: { target, max },
+  } = cardStanding(session);
   if (count === 0) {
     return { flip: false, reason: "no answer on this card yet" };
   }
-  // Hedged answers do not buy progress toward the early exits; the cap below
-  // still counts them, so nothing stalls.
-  const earned = countingExchangesOnCurrentCard(session);
-  const { target, max } = budgetOnCurrentCard(session);
 
   // Nothing of theirs has reached this card. The early exits below are rewards
   // for a card that did its job, so they are switched off -- but only the early
@@ -515,7 +540,6 @@ export function flipDecision(session, gate) {
   // stalled meter, and someone who will not talk about themselves is allowed to
   // have that be the reading. When it happens the reason says so, because a
   // ledger full of ungrounded flips is the diagnosis for a whole session.
-  const grounded = groundedOnCurrentCard(session);
   const ungrounded = grounded ? "" : " — ungrounded, nothing of theirs landed on this card";
 
   // They have just handed you something. Stay in it for a turn.
@@ -523,7 +547,6 @@ export function flipDecision(session, gate) {
   // Released the moment they deflect: someone who wishes they had not said it
   // is not held in the subject, and the counted exits below still apply, so the
   // dwell can delay a card by one exchange and never more than that.
-  const dwell = dwellOnCurrentCard(session);
   const dwelt = dwell.arrived && dwell.satisfied ? ", dwelt on first" : "";
   if (!dwell.satisfied && gate.disclosure_depth > 1) {
     // One exchange past the cap, and only here. Three transitions now have to

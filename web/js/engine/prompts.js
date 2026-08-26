@@ -12,7 +12,7 @@
  */
 
 import {
-  currentCard, heavyMaterial, settleOnCurrentCard, tableau, turnsOn,
+  cardStanding, currentCard, heavyMaterial, tableau,
 } from "./state.js";
 import { questionType } from "./questions.js";
 import { levelIndex, targetLevel } from "./levels.js";
@@ -139,13 +139,10 @@ function firstSentence(text) {
  * then climbs again from whatever they say, and because the ceiling rises
  * across the spread, each card can go further than the one before it.
  */
-function ladderState(pack, session) {
-  const card = currentCard(session);
-  const position = card && pack.position(card.position);
-  const here = card ? turnsOn(session, card.position) : [];
-  const last = here[here.length - 1] ?? null;
-  const userLevel = last?.gate?.user_level ?? null;
-  const deflected = last?.disclosure_depth === 1;
+function ladderState(pack, session, standing = cardStanding(session)) {
+  const position = standing.card && pack.position(standing.position);
+  const userLevel = standing.last?.gate?.user_level ?? null;
+  const deflected = standing.last?.disclosure_depth === 1;
   const ceiling = position?.ceiling ?? null;
   // Which rail the last question ran on. The reader is about to choose whether
   // to stay on it, and that choice changes how high it may reach -- so it is
@@ -207,14 +204,6 @@ Your last question was about ${rail === "projection" ? "the card" : "their life"
     ? "something they could do, because they told you what they were after"
     : "something to notice, not something to carry out"}.`
     : ""}`;
-}
-
-/** The depth of the most recent answer on the card currently face up. */
-function depthOnCurrentCard(session) {
-  const card = currentCard(session);
-  if (!card) return null;
-  const here = turnsOn(session, card.position);
-  return here.length ? here[here.length - 1].disclosure_depth : null;
 }
 
 /**
@@ -282,9 +271,10 @@ function describeRecap(pack, session) {
     lines.push("    do not know what they are. Do not guess, do not hint, do not promise.");
   }
 
-  const entry = currentCard(session);
+  const standing = cardStanding(session);
+  const entry = standing.card;
   const position = entry && pack.position(entry.position);
-  const depth = depthOnCurrentCard(session);
+  const depth = standing.depth;
   lines.push("", "now:");
   if (session.closed) {
     lines.push("  THE READING IS FINISHED. The closing beat is given and the spread is spent.");
@@ -307,7 +297,7 @@ function describeRecap(pack, session) {
   if (position) lines.push(`  moves weighted here: ${position.moves.join(", ")}`);
   lines.push(`  disclosure depth on this card: ${depth === null ? "they have not answered yet" : depth}`);
   if (entry) {
-    const settle = settleOnCurrentCard(session);
+    const settle = standing.settle;
     if (settle.settled) {
       lines.push(`  bridge to their life: earned — ${settle.selfReferent
         ? "something of theirs is already on this card"
@@ -348,7 +338,7 @@ function describeRecap(pack, session) {
     lines.push("    now is an interview. Go up, into what they already said — never sideways");
     lines.push("    into what else there is.");
   }
-  const ladder = ladderState(pack, session);
+  const ladder = ladderState(pack, session, standing);
   lines.push(`  they are standing at: ${ladder.userLevel ?? "nothing said on this card yet"}`);
   lines.push(`  reach no further than: ${ladder.target}${ladder.ceiling ? ` (this position tops out at ${ladder.ceiling})` : ""}`);
   lines.push(`  highest they have reached all session: ${ladder.highest ?? "nothing yet"}`);
