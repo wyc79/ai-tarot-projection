@@ -648,6 +648,20 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-26): M4's first round on branch m4-ui - the two-page split, the styled desktop
+  and phone layout, and the draw-in/flip treatment. index.html is the styled reading and the
+  debug page is debug.html with its panel collapsed by default; the session plumbing both pages
+  need (key storage and the session-only switch, provider config, history export, reply form,
+  ended/afterglow) came out of session-page.js into web/js/ui/session.js, and each page keeps
+  only what makes it that page. Zero engine change, verified by hashing the assembled prompt for
+  all eight turn kinds the seeded session reaches, before and after: identical. Two defects found
+  by driving both pages in a real browser against a relay that was not there. The reply form and
+  the ended row never actually hid on the debug page -- class="row" carries an author `display`,
+  which beats the UA rule for [hidden] -- so the end of a reading had never taken the input away
+  there, and that predates the branch. And the styled page hid its intro the moment a reading
+  object existed, so a first turn that failed left a stranger with no button to press: a failed
+  reading now says whether it ever got a word out, and the page goes back to its door when it
+  did not. Still M4: the profile/full export with its warning line, and user-provided cards mode.
 - v1.5 (2026-08-26): M4 layout decided before the branch - two pages (styled index.html for
   real users; the debug page moves to debug.html, its panel collapsible), the spread fixed on
   the left with the chat scrolling internally beside it, and a pinned card strip on phones.
@@ -726,7 +740,7 @@ Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider
 - v1: initial plan through the architecture decisions (dual dumb relays, client-side assembly)
 
 ## Open items (next working session)
-- Build M4 on branch m4-ui: the two-page split, the styled desktop + phone layout, the
-  draw-in/flip treatment. The rest of M4 (profile/full export with warning line,
-  user-provided cards mode) is later commits on the same branch
-- Then: playtests with real tarot-curious non-dev people (the second half of M3's done-when)
+- The rest of M4, later commits on branch m4-ui: the profile/full export with its warning
+  line, and user-provided cards mode
+- Then: playtests with real tarot-curious non-dev people (the second half of M3's done-when),
+  which is what the styled page existed to unblock
