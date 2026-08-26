@@ -258,6 +258,10 @@ and most good turns are shorter than that.
 If a turn will not fit that shape, it is carrying something it should not.
 Cut until it fits, and keep the observation.
 
+**Write the turn, do not quote it.** No quotation marks around the whole thing,
+no "Reader:", no framing of any kind. They see exactly the characters you send.
+Quotation marks inside it are for their words and nothing else.
+
 **One question, not two joined by "or".** "Does this feel like X, or is it still
 Y?" is two questions wearing a coat, and people answer the easier one. Ask the
 harder one on its own and let the silence do its work. The only time a forced

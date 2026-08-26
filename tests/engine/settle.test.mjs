@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import {
   createSession, flipCard, recordExchange, settleOnCurrentCard,
 } from "../../web/js/engine/state.js";
-import { startReading } from "../../web/js/engine/reading.js";
+import { startReading, unwrapQuotes } from "../../web/js/engine/reading.js";
 import { ANTHROPIC } from "../../web/js/providers/anthropic.js";
 import { PROVIDERS } from "../../web/js/providers/index.js";
 import { scanSession } from "../../scripts/scan.mjs";
@@ -331,4 +331,65 @@ test("a judge reply that parses but is not a gate is rejected, not returned", as
       return true;
     },
     "it used to reach the session as disclosure_depth: undefined");
+});
+
+// -- the reader reading from a script ------------------------------------
+
+test("a turn the model wrapped in quotes arrives without them", () => {
+  const wrapped = '"You called the first one a pretending king — strong words. What is it '
+    + 'about this figure that carries the real kingship for you?"';
+  assert.equal(unwrapQuotes(wrapped),
+    "You called the first one a pretending king — strong words. What is it "
+    + "about this figure that carries the real kingship for you?");
+  assert.equal(unwrapQuotes("\u201cSame, in curly quotes.\u201d"), "Same, in curly quotes.");
+});
+
+test("quotes the turn is actually using are left alone", () => {
+  // The persona requires their words back exactly, so a turn opening on one is
+  // the reader doing as it is told.
+  const opens = '"Pretending king" — strong words. What makes this one real to you?';
+  assert.equal(unwrapQuotes(opens), opens);
+
+  const closes = 'Strong words. Is that what you would call "real kingship"?';
+  assert.equal(unwrapQuotes(closes), closes);
+
+  // Wrapped AND quoting them: the outer pair still goes, the inner stays.
+  assert.equal(unwrapQuotes('"You said "pretending king". Whose is that?"'),
+               'You said "pretending king". Whose is that?');
+
+  // Both ends quoted but neither pair wrapping: what is left does not end the
+  // way a turn ends, which is the tell.
+  const both = '"Pretending king" and "real kingship"';
+  assert.equal(unwrapQuotes(both), both);
+});
+
+test("the few-shots no longer show a reader turn inside quotation marks", async () => {
+  const pack = await realPack();
+  const { readerSystem } = await import("../../web/js/engine/prompts.js");
+  const system = readerSystem({ pack, session: { phase: "reading", topic: null } });
+  for (const shot of pack.fewShots) {
+    for (const turn of shot.turns ?? [shot]) {
+      assert.ok(system.includes(`You said:\n${turn.reader}`),
+                `${shot.demonstrates}: still delimited by something`);
+      assert.ok(!system.includes(`"${turn.reader}"`), `${shot.demonstrates}: still quoted`);
+    }
+  }
+  assert.match(pack.persona, /\*\*Write the turn, do not quote it\.\*\*/);
+});
+
+test("the strip is wired into the turn, not just exported", async () => {
+  const pack = await realPack();
+  const client = fakeClient({
+    opening: declines,
+    gates: [at({ depth: 2, life: false })],
+    reply: (turn) => (turn === "opening"
+      ? "Anything particular you want to look at?"
+      : '"What does it look like it is pointing at for you?"'),
+  });
+  const reading = startReading({ pack, client, seed: "lantern-be7743" });
+  await reading.begin();
+  await reading.say("nothing");
+  const card = reading.session.cards[0];
+  assert.equal(card.ai_reading, "What does it look like it is pointing at for you?");
+  assert.ok(!card.ai_reading.startsWith('"'), "it reached the ledger with quotes on it");
 });

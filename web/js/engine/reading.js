@@ -30,6 +30,33 @@ import { newSeed } from "./rng.js";
 
 export const SESSION_KEY = "session";
 
+/**
+ * A reader turn with the quotation marks the model wrapped around it removed.
+ *
+ * The few-shots no longer teach this, which is the actual fix, but "do not put
+ * quotes around your turn" is the kind of instruction a model follows most of
+ * the time. The failure is visible to the person and looks like the reader
+ * reading from a script, so it is worth catching on the way out as well.
+ *
+ * Quoting is legitimate INSIDE a turn -- the persona requires their words back
+ * exactly, and a turn often opens on one. So a pair is only stripped when it
+ * wraps the entire thing: the quotes are balanced, and what is left still ends
+ * the way a turn ends. "Pretending king" — strong words. What makes this one
+ * real? keeps its quotes, because the last character is a question mark.
+ */
+export function unwrapQuotes(text) {
+  const trimmed = String(text ?? "").trim();
+  if (trimmed.length < 2) return trimmed;
+  const wrapped = (trimmed.startsWith('"') && trimmed.endsWith('"')
+                   && trimmed.match(/"/g).length % 2 === 0)
+    || (trimmed.startsWith("\u201c") && trimmed.endsWith("\u201d"));
+  if (!wrapped) return trimmed;
+  const inner = trimmed.slice(1, -1).trim();
+  // A turn ends on its question, or on the closing step. Anything else and the
+  // two quotes were doing work of their own.
+  return /[.?!]$/.test(inner) ? inner : trimmed;
+}
+
 export function startReading({ pack, client, storage = null, seed = newSeed(), onEvent = () => {} }) {
   const session = createSession({ packId: pack.id, seed, positions: pack.positions });
   const deal = makeDeal(pack.cards.map((c) => c.card_id), seed);
@@ -59,11 +86,15 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
     });
     onEvent({ type: "reader_start", turn });
 
-    const text = await client.chat({
+    const raw = await client.chat({
       system,
       messages,
       onDelta: (delta, full) => onEvent({ type: "reader_delta", delta, full }),
     });
+    // Deltas go out as they arrive, so a leading quote is on screen for as long
+    // as the turn takes to finish. It is the price of streaming, and it is a
+    // flicker rather than a transcript with quotes in it.
+    const text = unwrapQuotes(raw);
 
     if (handback) session.handback_given = true;
     recordReading(session, text, { offset: readingOffset });

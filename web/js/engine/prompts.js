@@ -68,9 +68,13 @@ function describeFewShots(pack) {
     // that misses and the crossing that lands two turns later -- so a shot may
     // carry a run of them, with a stage line for what happened before it.
     const turns = shot.turns ?? [{ user: shot.user, reader: shot.reader }];
+    // Their words are quoted and yours are not, which looks inconsistent and is
+    // deliberate. Whatever delimits an example of your voice, some proportion of
+    // the time you will reproduce it -- a whole turn arrived on screen wrapped
+    // in double quotes, and these lines are where it learned that.
     return [`— ${shot.card}, in the ${shot.position}.`,
       shot.setup ? `(${shot.setup})` : "",
-      ...turns.flatMap((t) => [`They said: "${t.user}"`, `You said: "${t.reader}"`]),
+      ...turns.flatMap((t) => [`They said: "${t.user}"`, `You said:`, t.reader]),
     ].filter(Boolean).join("\n");
   }).join("\n\n");
   return `
