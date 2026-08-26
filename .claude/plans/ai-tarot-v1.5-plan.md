@@ -148,8 +148,15 @@ DECIDED: frontend is plain HTML/CSS/JS (no framework, no build step). Prompt ass
 - The schema pasted into the prompt (the fallback wherever structuredOutput is off) is the
   CONTRACT ONLY: keys, types, enums, required. Not the descriptions - those are the rubric the
   system prompt has already given at greater length, and 2.8 KB of it is a document a model may
-  decide to reproduce rather than fill in. Measured on deepseek-v4-flash: 5611 output tokens with
-  the full schema, 66 with the fields alone
+  decide to reproduce rather than fill in. Measured on deepseek-v4-flash, five frozen calls each:
+  the full schema returned itself instead of a gate on 2 of 5; the contract alone did it 0 of 5
+- MEASURED, not assumed (deepseek-v4-flash, 2026-08-25, judge_probe.mjs --runs=5, one frozen
+  judge call): thinking disabled + temperature 0 + contract-only schema costs 71-72 output tokens
+  and returns the same verdict five times out of five. Thinking left unmentioned costs 490-4956
+  and truncates 1 in 5. thinking:{enabled, budget_tokens: 1024} is accepted and NOT honoured -
+  2116-7028 tokens and 2 truncations in 5 - so "cap it low instead" is worse than saying nothing,
+  and that idea is recorded as refuted rather than deferred. Dropping the temperature pin also
+  works but costs the determinism: 74-83 tokens and the verdict moves
 - PARSING IS NOT COMPLYING. judge() checks the reply against the schema's required list before
   returning it. extractJson takes the first {...} in the reply, which is an object and not
   necessarily the right one: a model that echoes the schema back parses cleanly and has none of
@@ -367,7 +374,9 @@ Internal machinery: the levels are never named to the user.
   weighting lives in pack data. A menu, not a protocol - running the moves on a schedule is the
   clinical cadence this reader does not have
 - Judge determinism: labelled depth rubric with worked examples, and temperature 0 where the provider
-  still accepts sampling params (removed on current Anthropic models, which answer 400)
+  still accepts sampling params (removed on current Anthropic models, which answer 400). The pin is
+  load-bearing and now measured: with thinking off and the contract-only schema it holds the same
+  verdict across five frozen replays; without it the verdict moves between runs
 - No-topic playbook: when topic is null, card 1's job is to find the ground - projection gives
   the menu, the ownership move makes the offer, and a hand-back to the picture is an answer
   rather than a cue to ask harder. Situation does not end (within pacing bounds) until a life

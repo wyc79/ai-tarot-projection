@@ -59,6 +59,8 @@ const features = PROVIDERS[PROVIDER].features;
 const VARIANTS = [
   ["as shipped", (p) => p],
   ["thinking not mentioned at all", (p) => ({ ...p, thinking: undefined })],
+  // Kept as a negative result rather than a candidate: on deepseek-v4-flash the
+  // budget is accepted and not honoured, so this is worse than saying nothing.
   ["thinking capped rather than disabled",
     (p) => ({ ...p, thinking: { type: "enabled", budget_tokens: 1024 } })],
   ["no temperature pin", (p) => ({ ...p, temperature: undefined })],
@@ -119,10 +121,14 @@ console.log(`probing ${PROVIDER}/${JUDGE} on one frozen judge call, ${VARIANTS.l
             + `${RUNS > 1 ? `, ${RUNS} runs each` : ""}\n`);
 const base = ANTHROPIC.judgePayload({ model: JUDGE, system: JUDGE_SYSTEM, messages, schema, features });
 
+/** Progress on stderr, wiped before anything is printed to stdout beside it. */
+const progress = (text) => process.stderr.write(`${text.padEnd(WIDTH + 24)}\r`);
+
 for (const [label, vary] of VARIANTS) {
   for (let run = 0; run < RUNS; run += 1) {
-    process.stderr.write(`  ${label} ${run + 1}/${RUNS}...\r`);
+    progress(`  ${label} ${run + 1}/${RUNS}...`);
     const { verdict, note } = await send(vary({ ...base }));
+    progress("");
     console.log(`  ${(run ? "" : label).padEnd(WIDTH)}  ${verdict}`);
     if (note) console.log(`  ${" ".repeat(WIDTH)}  ${note.replace(/\s+/g, " ").slice(0, 150)}`);
   }

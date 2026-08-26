@@ -25,14 +25,20 @@ const NONE = {
   // benefit either way. This flag is only about whether to send cache_control,
   // which a gateway that has never heard of it may reject outright.
   promptCaching: false,
-  // Whether a judge call may send thinking:{type:"disabled"}. Deliberately ON
-  // by default, which is the opposite of every other flag here, because the
-  // usual argument runs the other way for this one parameter: an unrecognised
-  // instruction to turn something OFF is the safe kind to send, a gateway that
-  // rejects it says so in one legible 400 on the next turn, and the failure it
-  // prevents is silent -- 8192 tokens of deliberation and no JSON, which is
-  // what happens to deepseek-v4-flash on the gate schema. Set false for any
-  // provider observed to reject it.
+  // Whether a judge call may send thinking:{type:"disabled"}. ON by default,
+  // which is the opposite of every other flag here, and unlike the others this
+  // one has been watched rather than argued for. Five judge calls on frozen
+  // input, deepseek-v4-flash, 2026-08-25 (scripts/judge_probe.mjs):
+  //
+  //   thinking disabled        71 72 71 72 71 output tokens, all valid
+  //   thinking not mentioned   490 650 2780 4956 and one truncated at 8192
+  //   thinking budget 1024     2116 4153 7028 and two truncated at 8192
+  //
+  // The middle row is what shipped before this, and its truncation is the bug
+  // that started this. The last row is the "cap it low instead" idea: the
+  // gateway accepts budget_tokens and does not honour it, so it is strictly
+  // worse than saying nothing. Set false for any provider observed to reject
+  // the parameter outright.
   thinkingOff: true,
 };
 
