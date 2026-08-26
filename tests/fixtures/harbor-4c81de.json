@@ -1,0 +1,444 @@
+{
+  "schema_version": 1,
+  "session": {
+    "schema_version": 1,
+    "session_id": "harbor-4c81de-reconstructed",
+    "pack_id": "smith-waite-1909",
+    "seed": "harbor-4c81de",
+    "started_at": 1787702400000,
+    "positions": [
+      "situation",
+      "obstacle",
+      "advice"
+    ],
+    "budget": {
+      "situation": {
+        "target": 2,
+        "max": 4
+      },
+      "obstacle": {
+        "target": 3,
+        "max": 5
+      },
+      "advice": {
+        "target": 3,
+        "max": 5
+      },
+      "epilogue": {
+        "target": 2,
+        "max": 4
+      },
+      "afterward": {
+        "target": 1,
+        "max": 3
+      }
+    },
+    "epilogue_position": "epilogue",
+    "phase": "afterward",
+    "topic": "the flat, and a decision coming up on it",
+    "anchor": {
+      "theme": "the flat, four years of knowing where everything is, and a decision coming up on it",
+      "user_phrases": [
+        {
+          "phrase": "they are neat. nobody stacks someone else's things that neatly",
+          "source": "card"
+        },
+        {
+          "phrase": "the flat, mostly. I have had it four years",
+          "source": "life"
+        },
+        {
+          "phrase": "someone deciding with their eyes shut",
+          "source": "card"
+        },
+        {
+          "phrase": "I keep waiting for someone to tell me it is fine either way",
+          "source": "life"
+        }
+      ],
+      "resolution_beat": "whether staying is what they are protecting, or whether it is what they are protecting it from",
+      "grounded": true
+    },
+    "cards": [
+      {
+        "card_id": "cups-08-eight",
+        "position": "situation",
+        "user_projection": "someone walking away from a set of cups they stacked themselves",
+        "ai_reading": "Living around a desk that has not moved in four years — how have things been?",
+        "flipped_at": 0,
+        "flip_reason": "the opening question was answered; the reading begins"
+      },
+      {
+        "card_id": "swords-02-two",
+        "position": "obstacle",
+        "user_projection": "someone deciding with their eyes shut",
+        "ai_reading": "What happened the last time a lease came up?",
+        "flipped_at": 0,
+        "flip_reason": "depth 3 after 3 exchanges, dwelt on first"
+      },
+      {
+        "card_id": "swords-06-six",
+        "position": "advice",
+        "user_projection": "a crossing, and someone else is doing the rowing",
+        "ai_reading": "Across these three cards, in your own words: a neat stack you built, a decision made with the eyes shut, and a crossing where someone else is doing the rowing. This week, notice the moment you reach for someone to tell you it is fine either way.",
+        "flipped_at": 0,
+        "flip_reason": "depth 3 after 3 exchanges, dwelt on first"
+      },
+      {
+        "card_id": "pentacles-01-ace",
+        "position": "epilogue",
+        "user_projection": "a hand holding a coin out of a cloud",
+        "ai_reading": "Across these four cards, in your own words: a neat stack, a decision with the eyes shut, a crossing someone else is rowing, and now a hand holding something out that nobody has taken. This week, notice the moment you wait to be handed it.",
+        "flipped_at": 0,
+        "flip_reason": "earned after the closing beat: depth 3 with something of their own in it"
+      }
+    ],
+    "exchanges": [
+      {
+        "q": "Before I turn anything over — is there something particular you would like to look at?",
+        "a": "the flat, I suppose. there is a decision coming up on it",
+        "disclosure_depth": 2,
+        "position": "opening",
+        "gate": {
+          "disclosure_depth": 2,
+          "has_life_content": true,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "The flat, and a decision coming up on it."
+        }
+      },
+      {
+        "q": "The situation card is the Eight of Cups. What does it look like it is pointing at for you?",
+        "a": "someone walking away from a set of cups they stacked themselves",
+        "disclosure_depth": 3,
+        "position": "situation",
+        "question_type": "projection",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 3,
+          "has_life_content": false,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "They see someone walking away from cups they stacked themselves."
+        }
+      },
+      {
+        "q": "What is it about the way they are stacked that reads as their own to you?",
+        "a": "they are neat. nobody stacks someone else's things that neatly",
+        "disclosure_depth": 2,
+        "position": "situation",
+        "question_type": "projection",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 2,
+          "has_life_content": false,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "The neatness is what makes the stack theirs."
+        }
+      },
+      {
+        "q": "Whose neat stack is that, in your world — yours, or one you are living in?",
+        "a": "the flat, mostly. I have had it four years and I know where everything is",
+        "disclosure_depth": 3,
+        "position": "situation",
+        "question_type": "life",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 3,
+          "has_life_content": true,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "consequences",
+          "stakes": "low",
+          "reading_of_them": "The flat, four years, and knowing where everything is."
+        }
+      },
+      {
+        "q": "Living around a desk that has not moved in four years — how have things been?",
+        "a": "the desk, under the window. easy, mostly. that is sort of the point",
+        "disclosure_depth": 3,
+        "position": "situation",
+        "question_type": "life",
+        "question_level": "evaluate",
+        "gate": {
+          "disclosure_depth": 3,
+          "has_life_content": true,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "evaluate",
+          "stakes": "low",
+          "reading_of_them": "The desk has not moved, and that is the point."
+        }
+      },
+      {
+        "q": "Four years is a while to know where everything is. The obstacle card lands now — the Two of Swords. What do you see in it?",
+        "a": "someone deciding with their eyes shut",
+        "disclosure_depth": 3,
+        "position": "obstacle",
+        "question_type": "projection",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 3,
+          "has_life_content": false,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "Someone deciding with their eyes shut."
+        }
+      },
+      {
+        "q": "What is it about them that reads as eyes-shut to you?",
+        "a": "the blindfold, and the swords are crossed so neither one wins",
+        "disclosure_depth": 2,
+        "position": "obstacle",
+        "question_type": "projection",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 2,
+          "has_life_content": false,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "The blindfold, and the crossed swords where neither wins."
+        }
+      },
+      {
+        "q": "Whose deciding-with-the-eyes-shut is that one?",
+        "a": "the lease is up in March and renewing costs more than I make, so I would be moving across town from Dana",
+        "disclosure_depth": 4,
+        "position": "obstacle",
+        "question_type": "life",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 4,
+          "has_life_content": true,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "consequences",
+          "stakes": "high",
+          "reading_of_them": "The lease is up in March, renewing is unaffordable, and moving means leaving Dana behind."
+        }
+      },
+      {
+        "q": "What happened the last time a lease came up?",
+        "a": "nothing. I open the listings and close them again",
+        "disclosure_depth": 3,
+        "position": "obstacle",
+        "question_type": "life",
+        "question_level": "consequences",
+        "gate": {
+          "disclosure_depth": 3,
+          "has_life_content": true,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "consequences",
+          "stakes": "low",
+          "reading_of_them": "They open the listings and close them again."
+        }
+      },
+      {
+        "q": "Opening them and closing them again is its own kind of answer. The advice card is the Six of Swords. What do you see in it?",
+        "a": "a crossing, and someone else is doing the rowing",
+        "disclosure_depth": 3,
+        "position": "advice",
+        "question_type": "projection",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 3,
+          "has_life_content": false,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "A crossing where someone else does the rowing."
+        }
+      },
+      {
+        "q": "What is it about the rowing that reads as someone else's to you?",
+        "a": "he is facing the other way and she is not holding an oar",
+        "disclosure_depth": 2,
+        "position": "advice",
+        "question_type": "projection",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 2,
+          "has_life_content": false,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "He faces away and she holds no oar."
+        }
+      },
+      {
+        "q": "Whose rowing is that one?",
+        "a": "I keep waiting for someone to tell me it is fine either way",
+        "disclosure_depth": 4,
+        "position": "advice",
+        "question_type": "life",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 4,
+          "has_life_content": true,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "evaluate",
+          "stakes": "low",
+          "reading_of_them": "They are waiting to be told it is fine either way."
+        }
+      },
+      {
+        "q": "What would it take for you to say it is fine either way yourself?",
+        "a": "I would have to work out what I am actually protecting",
+        "disclosure_depth": 4,
+        "position": "advice",
+        "question_type": "projection",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 4,
+          "has_life_content": true,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "intentions",
+          "stakes": "low",
+          "reading_of_them": "They would have to work out what they are protecting."
+        }
+      },
+      {
+        "q": "Across these three cards, in your own words: a neat stack you built, a decision made with the eyes shut, and a crossing where someone else is doing the rowing. This week, notice the moment you reach for someone to tell you it is fine either way.",
+        "a": "yeah. I have been building a little scheduling thing on the side, to stop myself opening the listings",
+        "disclosure_depth": 3,
+        "position": "afterward",
+        "question_type": "life",
+        "question_level": "plans",
+        "gate": {
+          "disclosure_depth": 3,
+          "has_life_content": true,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "They have been building a scheduling tool on the side."
+        }
+      },
+      {
+        "q": "So you built a scheduler. What does the scheduler put in the evenings?",
+        "a": "blocks, mostly. something booked so the evening is spoken for",
+        "disclosure_depth": 2,
+        "position": "afterward",
+        "question_type": "life",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 2,
+          "has_life_content": false,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "The scheduler books blocks into the evenings."
+        }
+      },
+      {
+        "q": "What did you write the scheduler in?",
+        "a": "python, and a text file",
+        "disclosure_depth": 2,
+        "position": "afterward",
+        "question_type": "life",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 2,
+          "has_life_content": false,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "Python and a text file."
+        }
+      },
+      {
+        "q": "Python and a text file. What made you pick a text file over a database?",
+        "a": "a database felt like overkill for one person",
+        "disclosure_depth": 2,
+        "position": "afterward",
+        "question_type": "life",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 2,
+          "has_life_content": false,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "A database felt like overkill."
+        }
+      },
+      {
+        "q": "Which part of the scheduler would you port to the phone?",
+        "a": "the reminders, probably. I want the reminders on the phone",
+        "disclosure_depth": 3,
+        "position": "afterward",
+        "question_type": "life",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 3,
+          "has_life_content": true,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "They want the reminders on the phone."
+        }
+      },
+      {
+        "q": "The table has turned one more card — the Ace of Pentacles, the last one. What do you see in it?",
+        "a": "a hand holding a coin out of a cloud",
+        "disclosure_depth": 3,
+        "position": "epilogue",
+        "question_type": "projection",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 3,
+          "has_life_content": false,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "A hand holding a coin out of a cloud."
+        }
+      },
+      {
+        "q": "What is it about the hand that reads as holding out to you?",
+        "a": "it is not putting it down anywhere. someone has to take it",
+        "disclosure_depth": 3,
+        "position": "epilogue",
+        "question_type": "projection",
+        "question_level": "name",
+        "gate": {
+          "disclosure_depth": 3,
+          "has_life_content": false,
+          "hedged": false,
+          "asked_back": false,
+          "user_level": "name",
+          "stakes": "low",
+          "reading_of_them": "Nobody has taken what the hand is holding out."
+        }
+      }
+    ],
+    "safety_state": "normal",
+    "last_stakes": "low",
+    "handback_given": true,
+    "closing_reflection": "Across these four cards, in your own words: a neat stack, a decision with the eyes shut, a crossing someone else is rowing, and now a hand holding something out that nobody has taken. This week, notice the moment you wait to be handed it.",
+    "closed": true,
+    "ended": false,
+    "farewell": null
+  }
+}

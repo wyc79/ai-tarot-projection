@@ -165,9 +165,20 @@ export function scanSession(session, pack = null) {
   const findings = [];
   const deals = dealTurnIndexes(session);
   const turns = readerTurns(session);
-  // Everything the reading ended on. One is correct; the rest are the shape
-  // this round exists to stop.
-  const closes = turns.filter(closingShaped).map((t) => t.index);
+  // Everything the reading ended on, deduplicated by what was actually said.
+  //
+  // Every reader turn is stored twice -- as the next exchange's question and as
+  // the card's reading or the closing reflection -- so the one correct beat
+  // appears twice in this list and is not two beats. Two DIFFERENT closings
+  // are, and that is the shape this round exists to stop.
+  const closes = [];
+  const saidBefore = new Set();
+  for (const turn of turns.filter(closingShaped)) {
+    const key = turn.text.replace(/\s+/g, " ").trim();
+    if (saidBefore.has(key)) continue;
+    saidBefore.add(key);
+    closes.push(turn.index);
+  }
   const territory = anchorTerritory(session);
   const add = (turn, code, message) =>
     findings.push({ index: turn.index, position: turn.position, code, message, text: turn.text });
@@ -176,20 +187,24 @@ export function scanSession(session, pack = null) {
     const question = finalQuestion(turn.text);
     const questions = (turn.text.match(/\?/g) ?? []).length;
     const sentences = sentencesIn(turn.text);
-    // Two turn shapes end without asking anything: the closing beat, which ends
-    // on a step, and the farewell, which ends. The afterglow is the third and
-    // it is a permission rather than a shape -- a turn there MAY receive what
-    // was said and stop. Nothing else may, the short tail after the close
-    // included: a reading that trails off is not a reading that ended.
-    const mayNotAsk = turn.position === "close" || turn.position === "farewell"
-      || turn.position === "afterglow";
-
-    if (closes.indexOf(turn.index) > 0) {
+    // A closing beat is a closing beat wherever it sits, including one that
+    // landed in the tail because the reading closed twice. The second one is a
+    // double close, which is the finding worth having; reporting the first as a
+    // turn that forgot its question is the wrong diagnosis of the same defect.
+    const closing = closes.indexOf(turn.index);
+    if (closing > 0) {
       add(turn, "double_close",
           "a second closing turn; the reading already ended once, and two endings "
           + "read as the reader losing track of where it finished");
       continue;
     }
+    // Two turn shapes end without asking anything: the closing beat, which ends
+    // on a step, and the farewell, which ends. The afterglow is the third and
+    // it is a permission rather than a shape -- a turn there MAY receive what
+    // was said and stop. Nothing else may, the short tail after the close
+    // included: a reading that trails off is not a reading that ended.
+    const mayNotAsk = closing === 0 || turn.position === "close"
+      || turn.position === "farewell" || turn.position === "afterglow";
     if ((turn.position === "afterward" || turn.position === "afterglow")
         && question && !inTerritory(turn.text, territory)) {
       add(turn, "off_territory",
@@ -423,6 +438,12 @@ function scanScaffolding(session, pack) {
 
   for (const [index, exchange] of reading.entries()) {
     if (exchange.position === "opening" || !exchange.q) continue;
+    // A turn with no question in it is not a question, and the altitude rules
+    // are about questions. What lands here is a closing beat -- exempt from the
+    // ceiling by design -- that got stored as an exchange because the reading
+    // closed twice, and reading it as a question two rungs up is a finding
+    // about the wrong defect.
+    if (!exchange.q.includes("?")) continue;
     const level = questionLevel(exchange.q);
     asked.push(level);
 

@@ -17,8 +17,12 @@ this.
 Each fixture produces byte-identical scanner findings before and after, which is
 the test that the redaction did not quietly change what it is a fixture for.
 
-`lantern-be7743.json` is the one exception to that pipeline, and it says so in
-its own entry below.
+`lantern-be7743.json` and `harbor-4c81de.json` are the exceptions to that
+pipeline, and each says so in its own entry below. The rule they follow instead
+is the stronger one: **a transcript with real personal content in it is not
+committed at all**, redacted or otherwise. Where the session that taught us
+something cannot be substituted safely, the fixture is written from scratch with
+invented content in the same structural shape.
 
 Commits predating this policy still carry the earlier wording in files that
 quoted it -- the pack's few-shots, the judge rubric, a couple of tests. Left
@@ -61,3 +65,26 @@ whole history.
   next — the permission step back, the elaboration, and the answer that was the
   richest of the session — is in `data/few-shots.json` instead, written from the
   account of it rather than from a record, and marked as such there.
+
+- `harbor-4c81de.json` — 2026-08-26. How a session ends, and how it used to
+  fail to. Four cards including a fourth earned *after* a closing beat, so the
+  reading closes twice and both endings open on the same "across these N cards,
+  in your own words" formula. Then the open tail: five exchanges asking after
+  the nouns in a side project, at name level, while the heaviest thing said all
+  session — a lease running out — is never mentioned again. It is the fixture
+  for `double_close`, `off_territory` and `heavy_material_dropped`, and those
+  three are the only codes it produces.
+
+  **Invented, not redacted.** The session behind it is local to one machine and
+  is not in this repo in any form, because it contains real personal
+  disclosures and no substitution map makes that safe to publish. What is here
+  is the same structural shape — the same turn counts, the same double close,
+  high stakes in the same position, drift in the same place — written with
+  fictional content: a lease coming up and a flatmate, and a scheduling script.
+  Nobody said any of it. `question_type` and `question_level` are computed by
+  the shipped classifiers rather than written by hand, as lantern's are.
+
+  It is frozen at the old sequencing on purpose. `tests/engine/ending.test.mjs`
+  runs the same answers through the engine as it is now, where the fourth card
+  turns before the beat, the reading closes once, the farewell acknowledges the
+  lease, and the session ends.

@@ -29,6 +29,9 @@ export function fakeClient({
   const calls = { chat: [], judge: [] };
   return {
     calls,
+    /** The pending verdicts, so a test that cannot know how many a session will
+     *  spend can push more once it has got where it was going. */
+    gates: queue,
     async chat({ system, messages, onDelta = () => {} }) {
       // What the model actually sees: the stable prefix, then the turn block
       // folded into the last user message. Tests assert against this rather

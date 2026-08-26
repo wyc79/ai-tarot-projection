@@ -152,7 +152,7 @@ export function questionLevel(text) {
 // Words that carry no scene content, so a match on one means nothing. Not a
 // general stopword list -- just enough that what is left is mostly things and
 // actions in the picture.
-export const EMPTY_WORDS = new Set(`about above after again against also another around
+export const EMPTY_WORDS = new Set(`about above across after again against also another around
 back because been before behind below beside between both came come does down each even
 ever every from geen gets give góing gone have here into just keep kind like
 look looked looking made make many more most much must near need never next
