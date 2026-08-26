@@ -11,7 +11,7 @@
  * transcript as a stage direction in the user role.
  */
 
-import { currentCard, settleOnCurrentCard } from "./state.js";
+import { currentCard, settleOnCurrentCard, turnsOn } from "./state.js";
 import { questionType } from "./questions.js";
 import { levelIndex, targetLevel } from "./levels.js";
 
@@ -140,7 +140,7 @@ function firstSentence(text) {
 function ladderState(pack, session) {
   const card = currentCard(session);
   const position = card && pack.position(card.position);
-  const here = card ? session.exchanges.filter((e) => e.position === card.position) : [];
+  const here = card ? turnsOn(session, card.position) : [];
   const last = here[here.length - 1] ?? null;
   const userLevel = last?.gate?.user_level ?? null;
   const deflected = last?.disclosure_depth === 1;
@@ -149,7 +149,8 @@ function ladderState(pack, session) {
   // to stay on it, and that choice changes how high it may reach -- so it is
   // told both numbers rather than one, since only it knows what it is about to
   // ask.
-  const rail = session.exchanges[session.exchanges.length - 1]?.question_type ?? null;
+  const scored = session.exchanges.filter((e) => !e.aside);
+  const rail = scored[scored.length - 1]?.question_type ?? null;
   return {
     userLevel,
     deflected,
@@ -210,7 +211,7 @@ Your last question was about ${rail === "projection" ? "the card" : "their life"
 function depthOnCurrentCard(session) {
   const card = currentCard(session);
   if (!card) return null;
-  const here = session.exchanges.filter((e) => e.position === card.position);
+  const here = turnsOn(session, card.position);
   return here.length ? here[here.length - 1].disclosure_depth : null;
 }
 
@@ -303,6 +304,11 @@ function describeRecap(pack, session) {
     }
   }
   const lastAnswer = session.exchanges[session.exchanges.length - 1];
+  if (lastAnswer?.aside) {
+    lines.push("  THEY ASKED YOU WHAT YOU MEANT rather than answering. Nothing above moved:");
+    lines.push("    the depth, the level and the exchange count are all where they were before");
+    lines.push("    you asked. Answer them and ask again, smaller.");
+  }
   if (lastAnswer?.gate?.hedged) {
     lines.push("  THEY HEDGED THAT: it came with a way to take it back — \"i guess\", a");
     lines.push("    question mark on a statement. Do not repeat it back as settled fact and");
@@ -488,6 +494,24 @@ Same shape as any other turn: one observation, one question. The exception is
 someone winding down. If they are saying goodbye, say goodbye — a short reply
 that asks nothing is the right answer to "thanks, that was interesting", and
 holding them with one more question is the worst possible last impression.`,
+
+  clarify: `
+## This turn
+
+They did not answer, they asked you what you meant. That is not a deflection and
+it is not resistance -- your question did not land, and they are telling you so
+rather than guessing at it.
+
+**No card turns over, and this turn does not count as one of theirs.** The card
+is exactly where it was.
+
+Answer them, plainly, in one sentence, without apologising for the question or
+explaining the technique behind it. Then ask the same thing again in plainer
+words -- shorter, more concrete, and pointing at whatever they can actually see
+or remember. If the question needed their life and they had not offered any yet,
+that is the answer: go back to the picture and ask about it instead.
+
+Never repeat the question you just asked. They already told you it did not work.`,
 
   epilogue: `
 ## This turn
@@ -685,6 +709,24 @@ has_life_content is false the depth is 1 or 2, always.
 have a different trade" is a real disclosure -- a 3, with life content -- offered
 with a way to take it back. Both things are true at once and the reader needs to
 know both: what they said, and that they are watching to see what you do with it.
+
+---
+
+**asked_back** is not a depth at all. It is true when what they sent is a
+question to you rather than an answer to yours -- "what do you mean whose
+heading out is that?", "sorry, whose?", "are you asking about the card or about
+me?". They are still here and still engaged; they just did not follow you.
+
+It is the one verdict that stops a turn counting. The reading answers them,
+asks again in plainer words, and the card is left exactly where it was -- so a
+question that was badly phrased costs the reader a turn rather than costing them
+one of theirs.
+
+Be strict with it. An answer that happens to end in a question mark is not this:
+"my brother, I suppose?" is a hedged answer. Nor is a rhetorical question they
+are answering with. It is true only when there is nothing in what they sent that
+could be scored, because they were asking rather than telling. When it is true,
+disclosure_depth is 1 and user_level is name, because nothing was said.
 
 ---
 

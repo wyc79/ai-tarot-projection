@@ -61,6 +61,16 @@ export function gateSchema(pack) {
           "trailing 'or something'. This is not about confidence in general; it " +
           "is about this sentence being offered with a way to take it back.",
       },
+      asked_back: {
+        type: "boolean",
+        description:
+          "Did they ask you a question instead of answering yours? \"what do you " +
+          "mean?\", \"whose what?\", \"is that about the card or about me?\" -- they " +
+          "are engaged, they just did not follow you. Strict: an answer that ends " +
+          "in a question mark is not this (\"my brother, I suppose?\" is hedged, not " +
+          "asked back). True only when there is nothing in what they sent that " +
+          "could be scored, because they were asking rather than telling.",
+      },
       user_level: {
         type: "string",
         enum: pack.levels.map((l) => l.id),
@@ -73,7 +83,8 @@ export function gateSchema(pack) {
           "not where they were invited to land.",
       },
     },
-    required: ["disclosure_depth", "has_life_content", "hedged", "user_level", "stakes", "reading_of_them"],
+    required: ["disclosure_depth", "has_life_content", "hedged", "asked_back",
+               "user_level", "stakes", "reading_of_them"],
     additionalProperties: false,
   };
 }

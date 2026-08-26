@@ -570,3 +570,83 @@ test("the keepsake shows the beat it ended on, then what came after it", async (
   assert.ok(md.includes(firstBeat), "the first beat fell out of the keepsake entirely");
   assert.ok(md.includes("I already handed my notice in"));
 });
+
+// -- a question back is not an answer ------------------------------------
+
+test("asking what the question meant does not spend a turn on the card", async () => {
+  const pack = await realPack();
+  const client = fakeClient({
+    opening: declines,
+    gates: [
+      at({ depth: 2, life: false }),
+      { ...at({ depth: 1, life: false }), asked_back: true },
+      at({ depth: 2, life: false }),
+    ],
+  });
+  const reading = startReading({ pack, client, seed: "moon-4f2a91" });
+  await reading.begin();
+  await reading.say("no, nothing in particular");
+  await reading.say("a woman on her own in a garden");
+  const before = reading.session.exchanges.filter((e) => e.position === "situation").length;
+
+  await reading.say("what do you mean whose heading out is that?");
+  assert.equal(client.calls.chat.at(-1).turn, "clarify");
+
+  const { exchangesOnCurrentCard, settleOnCurrentCard } = await import("../../web/js/engine/state.js");
+  assert.equal(exchangesOnCurrentCard(reading.session), before,
+               "the aside was charged to the card");
+  assert.equal(settleOnCurrentCard(reading.session).spent, before,
+               "and it counted toward the bridge as though they had said something");
+
+  // It is in the transcript, at the card's position, so the record reads in order.
+  const aside = reading.session.exchanges.at(-1);
+  assert.equal(aside.position, "situation");
+  assert.equal(aside.aside, true);
+  assert.equal(reading.session.cards[0].user_projection, "a woman on her own in a garden",
+               "and it did not become the projection");
+});
+
+test("an answer with a question mark on it is a hedge, not a question back", () => {
+  // The distinction the judge is asked to hold. Nothing enforces it here; this
+  // pins the shape the engine expects so the two do not drift.
+  const hedged = { ...at({ depth: 3, life: true, hedged: true }), asked_back: false };
+  const asked = { ...at({ depth: 1, life: false }), asked_back: true };
+  assert.equal(hedged.asked_back, false);
+  assert.equal(asked.disclosure_depth, 1, "nothing was said, so there is nothing to score");
+});
+
+test("the reader is told the card did not move, and told not to repeat itself", async () => {
+  const pack = await realPack();
+  const client = fakeClient({
+    opening: declines,
+    gates: [at({ depth: 2, life: false }), { ...at({ depth: 1, life: false }), asked_back: true }],
+  });
+  const reading = startReading({ pack, client, seed: "moon-4f2a91" });
+  await reading.begin();
+  await reading.say("no, nothing in particular");
+  await reading.say("a woman on her own in a garden");
+  await reading.say("what do you mean?");
+
+  const prompt = client.calls.chat.at(-1).prompt.replace(/\s+/g, " ");
+  assert.match(prompt, /THEY ASKED YOU WHAT YOU MEANT rather than answering/);
+  assert.match(prompt, /this turn does not count as one of theirs/);
+  assert.match(prompt, /Never repeat the question you just asked/);
+});
+
+test("an aside is not a rung on the staircase", async () => {
+  const pack = await realPack();
+  const { staircase } = await import("../../scripts/scan.mjs");
+  const { staircaseSvg } = await import("../../web/js/ui/staircase.js");
+  const session = {
+    positions: ["situation"], cards: [{ card_id: "major-00-fool", position: "situation" }],
+    exchanges: [
+      { q: "What do you see?", a: "a man walking", position: "situation",
+        disclosure_depth: 2, gate: { user_level: "name", has_life_content: false } },
+      { q: "Whose walking off is that?", a: "what do you mean?", position: "situation",
+        aside: true, disclosure_depth: 0, gate: { user_level: "name" } },
+    ],
+  };
+  assert.ok(!staircase(session, pack).includes("what do you mean"));
+  assert.equal((staircaseSvg(session, pack).match(/class="q-/g) ?? []).length, 1,
+               "the aside was drawn as a move");
+});

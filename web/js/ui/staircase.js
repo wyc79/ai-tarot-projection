@@ -47,7 +47,7 @@ const escape = (text) => String(text).replace(/[<>&"]/g,
 function drawable(session, pending) {
   const turns = session.exchanges
     .map((exchange, index) => ({ exchange, index }))
-    .filter(({ exchange }) => exchange.q
+    .filter(({ exchange }) => exchange.q && !exchange.aside
       && exchange.position !== "opening" && exchange.position !== "off_frame");
   if (pending && session.cards.length) {
     turns.push({

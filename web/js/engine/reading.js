@@ -23,7 +23,7 @@ import {
 import {
   close, commitAnchor, createSession, currentCard, end, epilogueEarned, flipCard,
   flipDecision, flipEpilogue, recordAfterward, recordExchange, recordOffFrame,
-  recordOpening, recordReading, spreadComplete, updateAnchor,
+  recordAside, recordOpening, recordReading, spreadComplete, updateAnchor,
 } from "./state.js";
 import { makeDeal } from "./draw.js";
 import { newSeed } from "./rng.js";
@@ -259,6 +259,23 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
         messages: judgeMessages(pack, session, { question: lastQuestion, answer }),
         schema: gateSchema(pack),
       });
+
+      // They asked what the question meant instead of answering it. Nothing
+      // moves: not the card, not the count, not the ladder. A question that did
+      // not land costs the reader a turn, not them one of theirs -- charging
+      // them for it is charging someone for the reader's own bad phrasing, and
+      // it lands as a depth-1 deflection on a card they were engaged with.
+      //
+      // Before the closed branch, because it is just as true afterwards: an
+      // epilogue card has a budget of its own, and this must not spend it.
+      if (gate.asked_back && currentCard(session)) {
+        recordAside(session, { question: lastQuestion, answer, gate });
+        onEvent({ type: "gate", gate });
+        if (session.safety_state === "drop_frame") onEvent({ type: "frame_dropped" });
+        await readerTurn("clarify", { onCard: false });
+        persist();
+        return { gate, decision: { flip: false, reason: "they asked what the question meant" } };
+      }
 
       // The reading is over and they are still talking. That is allowed, and it
       // is not a reason to hang up on them or to start a second reading: the

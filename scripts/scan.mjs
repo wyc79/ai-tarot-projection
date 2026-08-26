@@ -339,7 +339,7 @@ function scanHedges(session, turns) {
  */
 function scanScaffolding(session, pack) {
   const findings = [];
-  const reading = session.exchanges.filter((e) => e.position !== "off_frame");
+  const reading = session.exchanges.filter((e) => e.position !== "off_frame" && !e.aside);
   const asked = [];
 
   for (const [index, exchange] of reading.entries()) {
@@ -419,7 +419,7 @@ function scanScaffolding(session, pack) {
 /** The question/answer altitude trace, for reading two arms side by side. */
 export function levelTrace(session) {
   return session.exchanges
-    .filter((e) => e.position !== "opening" && e.position !== "off_frame" && e.q)
+    .filter((e) => e.position !== "opening" && e.position !== "off_frame" && !e.aside && e.q)
     .map((e) => `${questionLevel(e.q)[0]}${(e.gate?.user_level ?? "?")[0]}`)
     .join(" ");
 }
@@ -439,7 +439,8 @@ export function levelTrace(session) {
 export function staircase(session, pack) {
   const turns = session.exchanges
     .map((e, index) => ({ e, index }))
-    .filter(({ e }) => e.position !== "opening" && e.position !== "off_frame" && e.q);
+    .filter(({ e }) => e.position !== "opening" && e.position !== "off_frame"
+                       && !e.aside && e.q);
   if (!turns.length) return "";
 
   const flagged = new Set(

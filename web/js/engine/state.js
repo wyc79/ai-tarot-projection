@@ -126,10 +126,24 @@ export function budgetOnCurrentCard(session) {
   };
 }
 
+/**
+ * The exchanges on a position that count as exchanges.
+ *
+ * Everything that paces a card reads this rather than the raw list, because one
+ * kind of turn sits at a card's position and is not one of its turns: an aside,
+ * where they asked what the question meant instead of answering it. It keeps
+ * the position so the transcript and the keepsake stay in order, and it buys
+ * nothing and costs nothing -- a badly phrased question costs the reader a turn
+ * rather than costing them one of theirs.
+ */
+export function turnsOn(session, position) {
+  return session.exchanges.filter((e) => e.position === position && !e.aside);
+}
+
 export function exchangesOnCurrentCard(session) {
   const card = currentCard(session);
   if (!card) return 0;
-  return session.exchanges.filter((e) => e.position === card.position).length;
+  return turnsOn(session, card.position).length;
 }
 
 /**
@@ -147,8 +161,7 @@ export function exchangesOnCurrentCard(session) {
 export function countingExchangesOnCurrentCard(session) {
   const card = currentCard(session);
   if (!card) return 0;
-  return session.exchanges.filter(
-    (e) => e.position === card.position && !e.gate?.hedged).length;
+  return turnsOn(session, card.position).filter((e) => !e.gate?.hedged).length;
 }
 
 /**
@@ -176,7 +189,7 @@ export function countingExchangesOnCurrentCard(session) {
 export function dwellOnCurrentCard(session) {
   const card = currentCard(session);
   if (!card) return { arrived: false, spent: 0, satisfied: true };
-  const here = session.exchanges.filter((e) => e.position === card.position);
+  const here = turnsOn(session, card.position);
   const arrival = here.findIndex((e) => e.gate?.has_life_content === true);
   if (arrival === -1) return { arrived: false, spent: 0, satisfied: true };
   const spent = here.slice(arrival + 1).filter((e) => !e.gate?.hedged).length;
@@ -205,7 +218,7 @@ export function dwellOnCurrentCard(session) {
 export function settleOnCurrentCard(session) {
   const card = currentCard(session);
   if (!card) return { spent: 0, selfReferent: false, settled: false };
-  const here = session.exchanges.filter((e) => e.position === card.position);
+  const here = turnsOn(session, card.position);
   const selfReferent = here.some((e) => e.gate?.has_life_content === true);
   return {
     spent: here.length,
@@ -226,6 +239,7 @@ export function flipsAfterExchange(session) {
   const firstOf = new Map();
   for (const [index, exchange] of session.exchanges.entries()) {
     if (exchange.position === "opening" || exchange.position === "off_frame") continue;
+    if (exchange.aside) continue;
     if (!firstOf.has(exchange.position)) firstOf.set(exchange.position, index);
   }
   const flips = new Map();
@@ -257,8 +271,7 @@ export function disclosureArrivals(session) {
 export function groundedOnCurrentCard(session) {
   const card = currentCard(session);
   if (!card) return false;
-  return session.exchanges.some(
-    (e) => e.position === card.position && e.gate?.has_life_content === true);
+  return turnsOn(session, card.position).some((e) => e.gate?.has_life_content === true);
 }
 
 export function flipCard(session, cardId, { flippedAt = Date.now(), reason = "" } = {}) {
@@ -309,6 +322,28 @@ export function recordOffFrame(session, { question, answer, stakes = "crisis" })
     gate: { stakes },
   });
   session.last_stakes = stakes;
+  return session;
+}
+
+/**
+ * They asked what the question meant instead of answering it.
+ *
+ * Kept at the card's position so it reads in order, flagged so nothing counts
+ * it. Not the projection either: the first thing someone says about a card is
+ * the projection, and "what do you mean?" is not a thing they said about it.
+ */
+export function recordAside(session, { question, answer, gate }) {
+  const card = currentCard(session);
+  session.exchanges.push({
+    q: question,
+    a: answer,
+    disclosure_depth: 0,
+    position: card ? card.position : "aside",
+    aside: true,
+    gate: { ...gate },
+  });
+  session.last_stakes = gate.stakes ?? session.last_stakes;
+  if (gate.stakes === "crisis") session.safety_state = "drop_frame";
   return session;
 }
 

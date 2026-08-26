@@ -38,6 +38,22 @@ class Handler(BaseHTTPRequestHandler):
                 time.sleep(CHUNK_GAP)
             return
 
+        if self.path == "/hangup":
+            # A provider that starts a chunked response and then drops the
+            # connection without the terminating chunk. http.client raises
+            # IncompleteRead on the far side, and the relay used to answer that
+            # with a full traceback -- printing the request it was serving into
+            # the log of a relay whose whole promise is that it keeps nothing.
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Transfer-Encoding", "chunked")
+            self.end_headers()
+            self.wfile.write(b"c\r\ndata: half\n\n\r\n")
+            self.wfile.flush()
+            self.close_connection = True
+            self.connection.close()
+            return
+
         if self.path == "/boom":
             # A provider refusing, in the provider's own shape.
             return self.respond(429, {"error": {"type": "rate_limit_error",
