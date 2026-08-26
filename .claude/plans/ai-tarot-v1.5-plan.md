@@ -72,8 +72,26 @@ Tarot as a doorway, not divination. The cards are projective prompts that get pe
     offer the connection at the user's current level, never assume it. "<their phrase> - whose is
     that, in your world: yours about something, or someone's about you?", or Clinton's "when have
     you felt this way?". Weighted first on the situation position
-- Closing is unconditional: after the advice-card exchange, at most one follow-up, then the
-  closing beat fires regardless of depth. A session can never hang unclosed (B run proved it can)
+- PER-POSITION BUDGET: positions[] carries target and max beside ceiling, and both rise across
+  the arc the way the ceiling does - situation 2/4, obstacle 3/5, advice 3/5. The card whose job
+  is to find the ground does not need long to find out that it has not; the cards after it are
+  working with material that took a while to arrive. The session denormalises the budget off the
+  pack the way it does positions, so the rules stay pack-agnostic and a replayed session paces as
+  it actually paced
+- A RICH ANSWER NO LONGER BUYS AN EXEMPTION. depth 4 used to take the next card the moment it
+  landed, whatever had been spent on the position, which left the obstacle card two exchanges long
+  in the seeded fixture with the best thing anyone said on it being the thing that ended it. It
+  now spends the budget like any other answer. This finishes the argument the dwell rule started:
+  a disclosure never ends its own card. Cost, and it is real: someone who gives nothing on every
+  card runs 12 exchanges rather than 8
+- Closing is unconditional: after the advice card's budget is spent, the closing beat fires
+  regardless of depth. A session can never hang unclosed (B run proved it can)
+- CLOSING IS NOT HANGING UP. The beat is the last thing said about the spread, and then the
+  conversation stays open: if they keep talking the reader keeps answering, with no fourth card
+  and no second reading, still routing through the three on the table. session.ended is the
+  terminal state and only a person sets it. Turns after the beat live under their own position so
+  they touch no card's rhythm, and the gate still runs on them - stakes do not stop mattering
+  because a reading finished
 - Fallbacks: "I don't know tarot" -> point at imagery; one-word answers -> forced choice between two contrasting meanings drawn from the position's meaning space
 - Position-aware meanings (from claude-tarot-skill): pack stores per-position meaning hints per card (meanings: { situation, obstacle, advice } + general fallback); same card reads differently by position, and the AI bends the user's projection toward the position's role in the arc
 - Closing actionable step: session's last beat converts the resolution into one small concrete real-world reflection or action ("this week, notice when X happens"); makes the session feel complete. It should tie to something the user said they value, and quietly reinforce that whatever was found came from them, not the cards
@@ -117,6 +135,12 @@ DECIDED: frontend is plain HTML/CSS/JS (no framework, no build step). Prompt ass
   other places, including data/few-shots.json, where it was a teaching example shipped inside
   every prompt. Anything used as an example travels
 - Prompt iteration without redeploy (load-bearing for M3): packs, persona prompt, and few-shots are static data files assembled client-side - editing a prompt is a file save locally, a Pages deploy when hosted; relays are never touched
+- The transcript sent to the model is the last 10 exchanges, with a line saying how many are
+  missing. Affordable precisely because of the recap block below: everything a later turn must be
+  consistent with is assembled from state every turn and outranks the history, so the oldest turns
+  are texture rather than record. It is what makes an open-ended conversation after the closing
+  beat bounded. Cost: the message list stops being a stable prefix once it slides, so incremental
+  caching over messages is lost - the 22 KB that matters is the system prompt, which does not move
 - Prompt is assembled in two halves, and the split is load-bearing: readerSystem is the stable
   prefix (persona, few-shots, standing rules, spread, topic - ~22 KB, identical every turn) and
   readerTurnBlock is what changes (session record, card, ladder, turn instruction - ~3 KB), sent
@@ -490,6 +514,10 @@ Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider
   the elaboration path grounds on its last exchange. Judge work continued from a live failure
   mid-round: judge_probe.mjs, the contract-only schema in the prompt, and required-key validation
   on judge replies, after deepseek-v4-flash was found echoing the schema back and being believed.
+- v1.5 (2026-08-26): pacing and continuation on the same branch - per-position target/max in pack
+  data rising across the arc, the rich-answer exit losing its exemption, the reading staying open
+  after its closing beat until the person ends it, and a 10-exchange transcript window. Plus the
+  reader no longer emitting its own turn wrapped in quotation marks, which the few-shots taught it.
 - v1.5 (2026-08-25): session transcripts committed as fixtures are redacted derivatives now,
   with the originals in gitignored checkpoint/ and the maps in gitignored redactions/.
 - v1.5 (2026-08-25): latency work on the same branch - the anchor revision moved off the
