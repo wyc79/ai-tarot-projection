@@ -204,7 +204,9 @@ test("the session is persisted as it goes, and survives a reload", async () => {
 
 test("a closed reading keeps talking; only the person ends it", async () => {
   const { reading, client } = await run({
-    gates: Array.from({ length: 10 }, () => gate(4)),
+    // The turn after the beat is a depth-2 pleasantry, which does not earn the
+    // fourth card. The test below is the one where it does.
+    gates: [...Array.from({ length: 8 }, () => gate(4)), gate(2)],
     answers: ["a", "b", "c", "d", "e", "f", "g", "h"],
   });
   const s = reading.session;
@@ -230,13 +232,14 @@ test("a closed reading keeps talking; only the person ends it", async () => {
 
 test("the reader is told the spread is spent, and told to let them go", async () => {
   const { reading, client } = await run({
-    gates: Array.from({ length: 10 }, () => gate(4)),
+    gates: [...Array.from({ length: 8 }, () => gate(4)), gate(2)],
     answers: ["a", "b", "c", "d", "e", "f", "g", "h"],
   });
   await reading.say("thanks, that was interesting");
   const prompt = client.calls.chat.at(-1).prompt.replace(/\s+/g, " ");
   assert.match(prompt, /THE READING IS FINISHED/);
-  assert.match(prompt, /No card turns over, now or ever again/);
+  assert.match(prompt, /No card turns over on this turn/);
+  assert.match(prompt, /do not promise a second reading/);
   assert.match(prompt, /If they are saying goodbye, say goodbye/);
   assert.match(prompt, /none of the pacing applies any more/);
   // The ladder is still there on purpose. "Do not ask two rungs above where
@@ -252,6 +255,7 @@ test("someone can still say the thing after the beat, and the frame still drops"
     answers: ["a", "b", "c", "d", "e", "f", "g", "h"],
   });
   await reading.say("actually my brother died in March");
+  assert.equal(reading.session.cards.length, 3, "and no card was dealt at it");
   assert.equal(reading.session.safety_state, "drop_frame",
                "a closing beat is not a reason to stop listening");
   assert.ok(events.some((e) => e.type === "frame_dropped"));
@@ -564,7 +568,8 @@ test("every move the pack weights is a move the persona defines", async () => {
   // reader to weight a move it had never heard of.
   const { client, pack } = await run({ gates: [gate(3)], answers: ["hm"] });
   const system = systemFor(client, "invite");
-  for (const move of new Set(pack.positions.flatMap((p) => p.moves))) {
+  const weighted = [...pack.positions, ...(pack.epilogue ? [pack.epilogue] : [])];
+  for (const move of new Set(weighted.flatMap((p) => p.moves))) {
     assert.ok(system.includes(`**${move}**`), `pack weights ${move}, persona does not define it`);
   }
 });

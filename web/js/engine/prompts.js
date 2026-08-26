@@ -139,7 +139,7 @@ function firstSentence(text) {
  */
 function ladderState(pack, session) {
   const card = currentCard(session);
-  const position = card && pack.positions.find((p) => p.id === card.position);
+  const position = card && pack.position(card.position);
   const here = card ? session.exchanges.filter((e) => e.position === card.position) : [];
   const last = here[here.length - 1] ?? null;
   const userLevel = last?.gate?.user_level ?? null;
@@ -267,13 +267,13 @@ function describeRecap(pack, session) {
     }
   }
 
-  const remaining = session.positions.length - session.cards.length;
+  const remaining = Math.max(0, session.positions.length - session.cards.length);
   lines.push(`  ${remaining > 0
     ? `${remaining} position${remaining > 1 ? "s" : ""} still to come, cards unknown to you`
     : "every position dealt; there is no further card"}`);
 
   const entry = currentCard(session);
-  const position = entry && pack.positions.find((p) => p.id === entry.position);
+  const position = entry && pack.position(entry.position);
   const depth = depthOnCurrentCard(session);
   lines.push("", "now:");
   if (session.closed) {
@@ -329,7 +329,7 @@ function describeCard(pack, session) {
   const entry = currentCard(session);
   if (!entry) return "";
   const card = pack.card(entry.card_id);
-  const position = pack.positions.find((p) => p.id === entry.position);
+  const position = pack.position(entry.position);
   return `
 ## The card on the table
 
@@ -343,7 +343,7 @@ The one line you may offer if they freeze: "${card.imagery_line}"
 
 Traditional sense, which you do not volunteer — the two sides of a forced
 choice, or a straight answer if they ask what it means:
-- in this position: ${card.meanings[entry.position]}
+- in this position: ${pack.meaning(card, entry.position)}
 - generally: ${card.meanings.general}`;
 }
 
@@ -474,9 +474,10 @@ the card that just landed. The chase costs them the projection.`,
 The reading is finished. You gave the closing beat and they have kept talking,
 which is a normal thing for someone to do and is not a signal to start again.
 
-**No card turns over, now or ever again in this conversation.** There is no
-fourth card and there is no second reading. If they ask for one, say so plainly
-and briefly rather than performing reluctance about it.
+**No card turns over on this turn.** The table decides that and it has not told
+you to, which is the same rule as every other turn. Do not offer one, do not
+hint that one is coming, and do not promise a second reading — the spread was
+three cards and it is spent.
 
 Do not restate the step you left them with and do not summarise the session --
 they were there. Answer what they actually said, in their words, and keep
@@ -487,6 +488,26 @@ Same shape as any other turn: one observation, one question. The exception is
 someone winding down. If they are saying goodbye, say goodbye — a short reply
 that asks nothing is the right answer to "thanks, that was interesting", and
 holding them with one more question is the worst possible last impression.`,
+
+  epilogue: `
+## This turn
+
+They kept talking after the reading had ended, and then said something real —
+and the table has answered by turning one more card. This is the only one there
+will be, and it is not a second reading. It is the reading finding out it was
+not finished.
+
+**One observation** on what they just said, in their words. **Then the card
+turns over:** name it and say it is the last one, in a clause, not a paragraph.
+**Then one question about the picture**, and stop.
+
+The same rule as every other card, and it matters more here than anywhere: the
+question is about what they see, not about what they just told you. You already
+answered that in the observation. Someone who knows nothing about this person
+should be able to answer it by looking at the card.
+
+Do not explain why it turned up, do not call it a gift or a sign, and do not
+remark on the fact that the reading has restarted. The table does what it does.`,
 
   close: `
 ## This turn

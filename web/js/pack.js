@@ -45,6 +45,13 @@ export async function loadPack(packDir = "data", { fetchImpl = fetch } = {}) {
     id: deck.pack_id,
     name: deck.name,
     positions: deck.positions,
+    // The earned fourth card, and deliberately not a fourth entry in positions:
+    // the spread is three, and this one only exists if a session goes past its
+    // own ending. A pack that does not define one simply cannot deal it.
+    epilogue: deck.epilogue ?? null,
+    /** Any position by id, the epilogue included. */
+    position: (id) => (deck.epilogue?.id === id ? deck.epilogue
+      : deck.positions.find((p) => p.id === id)),
     // The scaffolding ladder, low to high. Array order is the ordering: the
     // engine does index arithmetic on it and knows nothing else about levels.
     levels: deck.levels,

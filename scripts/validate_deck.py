@@ -81,6 +81,22 @@ def validate(pack_dir):
                             problems.append("few_shot %d turn %d: missing or empty %r"
                                             % (i, j, key))
 
+    # The earned fourth card is optional -- a pack without one just never deals
+    # it -- but a malformed one should not wait until a live session to say so.
+    epilogue = deck.get("epilogue")
+    if epilogue is not None:
+        if not isinstance(epilogue, dict):
+            problems.append("epilogue must be a position object")
+        else:
+            for key in ("id", "label", "arc_role", "prompt_hint", "ceiling"):
+                if not nonempty_str(epilogue.get(key)):
+                    problems.append("epilogue: missing or empty %r" % key)
+            moves = epilogue.get("moves")
+            if not isinstance(moves, list) or not moves or not all(nonempty_str(m) for m in moves):
+                problems.append("epilogue: moves must be a non-empty list of names")
+            if epilogue.get("id") in {p.get("id") for p in deck.get("positions", [])}:
+                problems.append("epilogue: id collides with a spread position")
+
     # The scaffolding ladder. Order is meaning here: the engine steps up it by
     # index, so a pack that lists the levels in the wrong order is a pack whose
     # questions climb in the wrong direction.

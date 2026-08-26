@@ -23,7 +23,8 @@ export function shuffle(items, rng) {
  * The shuffled pile for a session. Cards come off the top as positions are
  * reached, so `pile[n]` is fixed by the seed before the reading starts.
  *
- * @returns {{seed: string, pile: string[], take: (n: number) => string[]}}
+ * @returns {{seed: string, pile: string[], take: (n: number) => string[],
+ *            dealtCount: number, remaining: number}}
  */
 export function makeDeal(cardIds, seed) {
   const pile = shuffle(cardIds, makeRng(seed));
@@ -38,6 +39,10 @@ export function makeDeal(cardIds, seed) {
     },
     get dealtCount() {
       return dealt;
+    },
+    /** How many are left. A 78-card pile never runs out, a test deck can. */
+    get remaining() {
+      return pile.length - dealt;
     },
   };
 }

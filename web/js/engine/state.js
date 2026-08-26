@@ -48,7 +48,7 @@ export const SETTLE_MIN = 2;
  *  say about; someone who has just said something is not that person. */
 export const DWELL_GRACE = 1;
 
-export function createSession({ packId, seed, positions, startedAt = Date.now() }) {
+export function createSession({ packId, seed, positions, epilogue = null, startedAt = Date.now() }) {
   return {
     schema_version: STATE_VERSION,
     // Seed plus start time: unique enough to key a history list, and readable
@@ -67,10 +67,12 @@ export function createSession({ packId, seed, positions, startedAt = Date.now() 
     // the same shape: setup, then tension, then resolution. The card whose job
     // is to find the ground does not need long to find out that it has not, and
     // the cards after it are working with material that took a while to arrive.
-    budget: Object.fromEntries(positions.map((p) => [p.id, {
+    budget: Object.fromEntries([...positions, ...(epilogue ? [epilogue] : [])].map((p) => [p.id, {
       target: p.target ?? TARGET_EXCHANGES,
       max: p.max ?? MAX_EXCHANGES,
     }])),
+    /** The earned fourth card's position id, or null if this pack has none. */
+    epilogue_position: epilogue?.id ?? null,
     /** @type {"opening"|"reading"} nothing is dealt until they have been asked */
     phase: "opening",
     /** @type {string|null} what they said they wanted to look at, in their words */
@@ -221,16 +223,21 @@ export function settleOnCurrentCard(session) {
  * case that matters: a card turning over and the session stopping there.
  */
 export function flipsAfterExchange(session) {
-  const lastOf = new Map();
+  const firstOf = new Map();
   for (const [index, exchange] of session.exchanges.entries()) {
     if (exchange.position === "opening" || exchange.position === "off_frame") continue;
-    lastOf.set(exchange.position, index);
+    if (!firstOf.has(exchange.position)) firstOf.set(exchange.position, index);
   }
   const flips = new Map();
   for (const [ordinal, card] of session.cards.entries()) {
     if (ordinal === 0) continue;                    // dealt, not earned
-    const at = lastOf.get(session.cards[ordinal - 1].position);
-    if (at !== undefined) flips.set(at, card);
+    // The exchange before this card's first, rather than the last of the card
+    // before it. Those are the same thing for the three cards of the spread and
+    // they are not for the epilogue, which is earned off the conversation after
+    // the beat -- exchanges that belong to no card at all.
+    const first = firstOf.get(card.position);
+    const at = first === undefined ? session.exchanges.length - 1 : first - 1;
+    if (at >= 0) flips.set(at, card);
   }
   return flips;
 }
@@ -486,6 +493,51 @@ export function spreadComplete(session) {
 
 export function isReadyToClose(session, gate) {
   return spreadComplete(session) && flipDecision(session, gate).flip;
+}
+
+/**
+ * Has the conversation after the beat earned a fourth card?
+ *
+ * The spread is three. This one is not part of it and is not dealt on a
+ * schedule: it exists because someone kept talking after the reading had
+ * already ended and then said something real, which is the most interesting
+ * thing that can happen in this whole design and used to be answered with a
+ * question and nothing else.
+ *
+ * Earned means what it says. A real disclosure, not held at arm's length, at
+ * the depth that buys a card anywhere else -- politeness after the beat is not
+ * a fourth card, and neither is asking for one. Once, ever: an epilogue that
+ * can happen twice is a second reading with extra steps, and the deck answering
+ * the same question again is the thing the plan refuses on purpose.
+ */
+export function epilogueEarned(session, gate) {
+  return Boolean(session.closed)
+    && !session.ended
+    && Boolean(session.epilogue_position)
+    && !session.cards.some((c) => c.position === session.epilogue_position)
+    && gate?.has_life_content === true
+    && !gate?.hedged
+    && (gate?.disclosure_depth ?? 0) >= DEPTH_ENOUGH;
+}
+
+/**
+ * Turn the earned fourth card. Not flipCard, because the spread is full and
+ * flipCard is right to refuse: this is not a spread position.
+ */
+export function flipEpilogue(session, cardId, { flippedAt = Date.now(), reason = "" } = {}) {
+  if (!session.epilogue_position) throw new Error("this pack has no epilogue");
+  if (session.cards.some((c) => c.position === session.epilogue_position)) {
+    throw new Error("the epilogue has already turned");
+  }
+  session.cards.push({
+    card_id: cardId,
+    position: session.epilogue_position,
+    user_projection: "",
+    ai_reading: "",
+    flipped_at: flippedAt,
+    flip_reason: reason,
+  });
+  return session;
 }
 
 export function close(session, reflection) {

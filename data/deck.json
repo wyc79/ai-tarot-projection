@@ -48,6 +48,20 @@
       "max": 5
     }
   ],
+  "epilogue": {
+    "id": "epilogue",
+    "label": "Epilogue",
+    "arc_role": "epilogue",
+    "prompt_hint": "what turned up after the reading was already over",
+    "moves": [
+      "their-words",
+      "externalize",
+      "action"
+    ],
+    "ceiling": "plans",
+    "target": 2,
+    "max": 4
+  },
   "levels": [
     {
       "id": "name",

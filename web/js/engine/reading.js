@@ -21,9 +21,9 @@ import {
   judgeMessages, openingMessages, readerMessages, readerSystem, readerTurnBlock,
 } from "./prompts.js";
 import {
-  close, commitAnchor, createSession, currentCard, end, flipCard, flipDecision,
-  recordAfterward, recordExchange, recordOffFrame, recordOpening, recordReading,
-  spreadComplete, updateAnchor,
+  close, commitAnchor, createSession, currentCard, end, epilogueEarned, flipCard,
+  flipDecision, flipEpilogue, recordAfterward, recordExchange, recordOffFrame,
+  recordOpening, recordReading, spreadComplete, updateAnchor,
 } from "./state.js";
 import { makeDeal } from "./draw.js";
 import { newSeed } from "./rng.js";
@@ -58,7 +58,9 @@ export function unwrapQuotes(text) {
 }
 
 export function startReading({ pack, client, storage = null, seed = newSeed(), onEvent = () => {} }) {
-  const session = createSession({ packId: pack.id, seed, positions: pack.positions });
+  const session = createSession({
+    packId: pack.id, seed, positions: pack.positions, epilogue: pack.epilogue,
+  });
   const deal = makeDeal(pack.cards.map((c) => c.card_id), seed);
 
   // The seed is logged the moment the session exists: a reading nobody can
@@ -188,6 +190,9 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
     if (spreadComplete(session)) {
       const text = await readerTurn("close");
       close(session, text);
+      // The spread is spent, not the conversation. If they keep talking the
+      // reader keeps answering, and one more card can still be earned.
+      session.phase = "afterward";
       persist();
       onEvent({ type: "closed", reflection: text });
       return { gate, decision, closed: true };
@@ -263,14 +268,7 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
       // The gate still runs, because stakes still do. Someone can say the thing
       // they came in not planning to say after the closing beat as easily as
       // before it, and the frame has to be droppable here too.
-      if (session.closed) {
-        recordAfterward(session, { question: lastQuestion, answer, gate });
-        onEvent({ type: "gate", gate });
-        if (session.safety_state === "drop_frame") onEvent({ type: "frame_dropped" });
-        await readerTurn("after", { onCard: false });
-        persist();
-        return { gate, decision: { flip: false, reason: "the reading is closed; this is after it" } };
-      }
+      if (session.closed) return this.afterward(answer, gate);
 
       recordExchange(session, { question: lastQuestion, answer, gate });
       onEvent({ type: "gate", gate });
@@ -292,6 +290,74 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
       const turn = await advance(gate);
       await settleAnchorRevision(revision);
       return turn;
+    },
+
+    /**
+     * A turn after the closing beat: the conversation, and the one card it can
+     * still earn.
+     *
+     * Three shapes, and the phase says which. On the epilogue card it is an
+     * ordinary card turn, right down to the flip rule -- the spread is full, so
+     * the last-card branch fires and "flipping" it means closing again, with the
+     * step re-sized to how far they actually got in the end. Otherwise it is
+     * either the turn that earns the fourth card or a turn that does not.
+     */
+    async afterward(answer, gate) {
+      if (session.phase === "epilogue") {
+        recordExchange(session, { question: lastQuestion, answer, gate });
+        onEvent({ type: "gate", gate });
+        if (session.safety_state === "drop_frame") {
+          onEvent({ type: "frame_dropped" });
+          await readerTurn("respond");
+          persist();
+          return { gate, decision: { flip: false, reason: "frame dropped" } };
+        }
+        const decision = flipDecision(session, gate);
+        onEvent({ type: "flip_decision", decision, gate });
+        if (!decision.flip) {
+          await readerTurn("respond");
+          persist();
+          return { gate, decision };
+        }
+        // The step is written again rather than added to. They went further
+        // after the beat than they had got by it, and a step sized to where
+        // they were is the wrong step now. The first one is not lost: it is on
+        // the advice card, which is where it was said.
+        const text = await readerTurn("close");
+        close(session, text);
+        session.phase = "afterward";
+        persist();
+        onEvent({ type: "closed", reflection: text, epilogue: true });
+        return { gate, decision, closed: true };
+      }
+
+      recordAfterward(session, { question: lastQuestion, answer, gate });
+      onEvent({ type: "gate", gate });
+      if (session.safety_state === "drop_frame") {
+        onEvent({ type: "frame_dropped" });
+        await readerTurn("respond", { onCard: false });
+        persist();
+        return { gate, decision: { flip: false, reason: "frame dropped" } };
+      }
+
+      if (epilogueEarned(session, gate) && deal.remaining > 0) {
+        const [cardId] = deal.take(1);
+        flipEpilogue(session, cardId, {
+          reason: `earned after the closing beat: depth ${gate.disclosure_depth} with `
+            + "something of their own in it",
+        });
+        session.phase = "epilogue";
+        const entry = currentCard(session);
+        onEvent({ type: "flip", card: pack.card(entry.card_id), position: entry.position,
+                  reason: entry.flip_reason });
+        await readerTurn("epilogue", { stageDirection: flipDirection(pack, session) });
+        persist();
+        return { gate, decision: { flip: true, reason: entry.flip_reason }, flipped: true };
+      }
+
+      await readerTurn("after", { onCard: false });
+      persist();
+      return { gate, decision: { flip: false, reason: "the reading is closed; this is after it" } };
     },
 
     /** The answer to the opening question. Deals the first card, or does not. */

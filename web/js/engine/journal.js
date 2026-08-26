@@ -40,16 +40,39 @@ export function toMarkdown(pack, session) {
     }
   }
 
-  for (const entry of session.cards) {
+  const renderCard = (entry) => {
     const card = pack.card(entry.card_id);
-    const position = pack.positions.find((p) => p.id === entry.position);
+    const position = pack.position(entry.position);
     lines.push(`## ${position?.label ?? entry.position} — ${card.name}`, "");
     lines.push(`> ${card.imagery_line}`, "");
     for (const exchange of exchangesFor(session, entry.position)) {
       if (exchange.q) lines.push(exchange.q.trim(), "");
       lines.push(`**You:** ${exchange.a.trim()}`, "");
     }
+  };
+
+  const isEpilogue = (c) => c.position === session.epilogue_position;
+  const spread = session.cards.filter((c) => !isEpilogue(c));
+  const epilogue = session.cards.find(isEpilogue);
+  for (const entry of spread) renderCard(entry);
+
+  // The beat the three cards ended on. Normally it is also the last thing in
+  // the file and is written once, at the bottom. When the conversation carried
+  // on and earned a fourth card it is not the last thing any more, and it
+  // belongs here, where it was actually said.
+  const firstBeat = spread[spread.length - 1]?.ai_reading?.trim();
+  if (epilogue && firstBeat) lines.push("## The step", "", firstBeat, "");
+
+  const afterward = exchangesFor(session, "afterward");
+  if (afterward.length) {
+    lines.push("## After that", "");
+    for (const exchange of afterward) {
+      if (exchange.q) lines.push(exchange.q.trim(), "");
+      lines.push(`**You:** ${exchange.a.trim()}`, "");
+    }
   }
+
+  if (epilogue) renderCard(epilogue);
 
   const offFrame = exchangesFor(session, "off_frame");
   if (offFrame.length) {
@@ -61,19 +84,8 @@ export function toMarkdown(pack, session) {
   }
 
   if (session.closing_reflection) {
-    lines.push("## The step", "", session.closing_reflection.trim(), "");
-  }
-
-  // After the step, because that is where it happened. The reading closes on
-  // its beat and the conversation carries on if they want it to, so the keepsake
-  // has to be able to show both without pretending the beat came last.
-  const afterward = exchangesFor(session, "afterward");
-  if (afterward.length) {
-    lines.push("## After that", "");
-    for (const exchange of afterward) {
-      if (exchange.q) lines.push(exchange.q.trim(), "");
-      lines.push(`**You:** ${exchange.a.trim()}`, "");
-    }
+    lines.push(epilogue ? "## Where it actually ended" : "## The step", "",
+               session.closing_reflection.trim(), "");
   }
   if (session.safety_state === "drop_frame") {
     lines.push("---", "", "_This reading stopped being a reading partway through._", "");
