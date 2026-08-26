@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { startReading } from "../../web/js/engine/reading.js";
 import { levelDistance, targetLevel } from "../../web/js/engine/levels.js";
 import { questionLevel, questionType } from "../../web/js/engine/questions.js";
-import { scanSession } from "../../scripts/scan.mjs";
+import { scanSession } from "../../web/js/engine/scan.js";
 import { declines, fakeClient, realPack } from "./helpers.mjs";
 
 const SEED = "moon-4f2a91";

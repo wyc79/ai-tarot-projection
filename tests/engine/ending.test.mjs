@@ -21,7 +21,7 @@ import {
   createSession, epilogueEarned, heavyMaterial, tableau,
 } from "../../web/js/engine/state.js";
 import { inTerritory } from "../../web/js/engine/questions.js";
-import { anchorTerritory, scanSession } from "../../scripts/scan.mjs";
+import { anchorTerritory, scanSession } from "../../web/js/engine/scan.js";
 import { declines, fakeClient, realPack } from "./helpers.mjs";
 
 const SEED = "moon-4f2a91";

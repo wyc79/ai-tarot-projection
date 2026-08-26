@@ -5,7 +5,7 @@ import {
   createSession, flipCard, flipDecision, recordExchange,
 } from "../../web/js/engine/state.js";
 import { startReading } from "../../web/js/engine/reading.js";
-import { scanSession } from "../../scripts/scan.mjs";
+import { scanSession } from "../../web/js/engine/scan.js";
 import { fakeClient, realPack, sessionShowing } from "./helpers.mjs";
 
 const POSITIONS = [{ id: "situation" }, { id: "obstacle" }, { id: "advice" }];

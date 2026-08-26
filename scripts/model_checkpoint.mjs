@@ -33,7 +33,7 @@ import path from "node:path";
 import { makeLlmClient } from "../web/js/llmClient.js";
 import { startReading } from "../web/js/engine/reading.js";
 import { toJson, toMarkdown } from "../web/js/engine/journal.js";
-import { formatFindings, levelTrace, scanSession, staircase } from "./scan.mjs";
+import { formatFindings, levelTrace, scanSession, staircase } from "../web/js/engine/scan.js";
 import { ROOT, arg, loadPackFromDisk, preflightRelay, reportError, requireKey } from "./harness.mjs";
 
 const KEY = requireKey();

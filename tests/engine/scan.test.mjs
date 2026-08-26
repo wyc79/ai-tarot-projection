@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { scanSession } from "../../scripts/scan.mjs";
+import { scanSession } from "../../web/js/engine/scan.js";
 import { finalQuestion, questionType } from "../../web/js/engine/questions.js";
 
 /**

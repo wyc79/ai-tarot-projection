@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { startReading } from "../../web/js/engine/reading.js";
-import { scanSession } from "../../scripts/scan.mjs";
+import { scanSession } from "../../web/js/engine/scan.js";
 import { fakeClient, realPack } from "./helpers.mjs";
 
 const fixture = async () =>

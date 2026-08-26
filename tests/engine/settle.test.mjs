@@ -7,7 +7,7 @@ import {
 import { startReading, unwrapQuotes } from "../../web/js/engine/reading.js";
 import { ANTHROPIC } from "../../web/js/providers/anthropic.js";
 import { PROVIDERS } from "../../web/js/providers/index.js";
-import { scanSession } from "../../scripts/scan.mjs";
+import { scanSession } from "../../web/js/engine/scan.js";
 import { declines, fakeClient, realPack } from "./helpers.mjs";
 
 const POSITIONS = [{ id: "situation" }, { id: "obstacle" }, { id: "advice" }];
@@ -509,7 +509,7 @@ test("the reader is told the card did not move, and told not to repeat itself", 
 
 test("an aside is not a rung on the staircase", async () => {
   const pack = await realPack();
-  const { staircase } = await import("../../scripts/scan.mjs");
+  const { staircase } = await import("../../web/js/engine/scan.js");
   const { staircaseSvg } = await import("../../web/js/ui/staircase.js");
   const session = {
     positions: ["situation"], cards: [{ card_id: "major-00-fool", position: "situation" }],
