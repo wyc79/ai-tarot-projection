@@ -90,16 +90,23 @@ export const ANTHROPIC = {
    * code fence.
    */
   judgePayload({ model, system, messages, schema, maxTokens, effort = "low", features = {} }) {
-    // features.thinking means the provider implements the parameter, which is
-    // what makes turning it off something we can actually do rather than hope.
-    const thinkingOff = Boolean(features.thinking);
+    // Two different questions, and conflating them is what left the provider
+    // that actually truncates still truncating.
+    //
+    //   thinkingOff  may we SEND thinking:{type:"disabled"}? Default yes.
+    //   thinking     does the provider implement the parameter, so that we know
+    //                it was heard? Only then is the smaller ceiling safe.
+    //
+    // A gateway that silently ignores the instruction still gets 8k, because a
+    // ceiling lowered on an assumption is a ceiling lowered on nothing.
+    const sendOff = features.thinkingOff ?? Boolean(features.thinking);
     const payload = {
       model,
-      max_tokens: maxTokens ?? (thinkingOff ? JUDGE_TOKENS : JUDGE_TOKENS_STILL_THINKING),
+      max_tokens: maxTokens ?? (features.thinking ? JUDGE_TOKENS : JUDGE_TOKENS_STILL_THINKING),
       system,
       messages,
     };
-    if (thinkingOff) payload.thinking = { type: "disabled" };
+    if (sendOff) payload.thinking = { type: "disabled" };
     // A judge call is a classification, not a voice: pin it where the provider
     // still allows pinning. Current Anthropic models removed sampling params
     // entirely and answer 400, so this is off for them by configuration.
@@ -166,12 +173,24 @@ export const ANTHROPIC = {
       throw new Error(`model declined: ${body.stop_details?.category ?? "unspecified"}`);
     }
     if (body.stop_reason === "max_tokens") {
-      // Models that think before answering spend that budget here too, so a
-      // ceiling sized for the visible answer runs out before the JSON starts.
+      // Say what it spent the budget on, because the three ways this happens
+      // want three different fixes and they are indistinguishable from the
+      // stop_reason alone:
+      //   blocks [thinking]           it deliberated instead of answering
+      //   blocks [text], text repeats it fell into a loop -- check temperature
+      //   blocks [] or no text        it produced nothing at all
+      // Without this the report is "it stopped early" and the next step is a
+      // guess. lantern-be7743 cost an afternoon to that.
+      const blocks = body.content ?? [];
+      const kinds = [...new Set(blocks.map((b) => b.type))];
+      const text = blocks.filter((b) => b.type === "text").map((b) => b.text).join("");
+      const spent = body.usage?.output_tokens;
       const error = new Error(
-        "the reply hit the token ceiling before it finished; on a model that " +
-        "thinks before answering, the thinking is spending the same budget");
+        `the reply hit the token ceiling before it finished: ${spent ?? "?"} output tokens, `
+        + `blocks [${kinds.join(", ") || "none"}], ${text.length} characters of text`
+        + (text ? ` starting "${text.replace(/\s+/g, " ").slice(0, 140)}"` : ""));
       error.code = "response_truncated";
+      error.detail = { spent, kinds, text };
       throw error;
     }
     return (body.content ?? [])

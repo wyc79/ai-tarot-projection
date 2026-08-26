@@ -25,6 +25,15 @@ const NONE = {
   // benefit either way. This flag is only about whether to send cache_control,
   // which a gateway that has never heard of it may reject outright.
   promptCaching: false,
+  // Whether a judge call may send thinking:{type:"disabled"}. Deliberately ON
+  // by default, which is the opposite of every other flag here, because the
+  // usual argument runs the other way for this one parameter: an unrecognised
+  // instruction to turn something OFF is the safe kind to send, a gateway that
+  // rejects it says so in one legible 400 on the next turn, and the failure it
+  // prevents is silent -- 8192 tokens of deliberation and no JSON, which is
+  // what happens to deepseek-v4-flash on the gate schema. Set false for any
+  // provider observed to reject it.
+  thinkingOff: true,
 };
 
 export const PROVIDERS = {
@@ -51,7 +60,7 @@ export const PROVIDERS = {
     // 400, so judge determinism here comes from the schema and the rubric.
     features: {
       thinking: true, effort: true, structuredOutput: true, temperature: false,
-      promptCaching: true,
+      promptCaching: true, thinkingOff: true,
     },
   },
   opencode: {

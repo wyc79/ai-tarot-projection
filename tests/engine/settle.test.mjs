@@ -224,16 +224,52 @@ test("a judge call turns thinking off where the provider implements it", () => {
   assert.equal(payload.output_config.effort, "low");
 });
 
-test("and keeps the bigger ceiling where it cannot", () => {
+test("it still asks a gateway that never declared thinking to turn it off", () => {
   // lantern-be7743's judge call came back response_truncated on this provider,
-  // having generated nothing. The 1M is context. This is output, and the
-  // thinking is spending it.
+  // having generated nothing, and a Ten of Pentacles turn did it again at 8192.
+  // The 1M is context. This is output, and something is spending it.
+  //
+  // Asking it to stop is the one instruction that is safe to send blind: if the
+  // gateway rejects it that is one legible 400 next turn, and if it ignores it
+  // we are exactly where we already were -- which is why the ceiling stays at
+  // 8k here rather than dropping to the 4k that only a heard instruction earns.
   const payload = ANTHROPIC.judgePayload({
     model: "m", system: "s", messages: [], schema: {},
     features: PROVIDERS.deepseek.features,
   });
-  assert.equal(payload.thinking, undefined, "never send a parameter the gateway has not declared");
+  assert.deepEqual(payload.thinking, { type: "disabled" });
+  assert.equal(payload.max_tokens, 8192, "not lowered on an assumption");
+});
+
+test("a provider observed to reject it opts out with one word", () => {
+  const payload = ANTHROPIC.judgePayload({
+    model: "m", system: "s", messages: [], schema: {},
+    features: { ...PROVIDERS.deepseek.features, thinkingOff: false },
+  });
+  assert.equal(payload.thinking, undefined);
   assert.equal(payload.max_tokens, 8192);
+});
+
+test("a truncated judge reply says what it spent the budget on", () => {
+  const thrown = (body) => {
+    try { ANTHROPIC.readText(body); return null; } catch (e) { return e; }
+  };
+  const deliberated = thrown({
+    stop_reason: "max_tokens", usage: { output_tokens: 8192 },
+    content: [{ type: "thinking", thinking: "..." }],
+  });
+  assert.equal(deliberated.code, "response_truncated");
+  assert.match(deliberated.message, /8192 output tokens/);
+  assert.match(deliberated.message, /blocks \[thinking\]/);
+
+  const looped = thrown({
+    stop_reason: "max_tokens", usage: { output_tokens: 8192 },
+    content: [{ type: "text", text: "{ \"disclosure_depth\": 2, ".repeat(4) }],
+  });
+  assert.match(looped.message, /characters of text starting "\{ "disclosure_depth/);
+
+  const nothing = thrown({ stop_reason: "max_tokens", content: [] });
+  assert.match(nothing.message, /blocks \[none\], 0 characters/);
 });
 
 test("a reader turn still thinks; only the judge does not", () => {
