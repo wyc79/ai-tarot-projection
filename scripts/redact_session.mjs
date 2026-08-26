@@ -10,7 +10,7 @@
  * the repo is a derivative with the person substituted out and every structural
  * property kept.
  *
- * What the checks in scripts/scan.mjs actually read, and therefore what a
+ * What the checks in web/js/engine/scan.js actually read, and therefore what a
  * substitution must not break:
  *
  *   - the gate flags: depth, has_life_content, hedged, user_level. Untouched.

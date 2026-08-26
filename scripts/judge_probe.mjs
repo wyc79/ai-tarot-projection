@@ -21,8 +21,7 @@
  * needs a real key, because a stand-in would answer the wrong question.
  */
 
-import { JUDGE_SYSTEM, judgeMessages } from "../web/js/engine/prompts.js";
-import { gateSchema } from "../web/js/engine/schemas.js";
+import { gateCall } from "../web/js/engine/judgements.js";
 import { ANTHROPIC } from "../web/js/providers/anthropic.js";
 import { PROVIDERS } from "../web/js/providers/index.js";
 import { arg, loadPackFromDisk, preflightRelay, requireKey } from "./harness.mjs";
@@ -50,9 +49,13 @@ if (!PROVIDERS[PROVIDER]) {
 
 await preflightRelay(RELAY, PROVIDER);
 const pack = await loadPackFromDisk();
-const schema = gateSchema(pack);
-const stub = { cards: [{ card_id: CARD, position: "situation" }] };
-const messages = judgeMessages(pack, stub, { question: QUESTION, answer: ANSWER });
+// The gate call as shipped, taken apart rather than rebuilt: whatever the
+// engine would actually send is what the probe measures.
+const { system: JUDGE_SYSTEM, messages, schema } = gateCall(pack, {
+  card: { card_id: CARD, position: "situation" },
+  question: QUESTION,
+  answer: ANSWER,
+});
 const features = PROVIDERS[PROVIDER].features;
 
 /** The shipped payload, then one variant per hypothesis. */

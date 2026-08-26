@@ -2,12 +2,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
-  createSession, flipCard, recordExchange, settleOnCurrentCard,
+  cardStanding, createSession, flipCard, recordExchange,
 } from "../../web/js/engine/state.js";
 import { startReading, unwrapQuotes } from "../../web/js/engine/reading.js";
 import { ANTHROPIC } from "../../web/js/providers/anthropic.js";
 import { PROVIDERS } from "../../web/js/providers/index.js";
-import { scanSession } from "../../scripts/scan.mjs";
+import { scanSession } from "../../web/js/engine/scan.js";
 import { declines, fakeClient, realPack } from "./helpers.mjs";
 
 const POSITIONS = [{ id: "situation" }, { id: "obstacle" }, { id: "advice" }];
@@ -29,7 +29,7 @@ test("a card with one answer on it has nothing to bridge from", () => {
   const s = fresh();
   flipCard(s, "cups-01-ace");
   say(s, at({ depth: 2, life: false }));
-  const settle = settleOnCurrentCard(s);
+  const settle = cardStanding(s).settle;
   assert.equal(settle.settled, false, "lantern-be7743 crossed here");
   assert.equal(settle.spent, 1);
   assert.equal(settle.selfReferent, false);
@@ -40,7 +40,7 @@ test("a second answer earns it, whatever is in the answer", () => {
   flipCard(s, "cups-01-ace");
   say(s, at({ depth: 2, life: false }));
   say(s, at({ depth: 2, life: false }));
-  assert.equal(settleOnCurrentCard(s).settled, true);
+  assert.equal(cardStanding(s).settle.settled, true);
 });
 
 test("an answer that already had something of theirs in it earns it at once", () => {
@@ -49,7 +49,7 @@ test("an answer that already had something of theirs in it earns it at once", ()
   const s = fresh();
   flipCard(s, "cups-01-ace");
   say(s, at({ depth: 3, life: true, level: "consequences" }));
-  const settle = settleOnCurrentCard(s);
+  const settle = cardStanding(s).settle;
   assert.equal(settle.settled, true);
   assert.equal(settle.selfReferent, true);
   assert.equal(settle.spent, 1);
@@ -61,7 +61,7 @@ test("it resets with each card; the previous card's footing is not this one's", 
   say(s, at({ depth: 3, life: true, level: "consequences" }));
   say(s, at({ depth: 3, life: true, level: "consequences" }));
   flipCard(s, "major-06-lovers");
-  assert.equal(settleOnCurrentCard(s).settled, false, "a new card is first contact again");
+  assert.equal(cardStanding(s).settle.settled, false, "a new card is first contact again");
 });
 
 // -- what the reader is told ---------------------------------------------
@@ -466,11 +466,12 @@ test("asking what the question meant does not spend a turn on the card", async (
   await reading.say("what do you mean whose heading out is that?");
   assert.equal(client.calls.chat.at(-1).turn, "clarify");
 
-  const { exchangesOnCurrentCard, settleOnCurrentCard } = await import("../../web/js/engine/state.js");
-  assert.equal(exchangesOnCurrentCard(reading.session), before,
-               "the aside was charged to the card");
-  assert.equal(settleOnCurrentCard(reading.session).spent, before,
+  const { cardStanding } = await import("../../web/js/engine/state.js");
+  const standing = cardStanding(reading.session);
+  assert.equal(standing.exchanges, before, "the aside was charged to the card");
+  assert.equal(standing.settle.spent, before,
                "and it counted toward the bridge as though they had said something");
+  assert.equal(standing.asides, 1, "it is counted as what it is instead");
 
   // It is in the transcript, at the card's position, so the record reads in order.
   const aside = reading.session.exchanges.at(-1);
@@ -509,7 +510,7 @@ test("the reader is told the card did not move, and told not to repeat itself", 
 
 test("an aside is not a rung on the staircase", async () => {
   const pack = await realPack();
-  const { staircase } = await import("../../scripts/scan.mjs");
+  const { staircase } = await import("../../web/js/engine/scan.js");
   const { staircaseSvg } = await import("../../web/js/ui/staircase.js");
   const session = {
     positions: ["situation"], cards: [{ card_id: "major-00-fool", position: "situation" }],

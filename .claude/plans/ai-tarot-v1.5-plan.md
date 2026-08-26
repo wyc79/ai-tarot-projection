@@ -211,11 +211,38 @@ DECIDED: frontend is plain HTML/CSS/JS (no framework, no build step). Prompt ass
   caching over messages is lost - the 22 KB that matters is the system prompt, which does not move
 - Prompt is assembled in two halves, and the split is load-bearing: readerSystem is the stable
   prefix (persona, few-shots, standing rules, spread, topic - ~22 KB, identical every turn) and
-  readerTurnBlock is what changes (session record, card, ladder, turn instruction - ~3 KB), sent
-  in the last user message after the transcript. Anything that does not change belongs in the
+  the turn block is what changes (session record, card, ladder, turn instruction - ~3 KB), sent
+  in the last user message after the transcript. Both are assembled by readerCall(), which is the
+  only entry point the controller uses: it takes the turn and returns {kind, plan, system,
+  messages}. The halves are internal to it, so the split cannot be got wrong at a call site. Anything that does not change belongs in the
   prefix: it is what a provider can cache, whether it was told to with cache_control (the
   promptCaching feature flag, on for Anthropic) or does prefix caching by itself. Putting a
   per-turn value in readerSystem breaks caching silently, so it is worth checking
+- The reader turn is decided before it is written. turnPlan() returns the turn's decisions as
+  data - kind, rules (frame_dropped | stakes_high), face_down, ladder, the session record, the
+  resolved card - and the prose renders from that plan and nothing else. Rules are asserted
+  against the plan; prose has its own tests and is allowed to be about prose. Before this the
+  assembled English was the only test surface: 108 of 645 assertions matched sentences and seven
+  matched their line breaks, so re-wrapping a paragraph failed tests about the pacing. The turn
+  kind is checked rather than defaulted - it was `TURN_INSTRUCTIONS[turn] ?? .respond`, which made
+  a typo in the controller a silent respond turn - and it now rides on the call as `kind`, which
+  is what retired turnKindOf() and its rule that nothing may be appended after the instruction
+- A judgement is one name, not three facts that have to agree. judgements({client, pack}) has
+  opening/gate/anchor; each pairs its own system prompt, messages and schema, and `kind` rides on
+  the call. Four callers used to spell the triples out by hand and the test double identified
+  them by sniffing schema.properties.theme. gate() takes the card rather than the session,
+  because the card is all it ever read, so a frozen exchange re-judges without a stub session.
+  anchor() owns the beat re-ask, so a caller asking for a narrative plan gets a valid one.
+  gateCall() stays exported for judge_probe.mjs, which varies the payload on the wire
+- cardStanding(session) is the one interface onto the card currently face up: position,
+  exchanges, counting, asides, depth, grounded, dwell, settle, budget. It replaced six exported
+  functions plus a seventh private copy in prompts.js, each of which re-found the card and
+  re-walked the ledger. The rules are unchanged and still separate functions behind it. The debug
+  page had been filtering session.exchanges by hand for its aside count, which made it a second
+  implementation of the rule turnsOn() exists to hold
+- The protocol scanner is engine code and lives in web/js/engine/scan.js - pure, browser-safe,
+  imported by the engine tests, the seeded fixture, the A/B harness and available to the debug
+  page. scripts/scan.mjs is the command line over it: read files, print, exit code
 - Dev-mode logging (Python relay only): since every call passes through the relay with the fully assembled prompt in the body, a DEV_LOG=1 .env flag logs full request/response bodies (auth header redacted) for M3 iteration and consented playtest transcripts. Default off. The Worker has no logging code path at all - hosted users' conversations are unloggable by construction. Frontend debug panel shows the assembled prompt pre-send.
 - Open-relay protection on the Worker: origin checks + per-IP rate limits (+ lightweight app token if abused)
 - Session state + draw ledger in localStorage: same-device "session 2+" memory for free.
@@ -611,6 +638,17 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-26): seams round on branch m3-seams - four deepenings, no behaviour change. The
+  reader turn gets a plan (turnPlan) with the prose rendering from it and readerCall as the single
+  front door; the three judgements get one module each with `kind` on the call; the card face up
+  gets cardStanding() instead of seven names; the scanner moves into the engine. Verified by
+  diffing the assembled system prompt and message list against 3b3a389 across nine session shapes
+  x eleven turn kinds x handback x stage direction - 396 combinations, byte-identical. Retires
+  turnKindOf and the constraint it imposed (nothing may be appended after the turn instruction).
+  Removes the silent `?? TURN_INSTRUCTIONS.respond` fallback and the fake's schema-sniffing. One
+  real bug found on the way: the ladder section is omitted before the deal, but the session record
+  quotes the target on every turn including the opening one - collapsing those two into one flag
+  dropped a line from the opening prompt.
 - v1.5 (2026-08-26): endings round on branch m3-ending, from tower-6e335b - the whole spread dealt
   face down at the start, the fourth card's earn check moved before the closing beat so there is
   exactly one ending, "the deck keeps one" as the return hook when it is not earned, the farewell

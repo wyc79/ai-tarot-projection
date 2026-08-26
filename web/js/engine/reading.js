@@ -13,13 +13,9 @@
  * Keeping those apart is what makes the flip rhythm testable without a model.
  */
 
-import { ANCHOR_SCHEMA, OPENING_SCHEMA, gateSchema } from "./schemas.js";
-import { BEAT_RETRY_NOTE, beatIsTerritory } from "./anchor.js";
 import { saveToHistory } from "./journal.js";
-import {
-  ANCHOR_SYSTEM, JUDGE_SYSTEM, OPENING_SYSTEM, anchorMessages, flipDirection,
-  judgeMessages, openingMessages, readerMessages, readerSystem, readerTurnBlock,
-} from "./prompts.js";
+import { judgements } from "./judgements.js";
+import { flipDirection, readerCall } from "./prompts.js";
 import {
   afterglowDrift, close, commitAnchor, createSession, currentCard, dealtCardFor, end,
   epilogueEarned, farewellDue, flipCard, flipDecision, flipEpilogue, nextPosition,
@@ -77,6 +73,15 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
   // reproduce is a reading nobody can debug.
   onEvent({ type: "session_start", seed: session.seed, pack: pack.id });
 
+  // The three judgements, bound to this reading's client and pack. Everything
+  // about how one is assembled -- which system prompt, which messages, which
+  // schema, and the anchor's re-ask -- is behind these three names.
+  const judge = judgements({
+    client,
+    pack,
+    onBeatRetry: (beat) => onEvent({ type: "anchor_retry", beat }),
+  });
+
   let lastQuestion = "";
 
   function persist() {
@@ -91,14 +96,12 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
     // Hand agency back on the first high-stakes turn only. Saying it again every
     // time the subject resurfaces turns honesty into a disclaimer.
     const handback = session.last_stakes === "high" && !session.handback_given;
-    const system = readerSystem({ pack, session });
-    const messages = readerMessages(pack, session, {
-      stageDirection,
-      turnBlock: readerTurnBlock({ pack, session, turn, handback }),
-    });
-    onEvent({ type: "reader_start", turn });
+    const { kind, plan, system, messages } =
+      readerCall({ pack, session, turn, handback, stageDirection });
+    onEvent({ type: "reader_start", turn: kind, plan });
 
     const raw = await client.chat({
+      kind,
       system,
       messages,
       onDelta: (delta, full) => onEvent({ type: "reader_delta", delta, full }),
@@ -120,30 +123,6 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
   }
 
   /**
-   * Ask for the narrative plan, and ask again once if the beat came back as a
-   * verdict rather than a question.
-   *
-   * Once, not until it complies: the cost of a conclusive beat is that the rest
-   * of the reading steers toward confirming it, and the cost of re-asking
-   * forever is a session that never starts. One retry buys most of the value.
-   */
-  async function judgeAnchor({ rolling = false } = {}) {
-    const ask = (note) => client.judge({
-      system: ANCHOR_SYSTEM,
-      messages: anchorMessages(pack, session, { note, rolling }),
-      schema: ANCHOR_SCHEMA,
-    });
-    const first = await ask("");
-    if (beatIsTerritory(first.resolution_beat)) return first;
-    onEvent({ type: "anchor_retry", beat: first.resolution_beat });
-    const second = await ask(BEAT_RETRY_NOTE);
-    // Whatever comes back second is what the reading gets. A judge that will
-    // not phrase a territory twice running is not going to on the third ask,
-    // and the reading is not held up over it.
-    return beatIsTerritory(second.resolution_beat) ? second : first;
-  }
-
-  /**
    * Start revising the anchor, without waiting for it.
    *
    * The anchor is a narrative plan: its job is to steer the questions that come
@@ -160,7 +139,7 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
    */
   function beginAnchorRevision(gate) {
     if (!session.anchor || !gate.has_life_content || gate.hedged) return null;
-    return judgeAnchor({ rolling: true }).catch((error) => {
+    return judge.anchor(session, { rolling: true }).catch((error) => {
       // A failed revision is not a failed turn. The reading carries on with the
       // plan it already had, and says so rather than swallowing it.
       onEvent({ type: "anchor_failed", error: error.message });
@@ -190,7 +169,7 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
     // The anchor is committed off the first card, before any second card
     // exists to be reconciled with it.
     if (!session.anchor) {
-      commitAnchor(session, await judgeAnchor());
+      commitAnchor(session, await judge.anchor(session));
       // Persist before announcing: a listener that reads storage on the event
       // would otherwise see the state as it was a moment ago.
       persist();
@@ -299,10 +278,8 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
         return { dealt: false, offFrame: true };
       }
 
-      const gate = await client.judge({
-        system: JUDGE_SYSTEM,
-        messages: judgeMessages(pack, session, { question: lastQuestion, answer }),
-        schema: gateSchema(pack),
+      const gate = await judge.gate({
+        card: currentCard(session), question: lastQuestion, answer,
       });
 
       // They asked what the question meant instead of answering it. Nothing
@@ -409,11 +386,7 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
 
     /** The answer to the opening question. Deals the first card, or does not. */
     async openWith(answer) {
-      const opening = await client.judge({
-        system: OPENING_SYSTEM,
-        messages: openingMessages({ question: lastQuestion, answer }),
-        schema: OPENING_SCHEMA,
-      });
+      const opening = await judge.opening({ question: lastQuestion, answer });
       recordOpening(session, { question: lastQuestion, answer, opening });
       onEvent({ type: "opening", opening, topic: session.topic });
 

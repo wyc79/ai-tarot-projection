@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  close, commitAnchor, createSession, currentCard, exchangesOnCurrentCard,
+  cardStanding, close, commitAnchor, createSession, currentCard,
   flipCard, flipDecision, nextPosition, recordExchange, recordReading, spreadComplete,
 } from "../../web/js/engine/state.js";
 
@@ -53,7 +53,7 @@ test("the first answer on a card is the projection; later ones are not", () => {
   recordExchange(s, { question: "q1", answer: "the first thing I saw", gate: gate(3) });
   recordExchange(s, { question: "q2", answer: "a later thought", gate: gate(3) });
   assert.equal(currentCard(s).user_projection, "the first thing I saw");
-  assert.equal(exchangesOnCurrentCard(s), 2);
+  assert.equal(cardStanding(s).exchanges, 2);
 });
 
 test("exchanges are counted per card, not per session", () => {
@@ -62,7 +62,7 @@ test("exchanges are counted per card, not per session", () => {
   answer(s, 1);
   answer(s, 1);
   flipCard(s, "b");
-  assert.equal(exchangesOnCurrentCard(s), 0, "the new card starts its own count");
+  assert.equal(cardStanding(s).exchanges, 0, "the new card starts its own count");
   assert.equal(s.exchanges.length, 2);
 });
 

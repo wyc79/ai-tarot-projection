@@ -18,8 +18,7 @@
 
 import { readFile } from "node:fs/promises";
 import { makeLlmClient } from "../web/js/llmClient.js";
-import { JUDGE_SYSTEM, judgeMessages } from "../web/js/engine/prompts.js";
-import { gateSchema } from "../web/js/engine/schemas.js";
+import { judgements } from "../web/js/engine/judgements.js";
 import { questionType } from "../web/js/engine/questions.js";
 import { arg, loadPackFromDisk, preflightRelay, reportError, requireKey } from "./harness.mjs";
 
@@ -37,24 +36,16 @@ if (!files.length) {
 
 await preflightRelay(RELAY, PROVIDER);
 const pack = await loadPackFromDisk();
-const GATE_SCHEMA = gateSchema(pack);
 const client = makeLlmClient({
   getKey: () => KEY,
   getConfig: () => ({ mode: "relay", relayBase: RELAY, provider: PROVIDER, judgeModel: JUDGE }),
 });
 
-/**
- * The judge input for one recorded exchange, rebuilt exactly.
- *
- * judgeMessages reads only the card currently face up, so a stub session
- * carrying that one card reproduces the original message verbatim -- no need to
- * replay the whole session forward to get there.
- */
-function frozenInput(session, exchange) {
-  const card = session.cards.find((c) => c.position === exchange.position);
-  const stub = { cards: card ? [{ card_id: card.card_id, position: card.position }] : [] };
-  return judgeMessages(pack, stub, { question: exchange.q, answer: exchange.a });
-}
+const judge = judgements({ client, pack });
+
+/** The card that was face up when a recorded exchange was answered. */
+const cardAt = (session, exchange) =>
+  session.cards.find((c) => c.position === exchange.position) ?? null;
 
 /** How much a set of verdicts disagreed with itself. */
 function spread(values) {
@@ -78,13 +69,13 @@ for (const file of files) {
 
   let unstable = 0;
   for (const [index, exchange] of scored.entries()) {
-    const messages = frozenInput(session, exchange);
+    const card = cardAt(session, exchange);
     const verdicts = [];
     for (let run = 0; run < RUNS; run += 1) {
       // Progress on stderr: the report on stdout is meant to be piped somewhere.
       process.stderr.write(`  turn ${index + 1}/${scored.length} run ${run + 1}/${RUNS}\r`);
       try {
-        verdicts.push(await client.judge({ system: JUDGE_SYSTEM, messages, schema: GATE_SCHEMA }));
+        verdicts.push(await judge.gate({ card, question: exchange.q, answer: exchange.a }));
       } catch (error) {
         reportError(error, `turn ${index + 1}, run ${run + 1}`);
         process.exit(1);

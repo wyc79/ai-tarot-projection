@@ -11,7 +11,7 @@ import { loadPack } from "../pack.js";
 import { makeLlmClient, DEFAULT_CONFIG, PROVIDERS } from "../llmClient.js";
 import { makeStorage, memoryBackend } from "../storage.js";
 import { startReading } from "../engine/reading.js";
-import { exchangesOnCurrentCard, tableau } from "../engine/state.js";
+import { cardStanding, tableau } from "../engine/state.js";
 import { describeSession, loadHistory, toJson, toMarkdown } from "../engine/journal.js";
 import { newSeed } from "../engine/rng.js";
 import { staircaseSvg } from "./staircase.js";
@@ -155,16 +155,15 @@ function addLine(who, text) {
  */
 function budgetLine() {
   if (!reading || !pack) return "";
-  const card = reading.session.cards[reading.session.cards.length - 1];
+  // One read of the card's standing, rather than three different ways of asking
+  // the ledger the same question. The aside count in particular used to be
+  // filtered here by hand, which made this the second place the rule lived.
+  const { card, position, exchanges: spent, asides, budget } = cardStanding(reading.session);
   if (!card) return "";
-  const budget = reading.session.budget?.[card.position] ?? {};
-  const spent = exchangesOnCurrentCard(reading.session);
-  const asides = reading.session.exchanges.filter(
-    (e) => e.position === card.position && e.aside).length;
-  const over = budget.target && spent >= budget.target ? " ok" : "";
-  return `<div><span class="label">${card.position}</span>
-    <b class="${over}">${spent}/${budget.max ?? "?"}</b>
-    <span class="label">target</span> ${budget.target ?? "?"}
+  const over = spent >= budget.target ? " ok" : "";
+  return `<div><span class="label">${position}</span>
+    <b class="${over}">${spent}/${budget.max}</b>
+    <span class="label">target</span> ${budget.target}
     ${asides ? `<span class="label">+${asides} aside${asides > 1 ? "s" : ""}</span>` : ""}</div>`;
 }
 

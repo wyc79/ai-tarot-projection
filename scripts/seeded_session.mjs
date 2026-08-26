@@ -15,7 +15,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadPack } from "../web/js/pack.js";
 import { startReading } from "../web/js/engine/reading.js";
-import { turnKindOf } from "../web/js/engine/prompts.js";
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const SEED = "moon-4f2a91";
@@ -88,18 +87,20 @@ function scriptedClient(prompts) {
   let turn = 0;
   let step = 0;
   return {
-    async chat({ system, messages, onDelta = () => {} }) {
+    async chat({ kind, system, messages, onDelta = () => {} }) {
       // The prompt as the model receives it: the cached-prefix half, then the
-      // turn block folded into the last user message.
-      prompts.push({ system, messages,
+      // turn block folded into the last user message. `kind` is what the engine
+      // asked for, so --prompt=bridge finds a bridge turn rather than matching a
+      // marker against the prose and quietly finding nothing.
+      prompts.push({ kind, system, messages,
                      full: `${system}\n${messages[messages.length - 1]?.content ?? ""}` });
       const text = `[reader turn ${(turn += 1)}]`;
       onDelta(text, text);
       return text;
     },
-    async judge({ schema }) {
-      if (schema.properties.has_topic) return SCRIPT[0].opening;
-      if (schema.properties.theme) {
+    async judge({ kind }) {
+      if (kind === "opening") return SCRIPT[0].opening;
+      if (kind === "anchor") {
         return {
           theme: "bracing for a fight nobody's having",
           user_phrases: [
@@ -156,9 +157,9 @@ const record = {
 };
 
 if (wantPrompt) {
-  const found = prompts.find((p) => turnKindOf(p.full) === wantPrompt);
+  const found = prompts.find((p) => p.kind === wantPrompt);
   if (!found) {
-    const seen = [...new Set(prompts.map((p) => turnKindOf(p.full)))];
+    const seen = [...new Set(prompts.map((p) => p.kind))];
     console.error(`no ${wantPrompt} turn in this session. It ran: ${seen.join(", ")}`);
     process.exit(1);
   }

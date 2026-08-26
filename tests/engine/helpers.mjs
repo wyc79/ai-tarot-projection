@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadPack } from "../../web/js/pack.js";
 import { createSession, flipCard } from "../../web/js/engine/state.js";
-import { turnKindOf } from "../../web/js/engine/prompts.js";
+import { readerCall } from "../../web/js/engine/prompts.js";
 
 const ROOT = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
 
@@ -33,35 +33,61 @@ export function fakeClient({
     /** The pending verdicts, so a test that cannot know how many a session will
      *  spend can push more once it has got where it was going. */
     gates: queue,
-    async chat({ system, messages, onDelta = () => {} }) {
+    async chat({ kind, system, messages, onDelta = () => {} }) {
       // What the model actually sees: the stable prefix, then the turn block
       // folded into the last user message. Tests assert against this rather
       // than against either half, because the split between them is an
       // arrangement for caching, not a change to the reader's instructions.
       const prompt = `${system}\n${messages[messages.length - 1]?.content ?? ""}`;
-      const turn = turnKindOf(prompt);
-      calls.chat.push({ system, messages, prompt, turn });
+      // The turn is what the engine asked for, not what the prose looks like.
+      const turn = kind;
+      calls.chat.push({ kind, system, messages, prompt, turn });
       const text = reply(turn, system, messages);
       onDelta(text, text);
       return text;
     },
-    async judge({ system, messages, schema }) {
-      calls.judge.push({ system, messages, schema });
-      if (schema.properties.has_topic) {
-        return opening ?? { has_topic: false, topic: "", stakes: "low" };
+    /**
+     * Answers by kind, which the judgement says outright.
+     *
+     * It used to sniff the schema -- has_topic meant the opening, theme meant
+     * the anchor, anything else was a gate -- so adding a field called `theme`
+     * to the gate would have quietly routed every gate in the suite to the
+     * anchor's canned reply.
+     */
+    async judge({ kind, system, messages, schema }) {
+      calls.judge.push({ kind, system, messages, schema });
+      switch (kind) {
+        case "opening":
+          return opening ?? { has_topic: false, topic: "", stakes: "low" };
+        case "anchor":
+          // The default beat is territory-phrased, or every anchor call in every
+          // test would trip the re-ask and land twice.
+          return anchor ?? {
+            theme: "t",
+            resolution_beat: "whether it is still holding, or has outlived itself",
+            user_phrases: [{ phrase: "stuck", source: "life" }],
+          };
+        case "gate":
+          return queue.shift()
+            ?? { disclosure_depth: 2, has_life_content: true, stakes: "low", reading_of_them: "x" };
+        default:
+          throw new Error(`the fake was asked for a judgement it has no answer for: ${kind}`);
       }
-      if (schema.properties.theme) {
-        // The default beat is territory-phrased, or every anchor call in every
-        // test would trip the re-ask and land twice.
-        return anchor ?? {
-          theme: "t",
-          resolution_beat: "whether it is still holding, or has outlived itself",
-          user_phrases: [{ phrase: "stuck", source: "life" }],
-        };
-      }
-      return queue.shift() ?? { disclosure_depth: 2, has_life_content: true, stakes: "low", reading_of_them: "x" };
     },
   };
+}
+
+/**
+ * The whole prompt one turn would send: the stable prefix, then the turn block
+ * folded into the last user message.
+ *
+ * Tests assert against this rather than against either half, because the split
+ * between them is an arrangement for caching, not a change to the reader's
+ * instructions. Same assembly fakeClient sees, from the same front door.
+ */
+export function promptFor(pack, session, turn, options = {}) {
+  const { system, messages } = readerCall({ pack, session, turn, ...options });
+  return `${system}\n${messages[messages.length - 1]?.content ?? ""}`;
 }
 
 /**

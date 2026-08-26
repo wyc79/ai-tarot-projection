@@ -19,9 +19,9 @@
  * picture when someone stalls, and that is a projection question arriving on a
  * follow-up turn. Classifying by turn kind would score that answer as a dodge.
  *
- * The same predicate is what scripts/scan.mjs uses to check that a turn dealing
+ * The same predicate is what engine/scan.js uses to check that a turn dealing
  * a card asked a card question, so the protocol check and the scoring cannot
- * drift apart. It is a string test and it is fallible; see scan.mjs.
+ * drift apart. It is a string test and it is fallible; see scan.js.
  *
  * questionLevel: how far from the immediate the question reaches. A separate
  * axis -- a projection ask can target any level -- and the one the scaffolding
