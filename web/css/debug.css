@@ -83,6 +83,10 @@ main.wide { max-width: 74rem; }
 .status-bar { margin: 0 0 1rem; padding: 0.5rem 0.8rem; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
 .status-bar.bad { border-color: var(--bad); }
 .status-bar.ok { border-color: var(--ok); }
+/* The bar carries the verdict and the text inside it takes its colour from
+   there, so a status message cannot clobber the classes it was written with. */
+.status-bar.bad #status { color: var(--bad); }
+.status-bar.ok #status { color: var(--ok); }
 
 .line.error { border: 1px solid var(--bad); color: var(--bad); background: transparent; font-size: 0.85rem; }
 
