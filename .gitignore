@@ -1,6 +1,6 @@
 .env
 !.env.example
-
+_to_delete
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
