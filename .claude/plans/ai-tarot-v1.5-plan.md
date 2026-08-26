@@ -145,6 +145,19 @@ DECIDED: frontend is plain HTML/CSS/JS (no framework, no build step). Prompt ass
   response_truncated having generated nothing, on a 1M-context gateway. Judge ceiling is 4k where
   thinking could be turned off and 8k where it could not - lowering it flat would have halved the
   only headroom the provider that actually truncated has
+- The schema pasted into the prompt (the fallback wherever structuredOutput is off) is the
+  CONTRACT ONLY: keys, types, enums, required. Not the descriptions - those are the rubric the
+  system prompt has already given at greater length, and 2.8 KB of it is a document a model may
+  decide to reproduce rather than fill in. Measured on deepseek-v4-flash: 5611 output tokens with
+  the full schema, 66 with the fields alone
+- PARSING IS NOT COMPLYING. judge() checks the reply against the schema's required list before
+  returning it. extractJson takes the first {...} in the reply, which is an object and not
+  necessarily the right one: a model that echoes the schema back parses cleanly and has none of
+  the fields, and that reached the session as disclosure_depth: undefined, where every threshold
+  comparison is quietly false. A wrong reading that says so beats a wrong reading that does not
+- scripts/judge_probe.mjs sends one frozen judge call several ways - thinking off, absent, capped;
+  temperature pinned or not; schema echoed, compact, or described - and reports tokens and
+  verdict per variant. It is how the above was found rather than guessed at
 - Failures are classified, because they need different fixes: invalid_key, unknown_model,
   endpoint_not_found, provider_rate_limited, provider_unavailable, bad_payload, connection_failed,
   bad_provider_response, response_truncated
@@ -465,7 +478,9 @@ Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider
   in the persona and a multi-turn few-shot, and judge calls running thinking-off at a 4k ceiling.
   lantern-be7743 frozen as a fixture, reconstructed rather than redacted. One consequence the
   brief did not name: the dwell may run one exchange past the cap, or every card that grounds by
-  the elaboration path grounds on its last exchange.
+  the elaboration path grounds on its last exchange. Judge work continued from a live failure
+  mid-round: judge_probe.mjs, the contract-only schema in the prompt, and required-key validation
+  on judge replies, after deepseek-v4-flash was found echoing the schema back and being believed.
 - v1.5 (2026-08-25): session transcripts committed as fixtures are redacted derivatives now,
   with the originals in gitignored checkpoint/ and the maps in gitignored redactions/.
 - v1.5 (2026-08-25): latency work on the same branch - the anchor revision moved off the
