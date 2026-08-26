@@ -50,6 +50,25 @@
 const JUDGE_TOKENS = 4096;
 const JUDGE_TOKENS_STILL_THINKING = 8192;
 
+/**
+ * The schema with its teaching stripped out: keys, types, enums, and what is
+ * required. Nothing else.
+ *
+ * Only for the schema-in-the-prompt path. Where the API enforces the schema the
+ * descriptions are free instruction; where it is pasted into a prompt they are
+ * 2.8 KB of rubric the system prompt has already given at greater length, and
+ * a model asked to match a document that large sometimes reproduces it instead
+ * of filling it in. deepseek-v4-flash did exactly that -- 654 tokens of what
+ * parsed as JSON and had none of the fields in it.
+ */
+function contractOnly(node) {
+  if (Array.isArray(node)) return node.map(contractOnly);
+  if (!node || typeof node !== "object") return node;
+  return Object.fromEntries(Object.entries(node)
+    .filter(([key]) => key !== "description")
+    .map(([key, value]) => [key, contractOnly(value)]));
+}
+
 export const ANTHROPIC = {
   id: "anthropic",
   label: "Anthropic",
@@ -116,7 +135,7 @@ export const ANTHROPIC = {
       payload.output_config = { format: { type: "json_schema", schema } };
       if (features.effort) payload.output_config.effort = effort;
     } else {
-      payload.system = `${system}\n\n## Output\n\nReturn one JSON object and nothing else -- no prose before it, no code fence around it. It must match this schema exactly:\n\n${JSON.stringify(schema, null, 2)}`;
+      payload.system = `${system}\n\n## Output\n\nReturn one JSON object and nothing else -- no prose before it, no code fence around it, and not this schema itself. Fill it in. Every key below is required:\n\n${JSON.stringify(contractOnly(schema), null, 2)}`;
       if (features.effort) payload.output_config = { effort };
     }
     return payload;

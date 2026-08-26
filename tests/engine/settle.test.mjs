@@ -279,3 +279,56 @@ test("a reader turn still thinks; only the judge does not", () => {
   assert.deepEqual(payload.thinking, { type: "adaptive" });
   assert.equal(payload.max_tokens, 8192, "chat ceiling unchanged");
 });
+
+// -- what the probe found on the live gateway ----------------------------
+
+test("the schema goes into the prompt as a contract, not as the rubric again", async () => {
+  const pack = await realPack();
+  const { gateSchema } = await import("../../web/js/engine/schemas.js");
+  const schema = gateSchema(pack);
+  const payload = ANTHROPIC.judgePayload({
+    model: "m", system: "SYS", messages: [], schema,
+    features: PROVIDERS.deepseek.features,
+  });
+
+  // Every key, every enum value, and the required list all survive.
+  for (const key of schema.required) assert.ok(payload.system.includes(`"${key}"`), key);
+  for (const level of pack.levels) assert.ok(payload.system.includes(`"${level.id}"`), level.id);
+  assert.match(payload.system, /"additionalProperties": false/);
+
+  // The descriptions do not. They are the system prompt's job, at greater
+  // length, and echoing 2.8 KB of them is what deepseek-v4-flash reproduced
+  // instead of filling in.
+  assert.ok(!payload.system.includes("Judge what was disclosed"),
+            "the rubric is in the prompt twice");
+  const echoed = payload.system.slice(payload.system.indexOf("## Output"));
+  assert.ok(echoed.length < 1200, `${echoed.length} bytes of output instruction`);
+  assert.match(payload.system, /not this schema itself\. Fill it in\./);
+});
+
+test("a judge reply that parses but is not a gate is rejected, not returned", async () => {
+  const pack = await realPack();
+  const { gateSchema } = await import("../../web/js/engine/schemas.js");
+  const { makeLlmClient } = await import("../../web/js/llmClient.js");
+
+  // What came back from deepseek-v4-flash with thinking off and temperature
+  // pinned: the schema, echoed. It parses. It has none of the fields.
+  const echoed = JSON.stringify(gateSchema(pack));
+  const client = makeLlmClient({
+    getKey: () => "k",
+    getConfig: () => ({ mode: "direct", provider: "deepseek" }),
+  });
+  globalThis.fetch = async () => new Response(
+    JSON.stringify({ stop_reason: "end_turn", content: [{ type: "text", text: echoed }] }),
+    { status: 200, headers: { "content-type": "application/json" } });
+
+  await assert.rejects(
+    () => client.judge({ system: "s", messages: [], schema: gateSchema(pack) }),
+    (error) => {
+      assert.equal(error.code, "bad_judge_output");
+      assert.match(error.message, /no disclosure_depth/);
+      assert.match(error.hint, /echoed the schema/);
+      return true;
+    },
+    "it used to reach the session as disclosure_depth: undefined");
+});

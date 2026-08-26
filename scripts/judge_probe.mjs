@@ -31,6 +31,7 @@ const KEY = requireKey();
 const PROVIDER = arg("provider", "deepseek");
 const RELAY = arg("relay", "http://127.0.0.1:8787");
 const JUDGE = arg("judge", PROVIDERS[PROVIDER]?.defaultModel ?? "deepseek-v4-flash");
+const RUNS = Number(arg("runs", "1"));
 
 // The turn that failed, so the probe is run against the thing being diagnosed
 // rather than against something easier.
@@ -61,12 +62,19 @@ const VARIANTS = [
   ["thinking capped rather than disabled",
     (p) => ({ ...p, thinking: { type: "enabled", budget_tokens: 1024 } })],
   ["no temperature pin", (p) => ({ ...p, temperature: undefined })],
-  ["ceiling at 1024, to see it fail sooner", (p) => ({ ...p, max_tokens: 1024 })],
-  ["the field list in prose, no schema echoed", (p) => ({
+  // What shipped before 2026-08-25: the schema with all its descriptions, which
+  // is 2.8 KB of rubric the system prompt has already given at greater length.
+  ["the full schema echoed, descriptions and all", (p) => ({
+    ...p,
+    system: `${JUDGE_SYSTEM}\n\n## Output\n\nReturn one JSON object and nothing else -- no `
+      + `prose before it, no code fence around it. It must match this schema exactly:\n\n`
+      + `${JSON.stringify(schema, null, 2)}`,
+  })],
+  ["the field list in prose, no schema at all", (p) => ({
     ...p,
     system: `${JUDGE_SYSTEM}\n\n## Output\n\nReturn one JSON object and nothing else. `
       + `Keys: disclosure_depth (1-4), has_life_content (boolean), hedged (boolean), `
-      + `user_level (one of name, consequences, evaluate, intentions, plans), `
+      + `user_level (one of ${pack.levels.map((l) => l.id).join(", ")}), `
       + `stakes (one of low, high, crisis), reading_of_them (one sentence).`,
   })],
 ];
@@ -89,25 +97,44 @@ async function send(payload) {
   try {
     const text = ANTHROPIC.readText(body);
     const parsed = ANTHROPIC.extractJson(text);
-    return { verdict: "ok", note: `${spent} tokens, depth ${parsed.disclosure_depth}` };
+    // Parsing is not complying. A model that echoed the schema back rather than
+    // filling it in returns an object with none of these keys in it, and
+    // reporting that as "ok" is how this went unnoticed the first time.
+    const missing = schema.required.filter((key) => parsed?.[key] === undefined);
+    if (missing.length) {
+      return { verdict: "NOT A GATE", note: `${spent} tokens, no ${missing.join(", ")}` };
+    }
+    return {
+      verdict: "ok",
+      note: `${spent} tokens, depth ${parsed.disclosure_depth} level ${parsed.user_level}`,
+    };
   } catch (error) {
     // readText's truncation error already carries the diagnosis.
     return { verdict: error.code ?? "unreadable", note: error.message };
   }
 }
 
-console.log(`probing ${PROVIDER}/${JUDGE} on one frozen judge call, ${VARIANTS.length} ways\n`);
+const WIDTH = Math.max(...VARIANTS.map(([label]) => label.length));
+console.log(`probing ${PROVIDER}/${JUDGE} on one frozen judge call, ${VARIANTS.length} ways`
+            + `${RUNS > 1 ? `, ${RUNS} runs each` : ""}\n`);
 const base = ANTHROPIC.judgePayload({ model: JUDGE, system: JUDGE_SYSTEM, messages, schema, features });
 
 for (const [label, vary] of VARIANTS) {
-  process.stderr.write(`  ${label}...\r`);
-  const { verdict, note } = await send(vary({ ...base }));
-  console.log(`  ${label.padEnd(38)} ${verdict}`);
-  if (note) console.log(`  ${" ".repeat(38)} ${note.replace(/\s+/g, " ").slice(0, 150)}`);
+  for (let run = 0; run < RUNS; run += 1) {
+    process.stderr.write(`  ${label} ${run + 1}/${RUNS}...\r`);
+    const { verdict, note } = await send(vary({ ...base }));
+    console.log(`  ${(run ? "" : label).padEnd(WIDTH)}  ${verdict}`);
+    if (note) console.log(`  ${" ".repeat(WIDTH)}  ${note.replace(/\s+/g, " ").slice(0, 150)}`);
+  }
 }
 
 console.log(`
-The first line that says "ok" names the fix. If every line truncates with
-blocks [thinking], nothing on this gateway turns deliberation off and the judge
-needs a different model. If the prose-schema line is the only one that works,
-the gate schema is what it is choking on and gateSchema wants trimming.`);
+Read the token counts, not just the verdicts. A variant that answers in 70
+tokens and one that answers in 5600 are both "ok" and only one of them is the
+judge doing rubric classification.
+
+NOT A GATE is the quiet failure: it parsed as JSON and has none of the fields,
+which is what a model does when it echoes the schema instead of filling it in.
+
+--runs=5 is worth it before concluding anything. One sample per variant is what
+a coincidence looks like.`);
