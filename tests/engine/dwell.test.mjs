@@ -6,7 +6,7 @@ import {
 } from "../../web/js/engine/state.js";
 import { startReading } from "../../web/js/engine/reading.js";
 import { scanSession } from "../../scripts/scan.mjs";
-import { fakeClient, realPack } from "./helpers.mjs";
+import { fakeClient, realPack, sessionShowing } from "./helpers.mjs";
 
 const POSITIONS = [{ id: "situation" }, { id: "obstacle" }, { id: "advice" }];
 const fresh = () => createSession({ packId: "p", seed: "river-89c1fb", positions: POSITIONS });
@@ -199,11 +199,7 @@ test("the reader is told not to build on something they hedged", async () => {
 test("the tempo rule reaches every turn, and one few-shot shows it", async () => {
   const { readerSystem, readerTurnBlock } = await import("../../web/js/engine/prompts.js");
   const pack = await realPack();
-  const base = {
-    positions: ["situation", "obstacle", "advice"], exchanges: [], anchor: null,
-    safety_state: "normal", last_stakes: "low", phase: "reading", topic: null,
-    cards: [{ card_id: "cups-06-six", position: "situation", user_projection: "", ai_reading: "" }],
-  };
+  const base = sessionShowing(pack, "cups-06-six");
   for (const turn of ["invite", "respond", "bridge", "close"]) {
     const system = `${readerSystem({ pack, session: base })}\n${readerTurnBlock({ pack, session: base, turn })}`.replace(/\s+/g, " ");
     assert.match(system, /Eagerness is not readiness/, `the ${turn} turn lost the tempo rule`);

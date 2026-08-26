@@ -258,20 +258,8 @@ function describeRecap(pack, session) {
   }
 
   lines.push("", "cards on the table:");
-  const table = tableau(session);
   const byPosition = new Map(session.cards.map((c) => [c.position, c]));
-  if (!table.length) {
-    // A session recorded before the whole spread was dealt at once. It still
-    // reads: the cards it turned are the cards it turned.
-    for (const [index, entry] of session.cards.entries()) {
-      const card = pack.card(entry.card_id);
-      lines.push(`  ${index + 1}. ${entry.position} — ${card.name}`);
-      if (entry.user_projection) lines.push(`     they read it as: "${entry.user_projection}"`);
-      const said = firstSentence(entry.ai_reading);
-      if (said) lines.push(`     you said: ${said}`);
-    }
-    if (!session.cards.length) lines.push("  none yet");
-  }
+  const table = tableau(session);
   for (const [index, slot] of table.entries()) {
     const entry = byPosition.get(slot.position);
     if (!entry) {
@@ -292,11 +280,6 @@ function describeRecap(pack, session) {
     lines.push(`  ${down.length} still face down. They were dealt with the rest and they are`);
     lines.push("    lying there in front of both of you — but you have not seen them and you");
     lines.push("    do not know what they are. Do not guess, do not hint, do not promise.");
-  } else if (!table.length) {
-    const remaining = Math.max(0, session.positions.length - session.cards.length);
-    lines.push(`  ${remaining > 0
-      ? `${remaining} position${remaining > 1 ? "s" : ""} still to come, cards unknown to you`
-      : "every position dealt; there is no further card"}`);
   }
 
   const entry = currentCard(session);

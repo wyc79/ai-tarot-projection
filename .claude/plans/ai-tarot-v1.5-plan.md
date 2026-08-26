@@ -12,14 +12,29 @@ Tarot as a doorway, not divination. The cards are projective prompts that get pe
   4. Symbol packs as data: fork it, drop in your own deck
 
 ## Core mechanics
+- FULL FACE-DOWN DEAL: the whole spread - situation, obstacle, advice AND the fourth card - comes
+  off the pile at once and goes face down on the table before a word is said. Reveal order and
+  gating are unchanged; cards turn over in place as the reading earns them. Same pile, same order,
+  so a seed deals what it always dealt. The point is that face-down cards ahead are the flip
+  gate's incentive made physical, for every position rather than just the last one, and until this
+  they were invisible. session.deal holds the table; which ones are face up stays derived from
+  cards[], so the two cannot disagree. The fourth is unlabelled while it is down - naming it
+  "epilogue" before it turns tells someone there is a bonus card to play for
 - 3-card spread (situation / obstacle / advice), plus an EARNED 4th card that reads as epilogue.
   Pack data (deck.json `epilogue`), deliberately not a fourth entry in positions[]: the spread is
-  three and this one only exists when a session goes past its own ending. Earned means a real
-  disclosure AFTER the closing beat - life content, unhedged, at the depth that buys a card
-  anywhere else. Politeness does not earn it and neither does asking for one. Once per session,
-  ever. Then it behaves like any card, down to the flip rule: the spread is full, so the last-card
-  branch fires and flipping it means closing again, with the step re-sized to how far they got in
-  the end. The first beat is not lost - it is on the advice card, where it was said
+  three and this one only exists when the reading earned it. THE EARN CHECK RUNS AT THE
+  ADVICE-TO-CLOSE BOUNDARY, before anything is closed. Two ways to pass it: something of their own
+  and unhedged on the advice card, or an unhedged life answer at DEPTH_ENOUGH anywhere in the
+  session. Earned, it turns, spends its own budget, and the reading closes ONCE over four. Not
+  earned, it stays face down and the closing beat names it in one line - "one card stays with the
+  deck today; it'll be there when you come back" - as an invitation and NEVER as a grade. That
+  line is the return hook, and tier-3 memory can open on it later
+- THE DOUBLE CLOSE (from tower-6e335b) is what moving that check fixed. Earned after the beat, a
+  session that got somewhere closed twice: a reflection over three cards, then a fourth card, then
+  a second reflection visibly reusing the first one's "N cards, in your own words" formula, and
+  the first stop landing on a 3-card table. Two endings is not a bonus; it is a reading that does
+  not know when it finished. Exactly one closing beat per session, scanner code `double_close`, and
+  the persona carries two or three closing shapes so the formula is not the only form
 - Before anything is dealt, ask whether there is something particular they want to look at.
   A named topic becomes the ground the reading is bent toward and seeds the anchor; declining
   is a normal answer and proceeds as before. Stakes are classified on that answer too, so the
@@ -93,12 +108,37 @@ Tarot as a doorway, not divination. The cards are projective prompts that get pe
   card runs 12 exchanges rather than 8
 - Closing is unconditional: after the advice card's budget is spent, the closing beat fires
   regardless of depth. A session can never hang unclosed (B run proved it can)
-- CLOSING IS NOT HANGING UP. The beat is the last thing said about the spread, and then the
-  conversation stays open: if they keep talking the reader keeps answering, with no fourth card
-  and no second reading, still routing through the three on the table. session.ended is the
-  terminal state and only a person sets it. Turns after the beat live under their own position so
-  they touch no card's rhythm, and the gate still runs on them - stakes do not stop mattering
-  because a reading finished
+- CLOSING IS NOT HANGING UP, AND A SESSION STILL ENDS. Amended from the version above it, which
+  said the beat was the last thing about the spread and then the conversation stayed open until a
+  person shut it. What an open tail with no shape actually produced (tower-6e335b) was an
+  interview: nine exchanges asking after the nouns in a side project, at name level, while the
+  session's heaviest disclosure went unmentioned. A conversation with no ending does not end, it
+  degrades. So the tail is two contracted things:
+  - DEFAULT AFTERWARD, budget { target: 1, max: 3 }. The first answers get real replies - that is
+    what the budget is for, and "what happens after noticing?" deserves one. Past the target the
+    farewell fires unless they are still saying something real; past the cap it fires regardless
+  - THE FAREWELL, and it is a turn shape of its own: echo the noticing in one line, leave the door
+    open, and NO QUESTION - the one turn in the product that deliberately ends without one, because
+    holding someone at the door is how a good hour becomes an awkward one. The engine sets
+    session.ended on it. The button that ends a reading early is still there and still a person's,
+    and it stops without a goodbye, which is what walking out looks like
+  - HEAVY-MATERIAL RIGHT OF WAY: any stakes:high recorded this session gets one gentle line before
+    the door. Not advice, not the referral again, not reopening it. A goodbye that talks about
+    everything except the heaviest thing someone said tells them you were not listening to the
+    important part. Scanner code `heavy_material_dropped`, on the closing beat onward
+  - AFTERGLOW, by explicit choice ("stay a while", offered by the farewell and taken by a person).
+    Four rules: questions stay inside the anchor's noun space (topic + user_phrases, frozen at the
+    close - if it included what was said since, drift would bootstrap itself); movement is UP the
+    staircase into what was already found, never sideways into new content; a turn MAY be a
+    reflective statement with no question, and this is the only place that is true; and two
+    consecutive answers with no life content in them send the reader back to the anchor or make it
+    offer the door again. Scanner code `off_territory`, and questions.inTerritory is shared by the
+    engine and the scanner so the two cannot disagree about what drift is
+  - RE-DRAW is the sanctioned "keep going": after ended, a new reading starts a fresh arc and the
+    ledger/anchor carryover rules govern coherence. Never extend a finished arc by wandering
+  Turns after the beat live under their own positions - `afterward` and `afterglow` - so they touch
+  no card's rhythm, and the gate still runs on them: stakes do not stop mattering because a reading
+  finished, and the frame can still need dropping
 - A QUESTION BACK IS NOT AN ANSWER (`asked_back` on the gate). "what do you mean whose heading
   out is that?" was being scored as a depth-1 deflection and charged to the card, so a question
   that did not land cost the user one of their exchanges instead of costing the reader a turn.
@@ -148,6 +188,11 @@ DECIDED: frontend is plain HTML/CSS/JS (no framework, no build step). Prompt ass
   AND SWEEP WIDER THAN THE FILE: the one sentence redacted on 2026-08-25 had already reached 24
   other places, including data/few-shots.json, where it was a teaching example shipped inside
   every prompt. Anything used as an example travels
+- FIXTURES POLICY: a transcript with real personal content in it is never committed, redacted or
+  otherwise. Where a session cannot be substituted safely the fixture is written from scratch with
+  invented content in the same structural shape - the lantern and harbor precedent - and its
+  README entry says which it is. The redaction pipeline above still applies to everything that
+  goes through it
 - Prompt iteration without redeploy (load-bearing for M3): packs, persona prompt, and few-shots are static data files assembled client-side - editing a prompt is a file save locally, a Pages deploy when hosted; relays are never touched
 - The transcript sent to the model is the last 10 exchanges, with a line saying how many are
   missing. Affordable precisely because of the recap block below: everything a later turn must be
@@ -233,8 +278,18 @@ Per session:
   re-asked once with the reason, because a beat phrased as a finding makes every later question
   steer toward confirming it
 - cards: [{ card_id, position, user_projection, ai_reading, flipped_at }]
+- deal: [{ position, card_id }] - the whole spread, dealt face down before the first turn. Which
+  ones are face up is NOT stored: tableau() derives it from cards[], so there is no second copy to
+  disagree with the first. A session recorded before this exists has no deal and still reads
+- phase: opening | reading | afterward | afterglow. There is no epilogue phase: the fourth card is
+  decided before the close and is just the last card of the reading
+- ended: the session is over and the goodbye has been said. Set by the engine on the farewell, or
+  by a person walking out early, in which case `farewell` stays null. `farewell` sits beside
+  closing_reflection rather than inside it - two different things said at two different moments,
+  and the keepsake reads wrong if the goodbye is folded into the step
 - exchanges: [{ q, a, disclosure_depth, position, question_type, question_level, gate }] - position
-  is a card's position, or "opening" (before the deal) or "off_frame" (after the frame is dropped).
+  is a card's position, or "opening" (before the deal) or "off_frame" (after the frame is dropped)
+  or "afterward" / "afterglow" (after the closing beat).
   question_type: projection | life - from the A/B run: depth is answer-relative-to-question,
   and the judge rubric branches on it (a card-description answer to a projection question is rich;
   the same words answering a life question are a deflection)
@@ -410,8 +465,12 @@ Internal machinery: the levels are never named to the user.
 - Recap block: every chat() turn carries a session record assembled from state - anchor with the
   user's phrases verbatim, each card with a one-line record, arc position, depth, safety_state.
   Declared to outrank the conversation history, which is suggestion where this is constraint
-- Fixed turn shape: one observation then one question, 1-2 sentences each. Two exceptions - the
-  turn that deals a card names it in a clause, and the closing turn ends on a step
+- Fixed turn shape: one observation then one question, 1-2 sentences each. Three exceptions - the
+  turn that deals a card names it in a clause, the closing turn ends on a step, and the farewell
+  ends on nothing. A fourth relaxation is a permission rather than a shape: in the afterglow ONLY,
+  a turn may be a reflective statement and stop. The scanner's no-question exemption is scoped to
+  exactly those - close, farewell, afterglow - and the short tail after the beat is not one of
+  them, because a reading that trails off is not a reading that ended
 - Question policy in the persona, never named to the user: externalize, name, explore, exception,
   re-author, action. Identity-landscape questions are gated behind disclosure depth; the per-position
   weighting lives in pack data. A menu, not a protocol - running the moves on a schedule is the
@@ -435,6 +494,15 @@ Internal machinery: the levels are never named to the user.
   worked, a real life referent came back, and the card flipped on that same turn because grounding
   had just unlocked the early flip. The fixture for the dwell rule, the hedge flag and
   territory-phrased beats
+- tests/fixtures/harbor-4c81de.json is the fourth, and the only one nobody said: how a session
+  used to fail to end. A fourth card earned AFTER a closing beat, so the reading closes twice on
+  the same formula, and then a tail that drifts into the nouns of a side project while a
+  stakes:high disclosure goes unmentioned. Written from scratch with fictional content because the
+  session behind it (tower-6e335b, local, uncommitted) could not be substituted safely. The
+  fixture for double_close, off_territory and heavy_material_dropped; tests/engine/ending.test.mjs
+  replays the same answers through the fixed engine. Two simulated personas sit beside it: a
+  reading nothing landed on, where the fourth card stays face down and the beat says so as an
+  invitation, and someone who took the door back into the afterglow
 - tests/fixtures/lantern-be7743.json is the third: the c145c7 fix overcorrecting. The ownership
   bridge fired on the very first sentence about the card, read as agenda, and got "couldnt think
   of any". The fixture for the settle rule, the elaborate move and rail_switch_unsettled. It is
@@ -524,6 +592,14 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-26): endings round on branch m3-ending, from tower-6e335b - the whole spread dealt
+  face down at the start, the fourth card's earn check moved before the closing beat so there is
+  exactly one ending, "the deck keeps one" as the return hook when it is not earned, the farewell
+  turn with heavy-material right of way, and the open tail replaced by a budgeted afterward plus
+  an afterglow with a territory contract. Amends two things the plan said outright: that the
+  fourth card is earned after the beat, and that only a person sets session.ended. Scanner gains
+  double_close, off_territory and heavy_material_dropped; harbor-4c81de frozen as a fixture,
+  invented rather than redacted, and the fixtures policy written down as its own line.
 - v1.5 (2026-08-25): settle round on branch m3-settle, from the lantern-be7743 session - the
   settle rule and the elaborate move (the tempo trio: settle, bridge, dwell), rail switches
   launching from established positions with rail_switch_unsettled in the scanner, whiff recovery

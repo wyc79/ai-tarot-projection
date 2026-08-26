@@ -24,6 +24,14 @@ committed at all**, redacted or otherwise. Where the session that taught us
 something cannot be substituted safely, the fixture is written from scratch with
 invented content in the same structural shape.
 
+These files are transcripts, not resumable sessions. The scanner reads them and
+`tests/engine/` replays their answers; nothing loads one back into the engine as
+live state, which is why they do not carry the fields a live session has grown
+since they were frozen. `web/js/engine/state.js` bumps `STATE_VERSION` when that
+shape changes, and saved readings at an older version are dropped rather than
+upgraded — but a frozen fixture is a record of what happened and is not rewritten
+to match.
+
 Commits predating this policy still carry the earlier wording in files that
 quoted it -- the pack's few-shots, the judge rubric, a couple of tests. Left
 alone deliberately. The rule applies from here; it is not a claim about the

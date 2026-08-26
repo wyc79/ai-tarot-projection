@@ -28,7 +28,16 @@
 
 import { questionLevel, questionType } from "./questions.js";
 
-export const STATE_VERSION = 1;
+/**
+ * The session shape. Bumped when it changes in a way an older saved session
+ * cannot be read as -- v2 is the face-down deal, which every session now
+ * carries and no session before it had.
+ *
+ * There is no upgrade path and there is not going to be one. Sessions live in
+ * one browser's localStorage, capped at twenty, and a migration layer for them
+ * would outlive every session it was written for.
+ */
+export const STATE_VERSION = 2;
 
 /** The top of the 1-4 disclosure scale: a rich answer earns the next card early. */
 export const DEPTH_RICH = 4;
@@ -133,7 +142,7 @@ export function createSession({
  */
 export function tableau(session) {
   const up = new Map(session.cards.map((c) => [c.position, c]));
-  return (session.deal ?? []).map(({ position, card_id }) => ({
+  return session.deal.map(({ position, card_id }) => ({
     position,
     card_id,
     face_up: up.has(position),
@@ -144,7 +153,7 @@ export function tableau(session) {
 
 /** The card lying on a position, face up or not. */
 export function dealtCardFor(session, position) {
-  return (session.deal ?? []).find((d) => d.position === position)?.card_id ?? null;
+  return session.deal.find((d) => d.position === position)?.card_id ?? null;
 }
 
 export function currentCard(session) {
@@ -164,8 +173,9 @@ export function nextPosition(session) {
 /**
  * What the card currently face up is allowed to spend.
  *
- * Falls back to the constants, so a session recorded before positions carried a
- * budget still paces -- every fixture in tests/ is one of those.
+ * The constants are the default for a pack whose positions do not declare their
+ * own pacing, which is what "fork it, drop in your own deck" has to mean: a
+ * pack is not required to have opinions about tempo.
  */
 export function budgetOnCurrentCard(session) {
   const card = currentCard(session);
@@ -451,7 +461,6 @@ export function updateAnchor(session, anchor) {
   if (!session.anchor) return commitAnchor(session, anchor);
   const seen = new Set(session.anchor.user_phrases.map((p) => p.phrase));
   const added = (anchor.user_phrases ?? [])
-    .map((p) => (typeof p === "string" ? { phrase: p, source: "card" } : p))
     .filter((p) => p.phrase && !seen.has(p.phrase));
   session.anchor = {
     theme: anchor.theme || session.anchor.theme,
@@ -465,10 +474,8 @@ export function updateAnchor(session, anchor) {
 
 export function commitAnchor(session, anchor) {
   if (session.anchor) return session; // committed once, then elaborated only
-  // Tolerate a bare string: transcripts written before phrases carried a source
-  // still load, and they load as what they were, which was untagged.
-  const phrases = (anchor.user_phrases ?? []).map((p) =>
-    (typeof p === "string" ? { phrase: p, source: "card" } : { phrase: p.phrase, source: p.source }));
+  const phrases = (anchor.user_phrases ?? [])
+    .map((p) => ({ phrase: p.phrase, source: p.source }));
   session.anchor = {
     theme: anchor.theme,
     user_phrases: phrases,

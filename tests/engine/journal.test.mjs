@@ -5,6 +5,7 @@ import { makeStorage, memoryBackend } from "../../web/js/storage.js";
 import {
   HISTORY_LIMIT, describeSession, loadHistory, saveToHistory, toJson, toMarkdown,
 } from "../../web/js/engine/journal.js";
+import { STATE_VERSION } from "../../web/js/engine/state.js";
 import { declines, fakeClient, gate, realPack } from "./helpers.mjs";
 
 async function finished(seed = "moon-4f2a91") {
@@ -92,12 +93,22 @@ test("history keeps one entry per session, updated in place", async () => {
 test("history is capped, oldest dropped first", async () => {
   const storage = makeStorage(memoryBackend());
   for (let i = 0; i < HISTORY_LIMIT + 5; i += 1) {
-    saveToHistory(storage, { session_id: `s${i}`, started_at: i, seed: `seed-${i}`, exchanges: [] });
+    saveToHistory(storage, { schema_version: STATE_VERSION, session_id: `s${i}`,
+                             started_at: i, seed: `seed-${i}`, exchanges: [] });
   }
   const history = loadHistory(storage);
   assert.equal(history.length, HISTORY_LIMIT);
   assert.equal(history[0].session_id, `s${HISTORY_LIMIT + 4}`, "newest first");
   assert.ok(!history.some((s) => s.session_id === "s0"), "oldest was dropped");
+});
+
+test("a saved reading from an older session shape is dropped, not half-rendered", () => {
+  const storage = makeStorage(memoryBackend());
+  saveToHistory(storage, { schema_version: STATE_VERSION - 1, session_id: "old",
+                           started_at: 1, seed: "seed-old", exchanges: [] });
+  saveToHistory(storage, { schema_version: STATE_VERSION, session_id: "new",
+                           started_at: 2, seed: "seed-new", exchanges: [] });
+  assert.deepEqual(loadHistory(storage).map((s) => s.session_id), ["new"]);
 });
 
 test("a saved session is a copy, not a live reference", async () => {

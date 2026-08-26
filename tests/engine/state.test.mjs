@@ -138,7 +138,8 @@ test("high stakes is recorded without dropping the frame", () => {
 
 test("the anchor is committed once and then left alone", () => {
   const s = fresh();
-  commitAnchor(s, { theme: "leaving a job", user_phrases: ["stuck"], resolution_beat: "name the cost" });
+  commitAnchor(s, { theme: "leaving a job", resolution_beat: "name the cost",
+                    user_phrases: [{ phrase: "stuck", source: "life" }] });
   commitAnchor(s, { theme: "something else entirely", user_phrases: [], resolution_beat: "different" });
   assert.equal(s.anchor.theme, "leaving a job", "a second commit must not contradict the first");
 });
@@ -171,13 +172,6 @@ test("one life phrase is enough to ground it", () => {
     resolution_beat: "r",
   });
   assert.equal(s.anchor.grounded, true);
-});
-
-test("a phrase list from before phrases were tagged still loads", () => {
-  const s = fresh();
-  commitAnchor(s, { theme: "t", user_phrases: ["stuck"], resolution_beat: "r" });
-  assert.deepEqual(s.anchor.user_phrases, [{ phrase: "stuck", source: "card" }]);
-  assert.equal(s.anchor.grounded, false, "untagged is not evidence of grounding");
 });
 
 test("readings land on the ledger, and closing ends the session", () => {

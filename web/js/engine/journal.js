@@ -10,6 +10,8 @@
  *               same cards after the prompt changes.
  */
 
+import { STATE_VERSION } from "./state.js";
+
 export const JOURNAL_SCHEMA_VERSION = 1;
 
 function isoDate(ms) {
@@ -73,9 +75,8 @@ export function toMarkdown(pack, session) {
   // same reason it gets one in the closing beat: it is the reason to come back,
   // and a spread that quietly shows three cards where four were dealt looks
   // like something went wrong.
-  const dealt = session.deal ?? [];
   const turned = new Set(session.cards.map((c) => c.position));
-  const down = dealt.filter((d) => !turned.has(d.position));
+  const down = session.deal.filter((d) => !turned.has(d.position));
   if (down.length && session.closed) {
     lines.push(`_${down.length === 1 ? "One card" : `${down.length} cards`} stayed with the deck.`
                + " Still there next time._", "");
@@ -130,5 +131,9 @@ export function saveToHistory(storage, session, limit = HISTORY_LIMIT) {
 }
 
 export function loadHistory(storage) {
-  return storage.get(HISTORY_KEY, []) ?? [];
+  // Sessions from an older shape are dropped rather than upgraded. They cannot
+  // be rendered -- the table, the ending, the tail all moved -- and a reader
+  // that half-renders one is worse than a list that is one reading shorter.
+  return (storage.get(HISTORY_KEY, []) ?? [])
+    .filter((s) => s.schema_version === STATE_VERSION);
 }

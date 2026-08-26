@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadPack } from "../../web/js/pack.js";
+import { createSession, flipCard } from "../../web/js/engine/state.js";
 import { turnKindOf } from "../../web/js/engine/prompts.js";
 
 const ROOT = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
@@ -80,3 +81,24 @@ export const cardOnly = (depth = 2, stakes = "low") =>
 /** Answer to the opening question. Declining is the default a test wants. */
 export const declines = { has_topic: false, topic: "", stakes: "low" };
 export const wants = (topic, stakes = "low") => ({ has_topic: true, topic, stakes });
+
+/**
+ * A session part-way through a reading, with one named card face up in the
+ * situation and the rest of the spread face down behind it.
+ *
+ * Built by the engine rather than by hand, so a prompt test cannot end up
+ * asserting against a session shape the engine never produces -- which is what
+ * happened when the spread started being dealt all at once and three tests went
+ * on describing a table with nothing on it.
+ */
+export function sessionShowing(pack, cardId) {
+  const rest = pack.cards.map((c) => c.card_id).filter((id) => id !== cardId);
+  const session = createSession({
+    packId: pack.id, seed: "moon-4f2a91",
+    positions: pack.positions, epilogue: pack.epilogue,
+    deal: [cardId, ...rest.slice(0, pack.positions.length)],
+  });
+  session.phase = "reading";
+  flipCard(session, cardId, { reason: "the opening question was answered; the reading begins" });
+  return session;
+}

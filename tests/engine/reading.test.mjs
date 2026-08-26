@@ -2,7 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { startReading } from "../../web/js/engine/reading.js";
 import { makeStorage, memoryBackend } from "../../web/js/storage.js";
-import { cardOnly, declines, fakeClient, gate, realPack, wants } from "./helpers.mjs";
+import {
+  cardOnly, declines, fakeClient, gate, realPack, sessionShowing, wants,
+} from "./helpers.mjs";
 
 const SEED = "moon-4f2a91";
 
@@ -488,11 +490,7 @@ test("every turn instruction still carries the rules it is supposed to", async (
   // way before this test existed.
   const { readerSystem, readerTurnBlock } = await import("../../web/js/engine/prompts.js");
   const pack = await realPack();
-  const base = {
-    positions: ["situation", "obstacle", "advice"], exchanges: [], anchor: null,
-    safety_state: "normal", last_stakes: "low", phase: "reading", topic: null,
-    cards: [{ card_id: "major-00-fool", position: "situation", user_projection: "", ai_reading: "" }],
-  };
+  const base = sessionShowing(pack, "major-00-fool");
   // Patterns are matched against the prompt with its whitespace collapsed, so
   // re-wrapping a paragraph does not read as losing the rule inside it. What is
   // being guarded is that the rule is still there, not how it is set.

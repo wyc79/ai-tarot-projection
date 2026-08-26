@@ -74,9 +74,7 @@ function closingShaped(turn) {
 export function anchorTerritory(session) {
   return [
     ...(session.topic ? [session.topic] : []),
-    ...(session.anchor?.user_phrases ?? [])
-      .map((p) => (typeof p === "string" ? p : p.phrase))
-      .filter(Boolean),
+    ...(session.anchor?.user_phrases ?? []).map((p) => p.phrase).filter(Boolean),
   ];
 }
 
