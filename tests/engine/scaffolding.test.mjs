@@ -49,11 +49,11 @@ const systemFor = (client, turn) => client.calls.chat.findLast((c) => c.turn ===
 // how the first draft of this fixture "found" a jump that was its own.
 
 test("a reading that climbs one rung at a time scans clean", async () => {
-  // The shape all the rules jointly ask for, and it is four answers a card now
-  // rather than three: read the picture, elaborate the read so the crossing has
-  // something to ride on, cross at the same height, then spend a turn inside
-  // whatever they hand you. Settle, bridge, dwell. The last card is the
-  // exception -- it closes at two, because it has nowhere to advance to.
+  // The shape all the rules jointly ask for, and it is four answers a card:
+  // read the picture, elaborate the read so the crossing has something to ride
+  // on, cross at the same height, then spend a turn inside whatever they hand
+  // you. Settle, bridge, dwell. The last card runs the same way now -- its
+  // budget rose with the rest of the arc, so it no longer closes at two.
   const { pack, session } = await play({
     script: [
       { asks: "What does it look like it's pointing at for you?",
@@ -78,6 +78,10 @@ test("a reading that climbs one rung at a time scans clean", async () => {
         answer: "walking off", gate: at(2, "name") },
       { asks: "What is it about him that reads as walking off to you?",
         answer: "he isn't looking where his feet are going", gate: at(2, "name") },
+      { asks: "Whose not looking where their feet are going is that, in your world?",
+        answer: "mine, and I know it while I'm doing it", gate: at(3, "evaluate") },
+      { asks: "What happened the last time you didn't look?",
+        answer: "I took the flat without seeing it", gate: at(3, "consequences") },
     ],
   });
   assert.equal(session.closed, true);
@@ -155,14 +159,23 @@ test("a reading that never leaves the ground still closes, sized to where it got
         gate: at(2, "name") },
       { asks: "When did that turn up?", answer: "a while back", gate: at(2, "consequences") },
       { asks: "What else happened around then?", answer: "nothing much", gate: at(2, "name") },
+      { asks: "What is it about it that reads as a garden?", answer: "the wall",
+        gate: at(2, "name") },
+
       { asks: "The obstacle card is the Five of Wands. What do you see?", answer: "a scrap",
         gate: at(2, "name") },
       { asks: "What happened after that?", answer: "it blew over", gate: at(2, "consequences") },
       { asks: "What did you do next?", answer: "nothing", gate: at(2, "name") },
+      { asks: "What is it about them that reads as a scrap?", answer: "the sticks",
+        gate: at(2, "name") },
+      { asks: "What else is in it?", answer: "nothing else", gate: at(2, "name") },
+
       { asks: "The advice card is The Fool. What is he doing?", answer: "leaving",
         gate: at(2, "name") },
       { asks: "What happened the last time you left something?", answer: "dunno",
         gate: at(2, "consequences") },
+      { asks: "What is it about him that reads as leaving?", answer: "the bag",
+        gate: at(2, "name") },
     ],
     close: "You keep saying nothing much. This week, catch one moment where it is not nothing.",
   });

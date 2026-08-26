@@ -17,7 +17,9 @@
         "externalize",
         "their-words"
       ],
-      "ceiling": "evaluate"
+      "ceiling": "evaluate",
+      "target": 2,
+      "max": 4
     },
     {
       "id": "obstacle",
@@ -28,7 +30,9 @@
         "exception",
         "externalize"
       ],
-      "ceiling": "intentions"
+      "ceiling": "intentions",
+      "target": 3,
+      "max": 5
     },
     {
       "id": "advice",
@@ -39,7 +43,9 @@
         "re-author",
         "action"
       ],
-      "ceiling": "plans"
+      "ceiling": "plans",
+      "target": 3,
+      "max": 5
     }
   ],
   "levels": [

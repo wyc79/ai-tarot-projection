@@ -34,10 +34,10 @@ export const STATE_VERSION = 1;
 export const DEPTH_RICH = 4;
 /** A specific situation, with edges. Enough to move on once the rhythm is met. */
 export const DEPTH_ENOUGH = 3;
-/** The default rhythm: roughly two exchanges per card. */
+/** The default rhythm, for a pack whose positions do not set their own. */
 export const TARGET_EXCHANGES = 2;
-/** Hard cap. A thin answer gets one softer follow-up, then the reading moves on
- *  regardless -- a gate the user cannot satisfy is a stalled meter. */
+/** Default hard cap. A thin answer gets one softer follow-up, then the reading
+ *  moves on regardless -- a gate the user cannot satisfy is a stalled meter. */
 export const MAX_EXCHANGES = 3;
 /** Exchanges to spend inside a fresh disclosure before the card may turn. */
 export const DWELL_MIN = 1;
@@ -58,6 +58,19 @@ export function createSession({ packId, seed, positions, startedAt = Date.now() 
     seed: String(seed),
     started_at: startedAt,
     positions: positions.map((p) => p.id),
+    // Per-position pacing, denormalised off the pack the way positions are, and
+    // for the same two reasons: the rules in this file stay pack-agnostic, and a
+    // session replayed months later paces the way it actually paced rather than
+    // the way the pack does now.
+    //
+    // It rises across the arc, alongside the level ceiling, because the two are
+    // the same shape: setup, then tension, then resolution. The card whose job
+    // is to find the ground does not need long to find out that it has not, and
+    // the cards after it are working with material that took a while to arrive.
+    budget: Object.fromEntries(positions.map((p) => [p.id, {
+      target: p.target ?? TARGET_EXCHANGES,
+      max: p.max ?? MAX_EXCHANGES,
+    }])),
     /** @type {"opening"|"reading"} nothing is dealt until they have been asked */
     phase: "opening",
     /** @type {string|null} what they said they wanted to look at, in their words */
@@ -91,6 +104,21 @@ export function currentPosition(session) {
 /** Position this card would occupy if flipped now, or null if the spread is full. */
 export function nextPosition(session) {
   return session.positions[session.cards.length] ?? null;
+}
+
+/**
+ * What the card currently face up is allowed to spend.
+ *
+ * Falls back to the constants, so a session recorded before positions carried a
+ * budget still paces -- every fixture in tests/ is one of those.
+ */
+export function budgetOnCurrentCard(session) {
+  const card = currentCard(session);
+  const budget = card && session.budget?.[card.position];
+  return {
+    target: budget?.target ?? TARGET_EXCHANGES,
+    max: budget?.max ?? MAX_EXCHANGES,
+  };
 }
 
 export function exchangesOnCurrentCard(session) {
@@ -377,6 +405,7 @@ export function flipDecision(session, gate) {
   // Hedged answers do not buy progress toward the early exits; the cap below
   // still counts them, so nothing stalls.
   const earned = countingExchangesOnCurrentCard(session);
+  const { target, max } = budgetOnCurrentCard(session);
 
   // Nothing of theirs has reached this card. The early exits below are rewards
   // for a card that did its job, so they are switched off -- but only the early
@@ -404,7 +433,7 @@ export function flipDecision(session, gate) {
     //
     // It buys nothing for a card nobody disclosed on: no arrival, no dwell, no
     // grace, and a card of pure description still moves on at three.
-    if (count < MAX_EXCHANGES + DWELL_GRACE) {
+    if (count < max + DWELL_GRACE) {
       return {
         flip: false,
         reason: "they just told you something of their own; one exchange inside it "
@@ -424,20 +453,24 @@ export function flipDecision(session, gate) {
     };
   }
 
-  if (grounded && gate.disclosure_depth >= DEPTH_RICH) {
-    return { flip: true, reason: `rich answer (depth ${gate.disclosure_depth}) earns the next card early${dwelt}` };
-  }
+
   // The last card has nowhere to advance to: flipping it means closing. So its
   // budget is tighter than the others' and depth stops being a condition --
   // the projection exchange, one follow-up at most, then the closing beat.
   // A reading that ends without one is worse than a reading that ends early.
-  if (nextPosition(session) === null && earned >= TARGET_EXCHANGES) {
+  if (nextPosition(session) === null && earned >= target) {
     return { flip: true, reason: `last card and ${count} exchanges; closing regardless of depth${ungrounded}` };
   }
-  if (grounded && gate.disclosure_depth >= DEPTH_ENOUGH && earned >= TARGET_EXCHANGES) {
-    return { flip: true, reason: `depth ${gate.disclosure_depth} after ${count} exchanges${dwelt}` };
+  // A rich answer used to take the next card immediately, whatever had been
+  // spent here -- and that is what left a card two exchanges long in the seeded
+  // fixture, the strongest thing anyone said on it being the thing that ended
+  // it. It now spends the position's budget like any other. The depth is still
+  // in the reason, because how a card was earned is worth being able to read.
+  if (grounded && gate.disclosure_depth >= DEPTH_ENOUGH && earned >= target) {
+    const rich = gate.disclosure_depth >= DEPTH_RICH ? "rich " : "";
+    return { flip: true, reason: `${rich}depth ${gate.disclosure_depth} after ${count} exchanges${dwelt}` };
   }
-  if (count >= MAX_EXCHANGES) {
+  if (count >= max) {
     return { flip: true, reason: `${count} exchanges on one card; moving on rather than stalling${ungrounded}` };
   }
   return { flip: false, reason: `depth ${gate.disclosure_depth} after ${count}; one softer follow-up${ungrounded}` };

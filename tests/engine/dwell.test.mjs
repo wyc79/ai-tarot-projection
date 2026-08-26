@@ -164,7 +164,15 @@ test("an unhedged follow-up to a hedged disclosure does satisfy the dwell", () =
   say(s, at({ depth: 3, life: true, level: "consequences", hedged: true }));
   const settled = at({ depth: 4, life: true, level: "consequences" });
   say(s, settled);
-  const decision = flipDecision(s, settled);
+  // The dwell is done -- the card is no longer being held open for it. What
+  // holds it now is the position's budget, which the hedged answer did not pay
+  // into: two exchanges on the card and only one of them counted.
+  const held = flipDecision(s, settled);
+  assert.equal(held.flip, false);
+  assert.ok(!/one exchange inside it/.test(held.reason), "not the dwell any more");
+
+  say(s, at({ depth: 4, life: true, level: "consequences" }));
+  const decision = flipDecision(s, at({ depth: 4, life: true, level: "consequences" }));
   assert.equal(decision.flip, true);
   assert.match(decision.reason, /dwelt on first/);
 });
@@ -269,19 +277,29 @@ test("someone who wishes they had not said it is let out, and the reading still 
       // Immediate regret. The dwell releases rather than holding them there.
       { asks: "What happened in April?", answer: "dunno, it's fine",
         gate: at({ depth: 1, life: false }) },
+      { asks: "Fair enough. What else is in the picture?", answer: "a tree",
+        gate: at({ depth: 2, life: false }) },
+
       { asks: "The obstacle card is The Lovers. What do you see?",
         answer: "two people", gate: at({ depth: 2, life: false }) },
       { asks: "Does one of them look like they're leaving, or arriving?",
         answer: "leaving I think", gate: at({ depth: 2, life: false }) },
-      { asks: "What else is in there?", answer: "a tree", gate: at({ depth: 1, life: false }) },
+      { asks: "What is it about them that reads as leaving?", answer: "facing away",
+        gate: at({ depth: 2, life: false }) },
+      { asks: "And the one who isn't leaving?", answer: "just standing",
+        gate: at({ depth: 1, life: false }) },
+      { asks: "Anything else in it?", answer: "clouds", gate: at({ depth: 1, life: false }) },
+
       { asks: "The advice card is The Fool. What's he doing?",
         answer: "walking", gate: at({ depth: 2, life: false }) },
       { asks: "Where does it look like he's going?", answer: "off the edge",
         gate: at({ depth: 2, life: false }) },
+      { asks: "What is it about him that reads as going off the edge?",
+        answer: "he isn't looking down", gate: at({ depth: 2, life: false }) },
     ],
   });
   const situation = session.exchanges.filter((e) => e.position === "situation");
-  assert.equal(situation.length, 3, "the deflection released the dwell rather than extending it");
+  assert.equal(situation.length, 4, "the deflection released the dwell rather than extending it");
   assert.match(session.cards[1].flip_reason, /moving on rather than stalling/);
   assert.ok(!/dwelt on first/.test(session.cards[1].flip_reason),
             "nobody gets credit for a dwell that was refused");
@@ -289,6 +307,7 @@ test("someone who wishes they had not said it is let out, and the reading still 
   assert.equal(client.calls.chat.at(-1).turn, "close");
   assert.ok(!scanSession(session, pack).some((f) => f.code === "unclosed"));
 });
+
 
 test("the frozen river session fails the tempo check it was written for", async () => {
   const pack = await realPack();

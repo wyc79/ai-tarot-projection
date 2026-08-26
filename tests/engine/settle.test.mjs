@@ -192,6 +192,12 @@ test("the session lantern should have had: elaborate, then cross on what that go
         answer: "a hand holding out a coin", gate: at({ depth: 2, life: false }) },
       { asks: "What is it about the hand that reads as holding out to you?",
         answer: "it's waiting for someone to take it", gate: at({ depth: 2, life: false }) },
+      { asks: "Whose waiting for someone to take it is that, in your world?",
+        answer: "mine, I keep waiting to be asked",
+        gate: at({ depth: 3, life: true, level: "evaluate" }) },
+      { asks: "What happened the last time you waited?",
+        answer: "nothing did, and then I stopped waiting",
+        gate: at({ depth: 3, life: true, level: "consequences" }) },
     ],
   });
 

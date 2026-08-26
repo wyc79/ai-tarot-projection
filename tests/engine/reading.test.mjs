@@ -30,14 +30,16 @@ const systemFor = (client, turn) => client.calls.chat.find((c) => c.turn === tur
 
 test("a full seeded session runs draw -> projection -> flips -> anchor -> close", async () => {
   const { reading, events } = await run({
-    // two exchanges per card, judge says ready each second time
+    // The budget rises across the arc: situation targets two exchanges, the two
+    // cards after it three, so a reading that is going well is 2 + 3 + 3.
     gates: [
-      gate(3), gate(3),   // situation
-      gate(3), gate(3),   // obstacle
-      gate(3), gate(3),   // advice
+      gate(3), gate(3),            // situation
+      gate(3), gate(3), gate(3),   // obstacle
+      gate(3), gate(3), gate(3),   // advice
     ],
-    answers: ["it looks like leaving", "the job, I think", "money", "and my father",
-              "start over", "somewhere quieter"],
+    answers: ["it looks like leaving", "the job, I think",
+              "money", "and my father", "since the spring",
+              "start over", "somewhere quieter", "by myself for a bit"],
   });
 
   const s = reading.session;
@@ -52,11 +54,12 @@ test("a full seeded session runs draw -> projection -> flips -> anchor -> close"
 
 test("the turns run in the designed order: invite, then bridges, then close", async () => {
   const { client } = await run({
-    gates: [gate(3), gate(3), gate(3), gate(3), gate(3), gate(3)],
-    answers: ["a", "b", "c", "d", "e", "f"],
+    gates: Array.from({ length: 8 }, () => gate(3)),
+    answers: ["a", "b", "c", "d", "e", "f", "g", "h"],
   });
   assert.deepEqual(client.calls.chat.map((c) => c.turn),
-                   ["opening", "invite", "respond", "bridge", "respond", "bridge", "respond", "close"]);
+                   ["opening", "invite", "respond", "bridge", "respond", "respond",
+                    "bridge", "respond", "respond", "close"]);
 });
 
 test("a bridge turn is credited to the card it answered, not the one it turned", async () => {
@@ -201,8 +204,8 @@ test("the session is persisted as it goes, and survives a reload", async () => {
 
 test("a closed reading refuses further turns", async () => {
   const { reading } = await run({
-    gates: [gate(4), gate(4), gate(4), gate(4), gate(4), gate(4)],
-    answers: ["a", "b", "c", "d", "e", "f"],
+    gates: Array.from({ length: 8 }, () => gate(4)),
+    answers: ["a", "b", "c", "d", "e", "f", "g", "h"],
   });
   assert.equal(reading.session.closed, true);
   await assert.rejects(reading.say("more"), /closed/);
@@ -574,47 +577,53 @@ test("every few-shot obeys the turn shape: one observation, one question, and sh
 // go. The reading simply stopped. Whatever else is wrong upstream, the last
 // card must be able to close on its own.
 
-test("the last card gets one follow-up at most, then closes whatever the depth", async () => {
+test("the last card spends its budget and then closes, whatever the depth", async () => {
   const { reading, client } = await run({
-    gates: [gate(4), gate(4), gate(4), gate(4), gate(1), gate(1)],
-    answers: ["it looks tired", "since March", "money, mostly", "if I spend it I'm staying",
-              "walking off, leaving the full ones", "dunno"],
+    gates: [gate(4), gate(4), gate(4), gate(4), gate(4), gate(1), gate(1), gate(1)],
+    answers: ["it looks tired", "since March",
+              "money, mostly", "if I spend it I'm staying", "and I haven't told anyone",
+              "walking off, leaving the full ones", "dunno", "not really"],
   });
   const s = reading.session;
   assert.equal(s.closed, true, "run B stopped here instead");
   assert.equal(s.closing_reflection, "[close]");
-  assert.equal(s.exchanges.filter((e) => e.position === "advice").length, 2,
-               "the projection exchange and one follow-up, and no more");
+  assert.equal(s.exchanges.filter((e) => e.position === "advice").length, 3,
+               "the advice position's target, and not one exchange more");
+  assert.match(s.cards.at(-1).flip_reason ?? "", /situation|obstacle|advice|exchanges/);
   assert.equal(client.calls.chat.at(-1).turn, "close",
                "the reading ends on the closing beat, not on another question");
 });
 
 test("a reading of nothing but thin answers still closes", async () => {
-  // The invariant, stated as a number so that changing the pacing constants
-  // shows up here rather than in a stalled session: three positions, three
-  // exchanges each, and the last one cut short by the rule above.
+  // The invariant, stated as a number so that a change to the pacing shows up
+  // here rather than in a stalled session. This is the worst case in the whole
+  // design -- somebody who gives nothing, on every card -- and it is what the
+  // per-position caps cost: each card runs to its own max, and the last one
+  // closes on its target instead.
   const { reading } = await run({
-    gates: Array.from({ length: 12 }, () => gate(1)),
-    answers: Array.from({ length: 12 }, (_, i) => `thin ${i}`),
+    gates: Array.from({ length: 16 }, () => gate(1)),
+    answers: Array.from({ length: 16 }, (_, i) => `thin ${i}`),
   });
   assert.equal(reading.session.closed, true);
-  assert.equal(reading.session.exchanges.filter((e) => e.position !== "opening").length, 8,
-               "3 + 3 + 2: the last card does not get the third exchange");
+  assert.equal(reading.session.exchanges.filter((e) => e.position !== "opening").length, 12,
+               "4 + 5 + 3: each card to its cap, and the last one to its target");
 });
 
 // -- flip ownership (checkpoint fix 3) ------------------------------------
 
 test("every flip records why it happened", async () => {
   const { reading } = await run({
-    gates: [gate(4), gate(4), gate(2), gate(2), gate(2)],
-    answers: ["my brother, since March", "we stopped talking", "money", "dunno", "lighter maybe"],
+    gates: [gate(4), gate(4), gate(2), gate(2), gate(2), gate(2), gate(2), gate(2), gate(2), gate(2)],
+    answers: ["my brother, since March", "we stopped talking",
+              "money", "dunno", "lighter maybe", "hard to say", "the same",
+              "a road", "uphill", "nobody on it"],
   });
   const reasons = reading.session.cards.map((c) => c.flip_reason);
   assert.equal(reasons.length, 3);
   assert.ok(reasons.every(Boolean), "a card with no recorded reason turned over by nobody");
   assert.match(reasons[0], /opening question was answered/, "the first card is dealt, not earned");
-  assert.match(reasons[1], /rich answer \(depth 4\)/);
-  assert.match(reasons[2], /3 exchanges on one card/);
+  assert.match(reasons[1], /rich depth 4 after 2 exchanges/);
+  assert.match(reasons[2], /5 exchanges on one card/, "the obstacle position's cap");
 });
 
 test("a gate carrying an old flip_ready flag cannot move the decision", async () => {
