@@ -45,21 +45,33 @@ export function fakeClient({
       onDelta(text, text);
       return text;
     },
-    async judge({ system, messages, schema }) {
-      calls.judge.push({ system, messages, schema });
-      if (schema.properties.has_topic) {
-        return opening ?? { has_topic: false, topic: "", stakes: "low" };
+    /**
+     * Answers by kind, which the judgement says outright.
+     *
+     * It used to sniff the schema -- has_topic meant the opening, theme meant
+     * the anchor, anything else was a gate -- so adding a field called `theme`
+     * to the gate would have quietly routed every gate in the suite to the
+     * anchor's canned reply.
+     */
+    async judge({ kind, system, messages, schema }) {
+      calls.judge.push({ kind, system, messages, schema });
+      switch (kind) {
+        case "opening":
+          return opening ?? { has_topic: false, topic: "", stakes: "low" };
+        case "anchor":
+          // The default beat is territory-phrased, or every anchor call in every
+          // test would trip the re-ask and land twice.
+          return anchor ?? {
+            theme: "t",
+            resolution_beat: "whether it is still holding, or has outlived itself",
+            user_phrases: [{ phrase: "stuck", source: "life" }],
+          };
+        case "gate":
+          return queue.shift()
+            ?? { disclosure_depth: 2, has_life_content: true, stakes: "low", reading_of_them: "x" };
+        default:
+          throw new Error(`the fake was asked for a judgement it has no answer for: ${kind}`);
       }
-      if (schema.properties.theme) {
-        // The default beat is territory-phrased, or every anchor call in every
-        // test would trip the re-ask and land twice.
-        return anchor ?? {
-          theme: "t",
-          resolution_beat: "whether it is still holding, or has outlived itself",
-          user_phrases: [{ phrase: "stuck", source: "life" }],
-        };
-      }
-      return queue.shift() ?? { disclosure_depth: 2, has_life_content: true, stakes: "low", reading_of_them: "x" };
     },
   };
 }
