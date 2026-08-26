@@ -14,7 +14,9 @@ test("the map draws what the scanner reports, from the exchanges alone", async (
   assert.equal((svg.match(/class="drop"/g) ?? []).length, 1, "the one deflection");
   // Two cards, but the first is dealt rather than earned, so one rule.
   assert.equal((svg.match(/class="flip"/g) ?? []).length, 1);
-  assert.match(svg, /crossed to life and climbed to consequences/);
+  // One ring, both faults named: it crossed off a single answer about a picture,
+  // and climbed a rung while doing it.
+  assert.match(svg, /crossed off 1 answer on this card; crossed to life and climbed to consequences/);
 });
 
 test("every rung of the pack's ladder gets a row, in order, high at the top", async () => {

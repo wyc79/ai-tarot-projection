@@ -10,6 +10,7 @@ contract has failed.
 Driven by scripts/run_contract_tests.sh, which starts each relay in turn.
 """
 
+import http.client
 import json
 import os
 import re
@@ -157,6 +158,38 @@ class ForwardingTest(unittest.TestCase):
         self.assertGreaterEqual(len(arrivals), 2, "whole stream arrived as one buffered lump")
         self.assertLess(arrivals[0], arrivals[-1] - 0.2,
                         "first chunk did not arrive meaningfully before the last")
+
+
+    def test_provider_hangup_mid_response_is_not_a_crash(self):
+        """A provider that drops a chunked response leaves the relay standing.
+
+        The status line and headers are already on the wire by then, so there is
+        no error shape left to send: what the client gets is a short reply, which
+        its own truncation handling is there for. What it must not get is the
+        relay falling over, and what the log must not get is a traceback with the
+        request in it.
+        """
+        req = urllib.request.Request(
+            BASE + "/v1/chat",
+            data=json.dumps({"provider": "test-hangup", "payload": {}}).encode(),
+            method="POST")
+        req.add_header("Content-Type", "application/json")
+        req.add_header("Authorization", "Bearer %s" % CANARY_KEY)
+        try:
+            resp = urllib.request.urlopen(req, timeout=15)
+            received = b""
+            while True:
+                chunk = resp.read1(65536)
+                if not chunk:
+                    break
+                received += chunk
+            self.assertIn(b"data: half", received, "the part that did arrive was dropped")
+        except (http.client.IncompleteRead, urllib.error.URLError):
+            pass  # a short read on our side is the honest outcome too
+
+        # Still serving. This is the assertion that matters.
+        status, _, _ = call(body={"provider": "test", "payload": {"prompt": "still here"}})
+        self.assertEqual(status, 200, "the relay did not survive a provider hanging up")
 
 
 class KeyRedactionTest(unittest.TestCase):

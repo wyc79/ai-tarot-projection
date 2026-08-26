@@ -83,7 +83,9 @@ test("a rich answer earns the next card, one exchange after it lands", () => {
   answer(s, 4);
   const decision = flipDecision(s, gate(4));
   assert.equal(decision.flip, true);
-  assert.match(decision.reason, /early/);
+  // Not "early" any more: a rich answer spends the position's budget like any
+  // other, and the depth is reported rather than rewarded.
+  assert.match(decision.reason, /rich depth 4 after 2 exchanges/);
   assert.match(decision.reason, /dwelt on first/);
 });
 
@@ -223,6 +225,6 @@ test("one grounded answer on the card is enough to restore the early exits", () 
   recordExchange(s, { question: "and then?", answer: "we stopped talking", gate: gate(4) });
   const decision = flipDecision(s, gate(4));
   assert.equal(decision.flip, true);
-  assert.match(decision.reason, /early/);
+  assert.match(decision.reason, /rich depth 4/);
   assert.ok(!/ungrounded/.test(decision.reason));
 });

@@ -11,6 +11,7 @@ import { loadPack } from "../pack.js";
 import { makeLlmClient, DEFAULT_CONFIG, PROVIDERS } from "../llmClient.js";
 import { makeStorage, memoryBackend } from "../storage.js";
 import { startReading } from "../engine/reading.js";
+import { exchangesOnCurrentCard } from "../engine/state.js";
 import { describeSession, loadHistory, toJson, toMarkdown } from "../engine/journal.js";
 import { newSeed } from "../engine/rng.js";
 import { staircaseSvg } from "./staircase.js";
@@ -120,11 +121,35 @@ function addLine(who, text) {
   return line;
 }
 
+/**
+ * Where the current card is in its budget: spent, target, cap.
+ *
+ * The reasons say "3 exchanges on one card" and the budget is per position now,
+ * so the number on its own does not tell you whether that is nearly done or
+ * barely started. Asides are not in it, which is the point of them.
+ */
+function budgetLine() {
+  if (!reading || !pack) return "";
+  const card = reading.session.cards[reading.session.cards.length - 1];
+  if (!card) return "";
+  const budget = reading.session.budget?.[card.position] ?? {};
+  const spent = exchangesOnCurrentCard(reading.session);
+  const asides = reading.session.exchanges.filter(
+    (e) => e.position === card.position && e.aside).length;
+  const over = budget.target && spent >= budget.target ? " ok" : "";
+  return `<div><span class="label">${card.position}</span>
+    <b class="${over}">${spent}/${budget.max ?? "?"}</b>
+    <span class="label">target</span> ${budget.target ?? "?"}
+    ${asides ? `<span class="label">+${asides} aside${asides > 1 ? "s" : ""}</span>` : ""}</div>`;
+}
+
 function renderGate(gate, decision) {
   $("gate").innerHTML = `
+    ${budgetLine()}
     <div><span class="label">depth</span> ${gate.disclosure_depth} &nbsp;
          <span class="label">level</span> ${gate.user_level ?? "-"} &nbsp;
          ${gate.hedged ? `<b class="bad">hedged</b> &nbsp;` : ""}
+         ${gate.asked_back ? `<b class="bad">asked back</b> &nbsp;` : ""}
          <span class="label">stakes</span> <b class="${gate.stakes !== "low" ? "bad" : ""}">${gate.stakes}</b></div>
     <div class="quote">${gate.reading_of_them ?? ""}</div>
     ${decision ? `<div class="${decision.flip ? "ok" : ""}">${decision.flip ? "FLIP" : "hold"} — ${decision.reason}</div>` : ""}`;
@@ -200,10 +225,18 @@ function onEvent(event) {
       break;
     case "closed":
       renderStaircase();
-      setStatus("reading closed", "ok");
-      $("reply-form").hidden = true;
+      // The reading is finished; the conversation is not. The form stays, and
+      // the person decides when to stop rather than being hung up on.
+      setStatus("reading closed — keep talking, or end it when you want", "ok");
+      $("end-reading").hidden = false;
       // The label is written before close() runs, so it would otherwise keep
       // calling a finished reading unfinished until the next reload.
+      refreshHistory();
+      break;
+    case "ended":
+      setStatus("ended", "ok");
+      $("reply-form").hidden = true;
+      $("end-reading").hidden = true;
       refreshHistory();
       break;
     default:
@@ -236,6 +269,7 @@ async function start() {
   });
 
   $("reply-form").hidden = false;
+  $("end-reading").hidden = true;
   $("settings").open = false;
   try {
     await reading.begin();
@@ -310,6 +344,9 @@ async function main() {
     $("reply").value = "";
     say(text);
   });
+  // Only a person ends a reading. The button appears when the closing beat has
+  // been given and does nothing before that.
+  $("end-reading").addEventListener("click", () => reading?.end());
 
   setStatus(`${pack.name}, ${pack.cards.length} cards`);
 }

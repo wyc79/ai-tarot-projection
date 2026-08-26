@@ -16,7 +16,7 @@ WORKER_PORT=8789
 ORIGIN="http://localhost:1234"
 LOGDIR="$(mktemp -d)"
 
-PROVIDERS='{"test":{"url":"http://127.0.0.1:'"$MOCK_PORT"'/echo","auth":"x-api-key","headers":{"x-contract-test":"yes"}},"test-bearer":{"url":"http://127.0.0.1:'"$MOCK_PORT"'/echo","auth":"bearer"},"test-stream":{"url":"http://127.0.0.1:'"$MOCK_PORT"'/stream","auth":"x-api-key"},"test-error":{"url":"http://127.0.0.1:'"$MOCK_PORT"'/boom","auth":"x-api-key"},"test-dead":{"url":"http://127.0.0.1:1/nope","auth":"x-api-key"}}'
+PROVIDERS='{"test":{"url":"http://127.0.0.1:'"$MOCK_PORT"'/echo","auth":"x-api-key","headers":{"x-contract-test":"yes"}},"test-bearer":{"url":"http://127.0.0.1:'"$MOCK_PORT"'/echo","auth":"bearer"},"test-stream":{"url":"http://127.0.0.1:'"$MOCK_PORT"'/stream","auth":"x-api-key"},"test-error":{"url":"http://127.0.0.1:'"$MOCK_PORT"'/boom","auth":"x-api-key"},"test-dead":{"url":"http://127.0.0.1:1/nope","auth":"x-api-key"},"test-hangup":{"url":"http://127.0.0.1:'"$MOCK_PORT"'/hangup","auth":"x-api-key"}}'
 
 pids=()
 cleanup() { for p in "${pids[@]:-}"; do kill "$p" 2>/dev/null; done; }

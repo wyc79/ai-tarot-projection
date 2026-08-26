@@ -25,6 +25,21 @@ const NONE = {
   // benefit either way. This flag is only about whether to send cache_control,
   // which a gateway that has never heard of it may reject outright.
   promptCaching: false,
+  // Whether a judge call may send thinking:{type:"disabled"}. ON by default,
+  // which is the opposite of every other flag here, and unlike the others this
+  // one has been watched rather than argued for. Five judge calls on frozen
+  // input, deepseek-v4-flash, 2026-08-25 (scripts/judge_probe.mjs):
+  //
+  //   thinking disabled        71 72 71 72 71 output tokens, all valid
+  //   thinking not mentioned   490 650 2780 4956 and one truncated at 8192
+  //   thinking budget 1024     2116 4153 7028 and two truncated at 8192
+  //
+  // The middle row is what shipped before this, and its truncation is the bug
+  // that started this. The last row is the "cap it low instead" idea: the
+  // gateway accepts budget_tokens and does not honour it, so it is strictly
+  // worse than saying nothing. Set false for any provider observed to reject
+  // the parameter outright.
+  thinkingOff: true,
 };
 
 export const PROVIDERS = {
@@ -51,7 +66,7 @@ export const PROVIDERS = {
     // 400, so judge determinism here comes from the schema and the rubric.
     features: {
       thinking: true, effort: true, structuredOutput: true, temperature: false,
-      promptCaching: true,
+      promptCaching: true, thinkingOff: true,
     },
   },
   opencode: {

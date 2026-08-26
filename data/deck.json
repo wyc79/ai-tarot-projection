@@ -12,11 +12,14 @@
       "arc_role": "setup",
       "prompt_hint": "where things stand right now",
       "moves": [
+        "elaborate",
         "own",
         "externalize",
         "their-words"
       ],
-      "ceiling": "evaluate"
+      "ceiling": "evaluate",
+      "target": 2,
+      "max": 4
     },
     {
       "id": "obstacle",
@@ -27,7 +30,9 @@
         "exception",
         "externalize"
       ],
-      "ceiling": "intentions"
+      "ceiling": "intentions",
+      "target": 3,
+      "max": 5
     },
     {
       "id": "advice",
@@ -38,9 +43,25 @@
         "re-author",
         "action"
       ],
-      "ceiling": "plans"
+      "ceiling": "plans",
+      "target": 3,
+      "max": 5
     }
   ],
+  "epilogue": {
+    "id": "epilogue",
+    "label": "Epilogue",
+    "arc_role": "epilogue",
+    "prompt_hint": "what turned up after the reading was already over",
+    "moves": [
+      "their-words",
+      "externalize",
+      "action"
+    ],
+    "ceiling": "plans",
+    "target": 2,
+    "max": 4
+  },
   "levels": [
     {
       "id": "name",

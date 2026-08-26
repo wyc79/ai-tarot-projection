@@ -14,8 +14,11 @@ answer and the turn after it, the shape of each question. The substitution maps
 live in gitignored `redactions/`, since they are the thing that would reverse
 this.
 
-Both fixtures produce byte-identical scanner findings before and after, which is
-the test that the redaction did not quietly change what they are fixtures for.
+Each fixture produces byte-identical scanner findings before and after, which is
+the test that the redaction did not quietly change what it is a fixture for.
+
+`lantern-be7743.json` is the one exception to that pipeline, and it says so in
+its own entry below.
 
 Commits predating this policy still carry the earlier wording in files that
 quoted it -- the pack's few-shots, the judge rubric, a couple of tests. Left
@@ -37,3 +40,24 @@ whole history.
   early flip, and The Lovers turned over on that very turn. The reward for
   opening up was the subject changing. It is the fixture for the dwell rule,
   the hedge flag ("i guess so?"), and territory-phrased resolution beats.
+
+- `lantern-be7743.json` — 2026-08-25. The overcorrection landing: the ownership
+  bridge fired on the very first sentence the person said about the card, which
+  reads as an agenda rather than an offer, and got "couldnt think of any" back.
+  Structurally the same turn as river's, one card earlier in the person's
+  willingness. It is the fixture for the settle rule, the elaborate move, and
+  the scanner's `rail_switch_unsettled`.
+
+  **Reconstructed, not exported.** The session JSON was never saved — what
+  survives is the markdown transcript in `checkpoint/`, taken mid-session — so
+  this file was rebuilt from it rather than run through `redact_session.mjs`.
+  The questions, the answers and the card are verbatim from that transcript;
+  `question_type` and `question_level` are computed by the shipped classifiers
+  rather than written by hand, and the gate objects are reconstructed, since the
+  judge's verdicts were not in the export. Nothing in it needed substituting:
+  every answer is about the picture, which is the point.
+
+  The transcript also stops one turn early, at the whiff. What the session did
+  next — the permission step back, the elaboration, and the answer that was the
+  richest of the session — is in `data/few-shots.json` instead, written from the
+  account of it rather than from a record, and marked as such there.

@@ -19,7 +19,7 @@
 import { readFile } from "node:fs/promises";
 import { finalQuestion, isOwnershipOffer, questionLevel, questionType } from "../web/js/engine/questions.js";
 import { levelDistance, levelIndex } from "../web/js/engine/levels.js";
-import { disclosureArrivals, flipsAfterExchange } from "../web/js/engine/state.js";
+import { SETTLE_MIN, disclosureArrivals, flipsAfterExchange } from "../web/js/engine/state.js";
 import { loadPackFromDisk } from "./harness.mjs";
 
 /** Reader turns in order: every question asked, then the closing beat. */
@@ -90,6 +90,10 @@ function trailingTurns(session) {
  * wearing one coat.
  */
 function permittedForcedChoice(session, turn) {
+  // The opening turn offers "something particular, or just curious?" because the
+  // persona tells it to make declining easy. There is nothing on the table for
+  // it to be a forced choice about yet, so the rule does not apply.
+  if (turn.position === "opening") return true;
   const previous = session.exchanges[turn.index - 1];
   if (!previous) return false;
   const nothingOfTheirs = previous.disclosure_depth === 1
@@ -114,7 +118,9 @@ export function scanSession(session, pack = null) {
     const question = finalQuestion(turn.text);
     const questions = (turn.text.match(/\?/g) ?? []).length;
     const sentences = sentencesIn(turn.text);
-    const closing = turn.position === "close";
+    // The closing beat ends on a step, and a turn after the reading has closed
+    // may end on a goodbye. Neither owes anyone a question.
+    const closing = turn.position === "close" || turn.position === "afterward";
 
     if (deals.has(turn.index) && question && questionType(turn.text) !== "projection") {
       add(turn, "deal_turn_life_question",
@@ -333,7 +339,7 @@ function scanHedges(session, turns) {
  */
 function scanScaffolding(session, pack) {
   const findings = [];
-  const reading = session.exchanges.filter((e) => e.position !== "off_frame");
+  const reading = session.exchanges.filter((e) => e.position !== "off_frame" && !e.aside);
   const asked = [];
 
   for (const [index, exchange] of reading.entries()) {
@@ -358,12 +364,37 @@ function scanScaffolding(session, pack) {
       continue;   // one finding per question; the bigger number is the one to read
     }
 
+    const rail = questionType(exchange.q);
+    const railBefore = before.question_type ?? (before.q ? questionType(before.q) : null);
+
+    // A crossing needs somewhere to launch from. Two answers on this card, or
+    // one that already had something of their own in it -- before that there is
+    // nothing under the question but one sentence about a picture, and the
+    // crossing reads as an agenda rather than an offer. lantern-be7743's turn 2
+    // is the fixture: "whose offer is that in your world" after "something in
+    // the sky is offering rain to the pond", answered with "couldnt think of
+    // any". It clears the level check, because it does not climb.
+    const here = session.exchanges
+      .slice(0, session.exchanges.indexOf(exchange))
+      .filter((e) => e.position === exchange.position);
+    if (railBefore && rail === "life" && rail !== railBefore
+        && here.length > 0 && here.length < SETTLE_MIN
+        && !here.some((e) => e.gate?.has_life_content === true)) {
+      findings.push({
+        index: session.exchanges.indexOf(exchange), position: exchange.position,
+        code: "rail_switch_unsettled",
+        message: `crossed to their life off ${here.length} answer on this card, and nothing ` +
+                 "of theirs was in it; the bridge had nothing to ride on",
+        text: exchange.q,
+      });
+      // No `continue`: a crossing can be both premature and too high, and those
+      // are different repairs. c145c7's turn 3 is both.
+    }
+
     // Crossing rails is a step of its own, so a crossing question that also
     // climbs has taken two. c145c7's turn 3 passed the check above -- one rung,
     // name to consequences -- while switching from the card to their life in
     // the same breath, and got a description of the card back.
-    const rail = questionType(exchange.q);
-    const railBefore = before.question_type ?? (before.q ? questionType(before.q) : null);
     if (railBefore && rail !== railBefore && jump > 0) {
       findings.push({
         index: session.exchanges.indexOf(exchange), position: exchange.position,
@@ -388,7 +419,7 @@ function scanScaffolding(session, pack) {
 /** The question/answer altitude trace, for reading two arms side by side. */
 export function levelTrace(session) {
   return session.exchanges
-    .filter((e) => e.position !== "opening" && e.position !== "off_frame" && e.q)
+    .filter((e) => e.position !== "opening" && e.position !== "off_frame" && !e.aside && e.q)
     .map((e) => `${questionLevel(e.q)[0]}${(e.gate?.user_level ?? "?")[0]}`)
     .join(" ");
 }
@@ -408,12 +439,14 @@ export function levelTrace(session) {
 export function staircase(session, pack) {
   const turns = session.exchanges
     .map((e, index) => ({ e, index }))
-    .filter(({ e }) => e.position !== "opening" && e.position !== "off_frame" && e.q);
+    .filter(({ e }) => e.position !== "opening" && e.position !== "off_frame"
+                       && !e.aside && e.q);
   if (!turns.length) return "";
 
   const flagged = new Set(
     scanSession(session, pack)
-      .filter((f) => f.code === "level_jump" || f.code === "rail_switch_climb")
+      .filter((f) => f.code === "level_jump" || f.code === "rail_switch_climb"
+                     || f.code === "rail_switch_unsettled")
       .map((f) => f.index));
   const flips = new Map();
   for (const [at, card] of flipsAfterExchange(session)) flips.set(at, card.flip_reason ?? "");

@@ -101,7 +101,9 @@ test("an ungrounded reading is told not to talk as though it has a subject", asy
   const system = client.calls.chat.at(-1).prompt.replace(/\s+/g, " ");
   assert.match(system, /GROUNDED: no\. Every word above came from the picture/);
   assert.match(system, /the theme is a placeholder/);
-  assert.match(system, /The first follow-up on this card is an ownership offer/);
+  // The bridge is still what this card is for; the settle rule decides when.
+  assert.match(system, /the ownership offer is\s+how you cross/);
+  assert.match(system, /not\s+before this card has something under it to cross from/);
   assert.match(system, /Do not talk as though the session has a subject/);
 });
 

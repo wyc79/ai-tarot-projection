@@ -21,17 +21,46 @@ import {
   judgeMessages, openingMessages, readerMessages, readerSystem, readerTurnBlock,
 } from "./prompts.js";
 import {
-  close, commitAnchor, createSession, currentCard, flipCard, flipDecision,
-  recordExchange, recordOffFrame, recordOpening, recordReading, spreadComplete,
-  updateAnchor,
+  close, commitAnchor, createSession, currentCard, end, epilogueEarned, flipCard,
+  flipDecision, flipEpilogue, recordAfterward, recordExchange, recordOffFrame,
+  recordAside, recordOpening, recordReading, spreadComplete, updateAnchor,
 } from "./state.js";
 import { makeDeal } from "./draw.js";
 import { newSeed } from "./rng.js";
 
 export const SESSION_KEY = "session";
 
+/**
+ * A reader turn with the quotation marks the model wrapped around it removed.
+ *
+ * The few-shots no longer teach this, which is the actual fix, but "do not put
+ * quotes around your turn" is the kind of instruction a model follows most of
+ * the time. The failure is visible to the person and looks like the reader
+ * reading from a script, so it is worth catching on the way out as well.
+ *
+ * Quoting is legitimate INSIDE a turn -- the persona requires their words back
+ * exactly, and a turn often opens on one. So a pair is only stripped when it
+ * wraps the entire thing: the quotes are balanced, and what is left still ends
+ * the way a turn ends. "Pretending king" — strong words. What makes this one
+ * real? keeps its quotes, because the last character is a question mark.
+ */
+export function unwrapQuotes(text) {
+  const trimmed = String(text ?? "").trim();
+  if (trimmed.length < 2) return trimmed;
+  const wrapped = (trimmed.startsWith('"') && trimmed.endsWith('"')
+                   && trimmed.match(/"/g).length % 2 === 0)
+    || (trimmed.startsWith("\u201c") && trimmed.endsWith("\u201d"));
+  if (!wrapped) return trimmed;
+  const inner = trimmed.slice(1, -1).trim();
+  // A turn ends on its question, or on the closing step. Anything else and the
+  // two quotes were doing work of their own.
+  return /[.?!]$/.test(inner) ? inner : trimmed;
+}
+
 export function startReading({ pack, client, storage = null, seed = newSeed(), onEvent = () => {} }) {
-  const session = createSession({ packId: pack.id, seed, positions: pack.positions });
+  const session = createSession({
+    packId: pack.id, seed, positions: pack.positions, epilogue: pack.epilogue,
+  });
   const deal = makeDeal(pack.cards.map((c) => c.card_id), seed);
 
   // The seed is logged the moment the session exists: a reading nobody can
@@ -48,7 +77,7 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
     saveToHistory(storage, session);
   }
 
-  async function readerTurn(turn, { stageDirection = null, readingOffset = 0 } = {}) {
+  async function readerTurn(turn, { stageDirection = null, readingOffset = 0, onCard = true } = {}) {
     // Hand agency back on the first high-stakes turn only. Saying it again every
     // time the subject resurfaces turns honesty into a disclaimer.
     const handback = session.last_stakes === "high" && !session.handback_given;
@@ -59,14 +88,21 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
     });
     onEvent({ type: "reader_start", turn });
 
-    const text = await client.chat({
+    const raw = await client.chat({
       system,
       messages,
       onDelta: (delta, full) => onEvent({ type: "reader_delta", delta, full }),
     });
+    // Deltas go out as they arrive, so a leading quote is on screen for as long
+    // as the turn takes to finish. It is the price of streaming, and it is a
+    // flicker rather than a transcript with quotes in it.
+    const text = unwrapQuotes(raw);
 
     if (handback) session.handback_given = true;
-    recordReading(session, text, { offset: readingOffset });
+    // A turn after the reading closed belongs to no card: the advice card's
+    // ai_reading is the closing beat, and overwriting it with whatever was said
+    // afterwards rewrites how the reading ended.
+    if (onCard) recordReading(session, text, { offset: readingOffset });
     lastQuestion = text;
     onEvent({ type: "reader_done", text, turn });
     persist();
@@ -154,6 +190,9 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
     if (spreadComplete(session)) {
       const text = await readerTurn("close");
       close(session, text);
+      // The spread is spent, not the conversation. If they keep talking the
+      // reader keeps answering, and one more card can still be earned.
+      session.phase = "afterward";
       persist();
       onEvent({ type: "closed", reflection: text });
       return { gate, decision, closed: true };
@@ -189,9 +228,19 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
       return session;
     },
 
+    /**
+     * They are done. The only thing that sets it, and only a person calls it.
+     */
+    end() {
+      end(session);
+      persist();
+      onEvent({ type: "ended" });
+      return session;
+    },
+
     /** One user turn. Everything that follows from it happens here. */
     async say(answer) {
-      if (session.closed) throw new Error("this reading is closed");
+      if (session.ended) throw new Error("this reading has ended");
 
       if (session.phase === "opening") return this.openWith(answer);
 
@@ -210,6 +259,34 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
         messages: judgeMessages(pack, session, { question: lastQuestion, answer }),
         schema: gateSchema(pack),
       });
+
+      // They asked what the question meant instead of answering it. Nothing
+      // moves: not the card, not the count, not the ladder. A question that did
+      // not land costs the reader a turn, not them one of theirs -- charging
+      // them for it is charging someone for the reader's own bad phrasing, and
+      // it lands as a depth-1 deflection on a card they were engaged with.
+      //
+      // Before the closed branch, because it is just as true afterwards: an
+      // epilogue card has a budget of its own, and this must not spend it.
+      if (gate.asked_back && currentCard(session)) {
+        recordAside(session, { question: lastQuestion, answer, gate });
+        onEvent({ type: "gate", gate });
+        if (session.safety_state === "drop_frame") onEvent({ type: "frame_dropped" });
+        await readerTurn("clarify", { onCard: false });
+        persist();
+        return { gate, decision: { flip: false, reason: "they asked what the question meant" } };
+      }
+
+      // The reading is over and they are still talking. That is allowed, and it
+      // is not a reason to hang up on them or to start a second reading: the
+      // beat has been given, the ledger is sealed, and the three cards are
+      // still on the table to route through. They end it, not the spread.
+      //
+      // The gate still runs, because stakes still do. Someone can say the thing
+      // they came in not planning to say after the closing beat as easily as
+      // before it, and the frame has to be droppable here too.
+      if (session.closed) return this.afterward(answer, gate);
+
       recordExchange(session, { question: lastQuestion, answer, gate });
       onEvent({ type: "gate", gate });
 
@@ -230,6 +307,74 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
       const turn = await advance(gate);
       await settleAnchorRevision(revision);
       return turn;
+    },
+
+    /**
+     * A turn after the closing beat: the conversation, and the one card it can
+     * still earn.
+     *
+     * Three shapes, and the phase says which. On the epilogue card it is an
+     * ordinary card turn, right down to the flip rule -- the spread is full, so
+     * the last-card branch fires and "flipping" it means closing again, with the
+     * step re-sized to how far they actually got in the end. Otherwise it is
+     * either the turn that earns the fourth card or a turn that does not.
+     */
+    async afterward(answer, gate) {
+      if (session.phase === "epilogue") {
+        recordExchange(session, { question: lastQuestion, answer, gate });
+        onEvent({ type: "gate", gate });
+        if (session.safety_state === "drop_frame") {
+          onEvent({ type: "frame_dropped" });
+          await readerTurn("respond");
+          persist();
+          return { gate, decision: { flip: false, reason: "frame dropped" } };
+        }
+        const decision = flipDecision(session, gate);
+        onEvent({ type: "flip_decision", decision, gate });
+        if (!decision.flip) {
+          await readerTurn("respond");
+          persist();
+          return { gate, decision };
+        }
+        // The step is written again rather than added to. They went further
+        // after the beat than they had got by it, and a step sized to where
+        // they were is the wrong step now. The first one is not lost: it is on
+        // the advice card, which is where it was said.
+        const text = await readerTurn("close");
+        close(session, text);
+        session.phase = "afterward";
+        persist();
+        onEvent({ type: "closed", reflection: text, epilogue: true });
+        return { gate, decision, closed: true };
+      }
+
+      recordAfterward(session, { question: lastQuestion, answer, gate });
+      onEvent({ type: "gate", gate });
+      if (session.safety_state === "drop_frame") {
+        onEvent({ type: "frame_dropped" });
+        await readerTurn("respond", { onCard: false });
+        persist();
+        return { gate, decision: { flip: false, reason: "frame dropped" } };
+      }
+
+      if (epilogueEarned(session, gate) && deal.remaining > 0) {
+        const [cardId] = deal.take(1);
+        flipEpilogue(session, cardId, {
+          reason: `earned after the closing beat: depth ${gate.disclosure_depth} with `
+            + "something of their own in it",
+        });
+        session.phase = "epilogue";
+        const entry = currentCard(session);
+        onEvent({ type: "flip", card: pack.card(entry.card_id), position: entry.position,
+                  reason: entry.flip_reason });
+        await readerTurn("epilogue", { stageDirection: flipDirection(pack, session) });
+        persist();
+        return { gate, decision: { flip: true, reason: entry.flip_reason }, flipped: true };
+      }
+
+      await readerTurn("after", { onCard: false });
+      persist();
+      return { gate, decision: { flip: false, reason: "the reading is closed; this is after it" } };
     },
 
     /** The answer to the opening question. Deals the first card, or does not. */

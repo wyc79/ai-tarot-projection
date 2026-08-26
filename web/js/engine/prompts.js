@@ -11,7 +11,7 @@
  * transcript as a stage direction in the user role.
  */
 
-import { currentCard } from "./state.js";
+import { currentCard, settleOnCurrentCard, turnsOn } from "./state.js";
 import { questionType } from "./questions.js";
 import { levelIndex, targetLevel } from "./levels.js";
 
@@ -63,10 +63,20 @@ piece of honesty into a disclaimer they stop hearing.`;
  */
 function describeFewShots(pack) {
   if (!pack.fewShots?.length) return "";
-  const shots = pack.fewShots.map((shot) =>
-    [`— ${shot.card}, in the ${shot.position}.`,
-     `They said: "${shot.user}"`,
-     `You said: "${shot.reader}"`].join("\n")).join("\n\n");
+  const shots = pack.fewShots.map((shot) => {
+    // Normally one exchange. A few things only exist across turns -- a bridge
+    // that misses and the crossing that lands two turns later -- so a shot may
+    // carry a run of them, with a stage line for what happened before it.
+    const turns = shot.turns ?? [{ user: shot.user, reader: shot.reader }];
+    // Their words are quoted and yours are not, which looks inconsistent and is
+    // deliberate. Whatever delimits an example of your voice, some proportion of
+    // the time you will reproduce it -- a whole turn arrived on screen wrapped
+    // in double quotes, and these lines are where it learned that.
+    return [`— ${shot.card}, in the ${shot.position}.`,
+      shot.setup ? `(${shot.setup})` : "",
+      ...turns.flatMap((t) => [`They said: "${t.user}"`, `You said:`, t.reader]),
+    ].filter(Boolean).join("\n");
+  }).join("\n\n");
   return `
 ## How this sounds
 
@@ -93,9 +103,10 @@ They were asked and did not have one, which is a perfectly ordinary way to sit
 down. Do not ask again — but do not mistake that for having nothing to look for.
 
 This card's job is to find the ground: one real thing in their life for the
-reading to be about. Projection gives them the menu; the ownership move makes
-the offer. Until something of theirs lands, you know nothing about this person,
-and a turn written as though you do is a turn about the deck.`;
+reading to be about. Projection gives them the menu, elaboration gives it edges,
+and the ownership move makes the offer — in that order, and never all on one
+turn. Until something of theirs lands, you know nothing about this person, and a
+turn written as though you do is a turn about the deck.`;
   }
   return `
 ## What they said they wanted to look at
@@ -128,8 +139,8 @@ function firstSentence(text) {
  */
 function ladderState(pack, session) {
   const card = currentCard(session);
-  const position = card && pack.positions.find((p) => p.id === card.position);
-  const here = card ? session.exchanges.filter((e) => e.position === card.position) : [];
+  const position = card && pack.position(card.position);
+  const here = card ? turnsOn(session, card.position) : [];
   const last = here[here.length - 1] ?? null;
   const userLevel = last?.gate?.user_level ?? null;
   const deflected = last?.disclosure_depth === 1;
@@ -138,7 +149,8 @@ function ladderState(pack, session) {
   // to stay on it, and that choice changes how high it may reach -- so it is
   // told both numbers rather than one, since only it knows what it is about to
   // ask.
-  const rail = session.exchanges[session.exchanges.length - 1]?.question_type ?? null;
+  const scored = session.exchanges.filter((e) => !e.aside);
+  const rail = scored[scored.length - 1]?.question_type ?? null;
   return {
     userLevel,
     deflected,
@@ -199,7 +211,7 @@ Your last question was about ${rail === "projection" ? "the card" : "their life"
 function depthOnCurrentCard(session) {
   const card = currentCard(session);
   if (!card) return null;
-  const here = session.exchanges.filter((e) => e.position === card.position);
+  const here = turnsOn(session, card.position);
   return here.length ? here[here.length - 1].disclosure_depth : null;
 }
 
@@ -234,8 +246,9 @@ function describeRecap(pack, session) {
     if (!session.anchor.grounded) {
       lines.push("  GROUNDED: no. Every word above came from the picture, not from them.");
       lines.push("    Nothing is known about this person yet, and the theme is a placeholder.");
-      lines.push("    The first follow-up on this card is an ownership offer, not another");
-      lines.push("    projection question — take a phrase they used and ask whose it is.");
+      lines.push("    Finding the ground is what this card is for, and the ownership offer is");
+      lines.push("    how you cross — take a phrase they used and ask whose it is — but not");
+      lines.push("    before this card has something under it to cross from; see the bridge line.");
       lines.push("    Do not talk as though the session has a subject. It does not yet.");
     }
   } else {
@@ -255,19 +268,47 @@ function describeRecap(pack, session) {
     }
   }
 
-  const remaining = session.positions.length - session.cards.length;
+  const remaining = Math.max(0, session.positions.length - session.cards.length);
   lines.push(`  ${remaining > 0
     ? `${remaining} position${remaining > 1 ? "s" : ""} still to come, cards unknown to you`
     : "every position dealt; there is no further card"}`);
 
   const entry = currentCard(session);
-  const position = entry && pack.positions.find((p) => p.id === entry.position);
+  const position = entry && pack.position(entry.position);
   const depth = depthOnCurrentCard(session);
   lines.push("", "now:");
+  if (session.closed) {
+    lines.push("  THE READING IS FINISHED. The closing beat is given and the spread is spent.");
+    lines.push("    They are still here and still talking, which is theirs to do. Nothing below");
+    lines.push("    can turn another card, and none of the pacing applies any more.");
+  }
   lines.push(`  arc position: ${position ? `${position.id} (${position.arc_role} — ${position.prompt_hint})` : "nothing dealt yet"}`);
   if (position) lines.push(`  moves weighted here: ${position.moves.join(", ")}`);
   lines.push(`  disclosure depth on this card: ${depth === null ? "they have not answered yet" : depth}`);
+  if (entry) {
+    const settle = settleOnCurrentCard(session);
+    if (settle.settled) {
+      lines.push(`  bridge to their life: earned — ${settle.selfReferent
+        ? "something of theirs is already on this card"
+        : `${settle.spent} answers on this card`}`);
+    } else if (settle.spent === 0) {
+      lines.push("  bridge to their life: not yet — they have not spoken about this card.");
+      lines.push("    This turn asks about the picture and nothing else.");
+    } else {
+      lines.push("  bridge to their life: NOT YET — one answer on this card, and nothing of");
+      lines.push("    theirs in it. A bridge thrown across that has nothing to ride on, and it");
+      lines.push("    reads as an agenda: you wanted their life and asked the moment there was");
+      lines.push("    a noun to hang it on. Stay in the picture and elaborate — ask what makes");
+      lines.push("    their read what it is. Cross next turn, on the strongest phrase in the");
+      lines.push("    answer that gets you.");
+    }
+  }
   const lastAnswer = session.exchanges[session.exchanges.length - 1];
+  if (lastAnswer?.aside) {
+    lines.push("  THEY ASKED YOU WHAT YOU MEANT rather than answering. Nothing above moved:");
+    lines.push("    the depth, the level and the exchange count are all where they were before");
+    lines.push("    you asked. Answer them and ask again, smaller.");
+  }
   if (lastAnswer?.gate?.hedged) {
     lines.push("  THEY HEDGED THAT: it came with a way to take it back — \"i guess\", a");
     lines.push("    question mark on a statement. Do not repeat it back as settled fact and");
@@ -294,7 +335,7 @@ function describeCard(pack, session) {
   const entry = currentCard(session);
   if (!entry) return "";
   const card = pack.card(entry.card_id);
-  const position = pack.positions.find((p) => p.id === entry.position);
+  const position = pack.position(entry.position);
   return `
 ## The card on the table
 
@@ -308,7 +349,7 @@ The one line you may offer if they freeze: "${card.imagery_line}"
 
 Traditional sense, which you do not volunteer — the two sides of a forced
 choice, or a straight answer if they ask what it means:
-- in this position: ${card.meanings[entry.position]}
+- in this position: ${pack.meaning(card, entry.position)}
 - generally: ${card.meanings.general}`;
 }
 
@@ -433,6 +474,65 @@ This is the turn most often got wrong, and it is got wrong by being clever:
 the observation opens something up, and the question chases that instead of
 the card that just landed. The chase costs them the projection.`,
 
+  after: `
+## This turn
+
+The reading is finished. You gave the closing beat and they have kept talking,
+which is a normal thing for someone to do and is not a signal to start again.
+
+**No card turns over on this turn.** The table decides that and it has not told
+you to, which is the same rule as every other turn. Do not offer one, do not
+hint that one is coming, and do not promise a second reading — the spread was
+three cards and it is spent.
+
+Do not restate the step you left them with and do not summarise the session --
+they were there. Answer what they actually said, in their words, and keep
+routing it through the three cards on the table. Those are what you have, and
+they are the difference between this and a stranger asking personal questions.
+
+Same shape as any other turn: one observation, one question. The exception is
+someone winding down. If they are saying goodbye, say goodbye — a short reply
+that asks nothing is the right answer to "thanks, that was interesting", and
+holding them with one more question is the worst possible last impression.`,
+
+  clarify: `
+## This turn
+
+They did not answer, they asked you what you meant. That is not a deflection and
+it is not resistance -- your question did not land, and they are telling you so
+rather than guessing at it.
+
+**No card turns over, and this turn does not count as one of theirs.** The card
+is exactly where it was.
+
+Answer them, plainly, in one sentence, without apologising for the question or
+explaining the technique behind it. Then ask the same thing again in plainer
+words -- shorter, more concrete, and pointing at whatever they can actually see
+or remember. If the question needed their life and they had not offered any yet,
+that is the answer: go back to the picture and ask about it instead.
+
+Never repeat the question you just asked. They already told you it did not work.`,
+
+  epilogue: `
+## This turn
+
+They kept talking after the reading had ended, and then said something real —
+and the table has answered by turning one more card. This is the only one there
+will be, and it is not a second reading. It is the reading finding out it was
+not finished.
+
+**One observation** on what they just said, in their words. **Then the card
+turns over:** name it and say it is the last one, in a clause, not a paragraph.
+**Then one question about the picture**, and stop.
+
+The same rule as every other card, and it matters more here than anywhere: the
+question is about what they see, not about what they just told you. You already
+answered that in the observation. Someone who knows nothing about this person
+should be able to answer it by looking at the card.
+
+Do not explain why it turned up, do not call it a gift or a sign, and do not
+remark on the fact that the reading has restarted. The table does what it does.`,
+
   close: `
 ## This turn
 
@@ -467,6 +567,29 @@ export function turnKindOf(system) {
 }
 
 /**
+ * How many exchanges go into the prompt verbatim.
+ *
+ * The transcript is texture; the session record is the record. Everything a
+ * later turn is required to be consistent with -- the anchor and their exact
+ * phrases, every card with what they read into it and what was said back, the
+ * topic, the safety state -- is assembled from state on every turn and declared
+ * to outrank the history. So the oldest turns can fall off the front without
+ * anything structural falling off with them.
+ *
+ * Ten is chosen against the longest reading the pacing allows, which is twelve
+ * exchanges plus the opening: a reading that runs to its caps drops its first
+ * two or three turns near the end, and those are the ones about the first card,
+ * which the record carries in full. Where this really earns itself is after the
+ * closing beat, when the conversation can run as long as the person wants it
+ * to and there is no card left to bound it.
+ *
+ * The cost is that the message list stops being a stable prefix once it starts
+ * sliding, so a provider doing incremental caching over messages loses it. The
+ * 22 KB that actually matters is the system prompt, which does not move.
+ */
+export const TRANSCRIPT_WINDOW = 10;
+
+/**
  * The transcript so far, then what is true now and what this turn is for.
  *
  * The turn block is folded into the final user message rather than sent as its
@@ -475,7 +598,16 @@ export function turnKindOf(system) {
  */
 export function readerMessages(pack, session, { stageDirection = null, turnBlock = "" } = {}) {
   const messages = [];
-  for (const exchange of session.exchanges) {
+  const shown = session.exchanges.slice(-TRANSCRIPT_WINDOW);
+  const elided = session.exchanges.length - shown.length;
+  if (elided) {
+    messages.push({ role: "user", content:
+      `(${elided} earlier exchange${elided === 1 ? "" : "s"} in this session are not `
+      + "repeated here. They happened, and the session record below is the record of "
+      + "them — it is assembled from the table and it is complete. Do not say or imply "
+      + "that the conversation began where this transcript begins.)" });
+  }
+  for (const exchange of shown) {
     if (exchange.q) messages.push({ role: "assistant", content: exchange.q });
     messages.push({ role: "user", content: exchange.a });
   }
@@ -577,6 +709,24 @@ has_life_content is false the depth is 1 or 2, always.
 have a different trade" is a real disclosure -- a 3, with life content -- offered
 with a way to take it back. Both things are true at once and the reader needs to
 know both: what they said, and that they are watching to see what you do with it.
+
+---
+
+**asked_back** is not a depth at all. It is true when what they sent is a
+question to you rather than an answer to yours -- "what do you mean whose
+heading out is that?", "sorry, whose?", "are you asking about the card or about
+me?". They are still here and still engaged; they just did not follow you.
+
+It is the one verdict that stops a turn counting. The reading answers them,
+asks again in plainer words, and the card is left exactly where it was -- so a
+question that was badly phrased costs the reader a turn rather than costing them
+one of theirs.
+
+Be strict with it. An answer that happens to end in a question mark is not this:
+"my brother, I suppose?" is a hedged answer. Nor is a rhetorical question they
+are answering with. It is true only when there is nothing in what they sent that
+could be scored, because they were asking rather than telling. When it is true,
+disclosure_depth is 1 and user_level is name, because nothing was said.
 
 ---
 

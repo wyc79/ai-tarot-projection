@@ -12,7 +12,14 @@ Tarot as a doorway, not divination. The cards are projective prompts that get pe
   4. Symbol packs as data: fork it, drop in your own deck
 
 ## Core mechanics
-- 3-card spread (situation / obstacle / advice), optional 4th "advice earned" card later
+- 3-card spread (situation / obstacle / advice), plus an EARNED 4th card that reads as epilogue.
+  Pack data (deck.json `epilogue`), deliberately not a fourth entry in positions[]: the spread is
+  three and this one only exists when a session goes past its own ending. Earned means a real
+  disclosure AFTER the closing beat - life content, unhedged, at the depth that buys a card
+  anywhere else. Politeness does not earn it and neither does asking for one. Once per session,
+  ever. Then it behaves like any card, down to the flip rule: the spread is full, so the last-card
+  branch fires and flipping it means closing again, with the step re-sized to how far they got in
+  the end. The first beat is not lost - it is on the advice card, where it was said
 - Before anything is dealt, ask whether there is something particular they want to look at.
   A named topic becomes the ground the reading is bent toward and seeds the anchor; declining
   is a normal answer and proceeds as before. Stakes are classified on that answer too, so the
@@ -25,9 +32,27 @@ Tarot as a doorway, not divination. The cards are projective prompts that get pe
   releases it immediately - never trap someone who regrets sharing. The counted exits still fire,
   so a dwell delays a card by one exchange and never more; when the disclosure lands on the card's
   last available exchange the cap wins and the flip reason records that it cut one short
-- TEMPO: eagerness is not readiness. The reader sets the pace and the reading has time. An eager
-  answer is met with one more question inside it, not a scene change - the flip is the reward
-  mechanic, so flipping on a disclosure teaches that opening up ends the subject
+- SETTLE RULE (from lantern-be7743): the `own` move is not eligible until the card has footing
+  under it - two exchanges on this card, or one answer that already carried something of their
+  own (has_life_content). Never bridge from first contact. A "whose is that in your world" thrown
+  at the first sentence someone says about a picture reads as an agenda rather than an offer, and
+  what comes back is "couldnt think of any" - after which the bridge is spent and the card is
+  worse off than before. The engine reports settled/not on every turn; the scanner flags a
+  crossing that fired without it
+- ELABORATE MOVE: image rail, name level - ask what makes their read what it is ("what is it
+  about the rain that reads as positive to you?"). Not a stall: it is the material the bridge
+  rides on, and the crossing that follows quotes the strongest phrase in the answer. lantern's
+  elaboration got the richest answer of the session where the premature bridge had got nothing.
+  Weighted ahead of `own` on the situation position
+- TEMPO, as a trio: settle before bridging, bridge rather than staying in the picture, dwell once
+  a disclosure lands. Every transition earns its footing before it moves. Eagerness is not
+  readiness; the reader sets the pace and the reading has time. An eager answer is met with one
+  more question inside it, not a scene change - the flip is the reward mechanic, so flipping on a
+  disclosure teaches that opening up ends the subject
+- Consequence of the trio: three transitions do not fit in three exchanges. A card may run ONE
+  exchange past MAX_EXCHANGES, and only to dwell inside something they just said. A card nobody
+  disclosed on gets no grace and still moves on at three, so pure card-description sessions keep
+  their old tempo exactly
 - Co-interpretation (projection-first reading): card flips, AI speaks second
   1. Flip, show card name only. No caption describing the picture: a printed
      description is something to agree with, and agreeing is not projecting.
@@ -54,15 +79,40 @@ Tarot as a doorway, not divination. The cards are projective prompts that get pe
     offer the connection at the user's current level, never assume it. "<their phrase> - whose is
     that, in your world: yours about something, or someone's about you?", or Clinton's "when have
     you felt this way?". Weighted first on the situation position
-- Closing is unconditional: after the advice-card exchange, at most one follow-up, then the
-  closing beat fires regardless of depth. A session can never hang unclosed (B run proved it can)
+- PER-POSITION BUDGET: positions[] carries target and max beside ceiling, and both rise across
+  the arc the way the ceiling does - situation 2/4, obstacle 3/5, advice 3/5. The card whose job
+  is to find the ground does not need long to find out that it has not; the cards after it are
+  working with material that took a while to arrive. The session denormalises the budget off the
+  pack the way it does positions, so the rules stay pack-agnostic and a replayed session paces as
+  it actually paced
+- A RICH ANSWER NO LONGER BUYS AN EXEMPTION. depth 4 used to take the next card the moment it
+  landed, whatever had been spent on the position, which left the obstacle card two exchanges long
+  in the seeded fixture with the best thing anyone said on it being the thing that ended it. It
+  now spends the budget like any other answer. This finishes the argument the dwell rule started:
+  a disclosure never ends its own card. Cost, and it is real: someone who gives nothing on every
+  card runs 12 exchanges rather than 8
+- Closing is unconditional: after the advice card's budget is spent, the closing beat fires
+  regardless of depth. A session can never hang unclosed (B run proved it can)
+- CLOSING IS NOT HANGING UP. The beat is the last thing said about the spread, and then the
+  conversation stays open: if they keep talking the reader keeps answering, with no fourth card
+  and no second reading, still routing through the three on the table. session.ended is the
+  terminal state and only a person sets it. Turns after the beat live under their own position so
+  they touch no card's rhythm, and the gate still runs on them - stakes do not stop mattering
+  because a reading finished
+- A QUESTION BACK IS NOT AN ANSWER (`asked_back` on the gate). "what do you mean whose heading
+  out is that?" was being scored as a depth-1 deflection and charged to the card, so a question
+  that did not land cost the user one of their exchanges instead of costing the reader a turn.
+  It is now an aside: recorded at the card's position so the transcript and keepsake read in
+  order, flagged so nothing counts it - not the budget, not the dwell, not the settle, not the
+  ladder, not either map. The reader answers plainly and asks again smaller, and is told never to
+  repeat the question that just failed. state.turnsOn() is the single place that filter lives
 - Fallbacks: "I don't know tarot" -> point at imagery; one-word answers -> forced choice between two contrasting meanings drawn from the position's meaning space
 - Position-aware meanings (from claude-tarot-skill): pack stores per-position meaning hints per card (meanings: { situation, obstacle, advice } + general fallback); same card reads differently by position, and the AI bends the user's projection toward the position's role in the arc
 - Closing actionable step: session's last beat converts the resolution into one small concrete real-world reflection or action ("this week, notice when X happens"); makes the session feel complete. It should tie to something the user said they value, and quietly reinforce that whatever was found came from them, not the cards
 - User-provided cards mode: skip the draw, interpret cards the user names (physical-deck users); same engine
 - Seeded draws (from magicli_tarot): deterministic card sequence for reproducible playtests and prompt-version comparisons; date-seeded "daily card" is a possible later ritual hook
 - Session coherence:
-  - Anchor as narrative arc (not a static theme string): 3-card spread maps to setup -> tension -> resolution; anchor stores the theme + where the session should land, follow-up questions steer toward the resolution beat; earned 4th card reads as epilogue
+  - Anchor as narrative arc (not a static theme string): 3-card spread maps to setup -> tension -> resolution; anchor stores the theme + where the session should land, follow-up questions steer toward the resolution beat; the earned 4th card reads as epilogue (see Core mechanics - built, not deferred)
   - Ledger: record of cards drawn + interpretations given; new draws elaborate, never contradict
   - Spam re-draws handled diegetically ("the deck answers the same question the same way")
 
@@ -99,6 +149,12 @@ DECIDED: frontend is plain HTML/CSS/JS (no framework, no build step). Prompt ass
   other places, including data/few-shots.json, where it was a teaching example shipped inside
   every prompt. Anything used as an example travels
 - Prompt iteration without redeploy (load-bearing for M3): packs, persona prompt, and few-shots are static data files assembled client-side - editing a prompt is a file save locally, a Pages deploy when hosted; relays are never touched
+- The transcript sent to the model is the last 10 exchanges, with a line saying how many are
+  missing. Affordable precisely because of the recap block below: everything a later turn must be
+  consistent with is assembled from state every turn and outranks the history, so the oldest turns
+  are texture rather than record. It is what makes an open-ended conversation after the closing
+  beat bounded. Cost: the message list stops being a stable prefix once it slides, so incremental
+  caching over messages is lost - the 22 KB that matters is the system prompt, which does not move
 - Prompt is assembled in two halves, and the split is load-bearing: readerSystem is the stable
   prefix (persona, few-shots, standing rules, spread, topic - ~22 KB, identical every turn) and
   readerTurnBlock is what changes (session record, card, ladder, turn instruction - ~3 KB), sent
@@ -115,9 +171,43 @@ DECIDED: frontend is plain HTML/CSS/JS (no framework, no build step). Prompt ass
 - Provider registry separates which relay entry to name from which wire format to build, so several
   providers share one adapter. DeepSeek and OpenCode Zen both serve Anthropic-shaped endpoints and
   reuse it; default is deepseek / deepseek-v4-flash (confirmed by the model checkpoint - see M3).
-  Each declares features (thinking, effort, structuredOutput, temperature) so the newest Anthropic
-  parameters are not sent to gateways that have never heard of them, and judge() falls back to
-  schema-in-the-prompt where needed
+  Each declares features (thinking, effort, structuredOutput, temperature, promptCaching) so the
+  newest Anthropic parameters are not sent to gateways that have never heard of them, and judge()
+  falls back to schema-in-the-prompt where needed
+- Judge calls run with thinking OFF and effort at the minimum, wherever the feature flags say the
+  provider implements the parameter. A judge call is rubric classification; deliberation buys
+  variance in a call we want deterministic and latency in front of the person waiting. Chat turns
+  are unchanged - they still send thinking adaptive, for the reason in the adapter
+- OUTPUT BUDGET IS NOT THE CONTEXT WINDOW. max_tokens caps output, thinking spends from that same
+  output budget, and DeepSeek's 1M is context. lantern-be7743's judge call came back
+  response_truncated having generated nothing, on a 1M-context gateway. Judge ceiling is 4k where
+  thinking could be turned off and 8k where it could not - lowering it flat would have halved the
+  only headroom the provider that actually truncated has
+- The schema pasted into the prompt (the fallback wherever structuredOutput is off) is the
+  CONTRACT ONLY: keys, types, enums, required. Not the descriptions - those are the rubric the
+  system prompt has already given at greater length, and 2.8 KB of it is a document a model may
+  decide to reproduce rather than fill in. Measured on deepseek-v4-flash, five frozen calls each:
+  the full schema returned itself instead of a gate on 2 of 5; the contract alone did it 0 of 5
+- MEASURED, not assumed (deepseek-v4-flash, 2026-08-25, judge_probe.mjs --runs=5, one frozen
+  judge call): thinking disabled + temperature 0 + contract-only schema costs 71-72 output tokens
+  and returns the same verdict five times out of five. Thinking left unmentioned costs 490-4956
+  and truncates 1 in 5. thinking:{enabled, budget_tokens: 1024} is accepted and NOT honoured -
+  2116-7028 tokens and 2 truncations in 5 - so "cap it low instead" is worse than saying nothing,
+  and that idea is recorded as refuted rather than deferred. Dropping the temperature pin also
+  works but costs the determinism: 74-83 tokens and the verdict moves
+- PARSING IS NOT COMPLYING. judge() checks the reply against the schema's required list before
+  returning it. extractJson takes the first {...} in the reply, which is an object and not
+  necessarily the right one: a model that echoes the schema back parses cleanly and has none of
+  the fields, and that reached the session as disclosure_depth: undefined, where every threshold
+  comparison is quietly false. A wrong reading that says so beats a wrong reading that does not
+- scripts/judge_probe.mjs sends one frozen judge call several ways - thinking off, absent, capped;
+  temperature pinned or not; schema echoed, compact, or described - and reports tokens and
+  verdict per variant. It is how the above was found rather than guessed at
+- A provider can hang up mid-response: chunked transfer with no terminating chunk, which arrives
+  as IncompleteRead. By then the status and headers are already sent, so there is no error shape
+  left - the relay ends the stream where it stopped and the client's own truncation handling
+  takes it. What is NOT acceptable is the default traceback, which prints the request being
+  served into the log of a relay whose whole promise is that it keeps nothing. Contract-tested
 - Failures are classified, because they need different fixes: invalid_key, unknown_model,
   endpoint_not_found, provider_rate_limited, provider_unavailable, bad_payload, connection_failed,
   bad_provider_response, response_truncated
@@ -273,6 +363,13 @@ Internal machinery: the levels are never named to the user.
   itself the step, and climbing while crossing is two. The engine cannot know which rail the next
   question will run on, so the recap names both targets and the reader chooses. Scanner flags a
   crossing question that also climbed
+- RAIL SWITCHES LAUNCH FROM ESTABLISHED POSITIONS (from lantern-be7743): height is not the only
+  thing a crossing can get wrong. A switch to the life rail needs a launch point - two same-rail
+  exchanges on this card, or one self-referent answer - and before that there is nothing under
+  the question but one sentence about a picture. Symmetric with the level rule above and
+  independent of it: lantern's turn 2 crossed at the same height and still had nothing to ride
+  on. Scanner code rail_switch_unsettled, and it can fire alongside rail_switch_climb because
+  premature and too-high are different repairs
 - Step-down rule: a deflection drops user_level and the next question does not climb - it asks
   at the same height, more concretely. At the bottom rung that is the existing forced-choice
   fallback, wired as the step-down rather than duplicated
@@ -309,7 +406,7 @@ Internal machinery: the levels are never named to the user.
     arm's closing demonstrates the form)
   - Externalizing language template (canonical example, use as a pattern): ask "how does this
     problem affect X" - never "you're not X"
-- 3-8 few-shot exchanges in the pack (poor man's distillation); iterate against seeded sessions
+- 3-9 few-shots in the pack (poor man's distillation); iterate against seeded sessions
 - Recap block: every chat() turn carries a session record assembled from state - anchor with the
   user's phrases verbatim, each card with a one-line record, arc position, depth, safety_state.
   Declared to outrank the conversation history, which is suggestion where this is constraint
@@ -320,7 +417,9 @@ Internal machinery: the levels are never named to the user.
   weighting lives in pack data. A menu, not a protocol - running the moves on a schedule is the
   clinical cadence this reader does not have
 - Judge determinism: labelled depth rubric with worked examples, and temperature 0 where the provider
-  still accepts sampling params (removed on current Anthropic models, which answer 400)
+  still accepts sampling params (removed on current Anthropic models, which answer 400). The pin is
+  load-bearing and now measured: with thinking off and the contract-only schema it holds the same
+  verdict across five frozen replays; without it the verdict moves between runs
 - No-topic playbook: when topic is null, card 1's job is to find the ground - projection gives
   the menu, the ownership move makes the offer, and a hand-back to the picture is an answer
   rather than a cue to ask harder. Situation does not end (within pacing bounds) until a life
@@ -336,6 +435,14 @@ Internal machinery: the levels are never named to the user.
   worked, a real life referent came back, and the card flipped on that same turn because grounding
   had just unlocked the early flip. The fixture for the dwell rule, the hedge flag and
   territory-phrased beats
+- tests/fixtures/lantern-be7743.json is the third: the c145c7 fix overcorrecting. The ownership
+  bridge fired on the very first sentence about the card, read as agenda, and got "couldnt think
+  of any". The fixture for the settle rule, the elaborate move and rail_switch_unsettled. It is
+  RECONSTRUCTED from the markdown export rather than redacted from a session JSON, which was
+  never saved - the only fixture not produced by redact_session.mjs, and its README entry says so
+- Few-shots 3-9. A shot is normally one exchange; a shot may carry a run of turns (turns[], plus
+  an optional setup line) for the things that only exist across turns - a bridge that misses, the
+  step back with the permission said out loud, and the crossing that lands two turns later
 - Simulated user personas in scripts/personas/, for --user= runs of the A/B harness: bracer (has a
   topic, responsive to question quality), browser (no topic, would rather describe pictures),
   eager (discloses early and hedges it - what happens next is the whole test), regretful
@@ -417,6 +524,25 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-25): settle round on branch m3-settle, from the lantern-be7743 session - the
+  settle rule and the elaborate move (the tempo trio: settle, bridge, dwell), rail switches
+  launching from established positions with rail_switch_unsettled in the scanner, whiff recovery
+  in the persona and a multi-turn few-shot, and judge calls running thinking-off at a 4k ceiling.
+  lantern-be7743 frozen as a fixture, reconstructed rather than redacted. One consequence the
+  brief did not name: the dwell may run one exchange past the cap, or every card that grounds by
+  the elaboration path grounds on its last exchange. Judge work continued from a live failure
+  mid-round: judge_probe.mjs, the contract-only schema in the prompt, and required-key validation
+  on judge replies, after deepseek-v4-flash was found echoing the schema back and being believed.
+- v1.5 (2026-08-26): pacing and continuation on the same branch - per-position target/max in pack
+  data rising across the arc, the rich-answer exit losing its exemption, the reading staying open
+  after its closing beat until the person ends it, and a 10-exchange transcript window. Plus the
+  reader no longer emitting its own turn wrapped in quotation marks, which the few-shots taught it.
+- v1.5 (2026-08-26): the earned 4th card built rather than deferred, since the conversation
+  staying open after the beat is what makes it reachable. Pack data, earned once by a real
+  disclosure after the beat, and it closes the reading a second time with the step re-sized.
+- v1.5 (2026-08-26): from the first live session on this branch - asked_back and the aside turn,
+  the relay surviving a provider that hangs up mid-response, and the card's budget on the debug
+  panel now that "3 exchanges on one card" no longer says whether that is nearly done.
 - v1.5 (2026-08-25): session transcripts committed as fixtures are redacted derivatives now,
   with the originals in gitignored checkpoint/ and the maps in gitignored redactions/.
 - v1.5 (2026-08-25): latency work on the same branch - the anchor revision moved off the

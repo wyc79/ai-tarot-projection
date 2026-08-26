@@ -215,15 +215,30 @@ export function makeLlmClient({ getKey, getConfig, onDebug = () => {} }) {
             : "",
         });
       }
+      let parsed;
       try {
         // Tolerant even where the schema was enforced: a fence costs nothing to
         // strip, and a provider that quietly ignored output_config should fail
         // as a bad object rather than as a parse error.
-        return provider.wire.extractJson(text);
+        parsed = provider.wire.extractJson(text);
       } catch {
         throw new RelayError("bad_judge_output",
                              `judge did not return the agreed shape: ${text.slice(0, 120)}`);
       }
+      // Parsing is not the same as complying. extractJson returns the first
+      // {...} in the reply, which is an object and not necessarily THIS object
+      // -- a model that echoed the schema back instead of filling it in parses
+      // cleanly and has none of the fields. That reached the session as
+      // disclosure_depth: undefined, where every threshold comparison is
+      // quietly false and the reading simply gets worse without saying so.
+      const missing = (schema?.required ?? []).filter((key) => parsed?.[key] === undefined);
+      if (missing.length) {
+        throw new RelayError("bad_judge_output",
+          `judge returned an object with no ${missing.join(", ")}`,
+          { hint: "it parsed as JSON but is not a gate; a model that echoed the schema "
+                  + "back looks exactly like this" });
+      }
+      return parsed;
     },
 
     /** For the debug page's relay indicator. Same shape from either relay. */

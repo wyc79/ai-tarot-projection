@@ -14,12 +14,14 @@
  * payload builders take a `features` object. With everything off they emit the
  * plain Messages shape that any compatible endpoint has to accept.
  *
- *  - Thinking is sent explicitly as adaptive rather than left off. On Opus 5,
- *    omitting it means adaptive anyway; on Opus 4.8 and 4.7, omitting it means
- *    no thinking, and a model with thinking off may write its reasoning into
- *    the visible reply -- which in a four-sentence reader voice is not subtle.
- *    Latency and cost are managed with effort instead. (Pre-4.6 models want
- *    {type: "enabled", budget_tokens: N} instead and will reject this.)
+ *  - On a reader turn, thinking is sent explicitly as adaptive rather than left
+ *    off. On Opus 5, omitting it means adaptive anyway; on Opus 4.8 and 4.7,
+ *    omitting it means no thinking, and a model with thinking off may write its
+ *    reasoning into the visible reply -- which in a four-sentence reader voice
+ *    is not subtle. Latency and cost are managed with effort instead. (Pre-4.6
+ *    models want {type: "enabled", budget_tokens: N} and will reject this.)
+ *    On a judge call it is sent explicitly as disabled, for the opposite
+ *    reason: see JUDGE_TOKENS below.
  *  - stop_reason "refusal" comes back as HTTP 200, so the status code alone
  *    does not tell you the call succeeded.
  *  - max_tokens is a ceiling on everything the model generates, thinking
@@ -29,6 +31,43 @@
  *    set: a caller-side default silently shadows it. Unused budget is not
  *    billed; a truncated answer costs the whole call.
  */
+
+/**
+ * The judge's ceiling, in two sizes, because the ceiling is on output and
+ * thinking is output.
+ *
+ * The object it returns is a few hundred tokens. Everything above that is
+ * deliberation, and a judge call is rubric classification -- deliberation buys
+ * variance in a call we want deterministic, and latency in front of the person
+ * waiting. So thinking is turned off where the provider implements the
+ * parameter, and 4k is headroom for the JSON.
+ *
+ * Where it cannot be turned off, the model thinks whether or not that is
+ * useful and spends this same budget doing it: lantern-be7743's judge call
+ * came back response_truncated having generated nothing, on a gateway with a
+ * 1M context. Context is input. This is not.
+ */
+const JUDGE_TOKENS = 4096;
+const JUDGE_TOKENS_STILL_THINKING = 8192;
+
+/**
+ * The schema with its teaching stripped out: keys, types, enums, and what is
+ * required. Nothing else.
+ *
+ * Only for the schema-in-the-prompt path. Where the API enforces the schema the
+ * descriptions are free instruction; where it is pasted into a prompt they are
+ * 2.8 KB of rubric the system prompt has already given at greater length, and
+ * a model asked to match a document that large sometimes reproduces it instead
+ * of filling it in. deepseek-v4-flash did exactly that -- 654 tokens of what
+ * parsed as JSON and had none of the fields in it.
+ */
+function contractOnly(node) {
+  if (Array.isArray(node)) return node.map(contractOnly);
+  if (!node || typeof node !== "object") return node;
+  return Object.fromEntries(Object.entries(node)
+    .filter(([key]) => key !== "description")
+    .map(([key, value]) => [key, contractOnly(value)]));
+}
 
 export const ANTHROPIC = {
   id: "anthropic",
@@ -62,16 +101,31 @@ export const ANTHROPIC = {
   },
 
   /**
-   * A judge call: not streamed, nothing but the object.
+   * A judge call: not streamed, thinking off, nothing but the object.
    *
    * With native structured output the schema is enforced by the API. Without it
    * -- every Anthropic-compatible gateway so far -- the schema goes in the
    * prompt and readText() has to cope with a model that wrapped its JSON in a
    * code fence.
    */
-  judgePayload({ model, system, messages, schema, maxTokens = 8192, effort = "medium", features = {} }) {
-    const payload = { model, max_tokens: maxTokens, system, messages };
-    if (features.thinking) payload.thinking = { type: "adaptive" };
+  judgePayload({ model, system, messages, schema, maxTokens, effort = "low", features = {} }) {
+    // Two different questions, and conflating them is what left the provider
+    // that actually truncates still truncating.
+    //
+    //   thinkingOff  may we SEND thinking:{type:"disabled"}? Default yes.
+    //   thinking     does the provider implement the parameter, so that we know
+    //                it was heard? Only then is the smaller ceiling safe.
+    //
+    // A gateway that silently ignores the instruction still gets 8k, because a
+    // ceiling lowered on an assumption is a ceiling lowered on nothing.
+    const sendOff = features.thinkingOff ?? Boolean(features.thinking);
+    const payload = {
+      model,
+      max_tokens: maxTokens ?? (features.thinking ? JUDGE_TOKENS : JUDGE_TOKENS_STILL_THINKING),
+      system,
+      messages,
+    };
+    if (sendOff) payload.thinking = { type: "disabled" };
     // A judge call is a classification, not a voice: pin it where the provider
     // still allows pinning. Current Anthropic models removed sampling params
     // entirely and answer 400, so this is off for them by configuration.
@@ -81,7 +135,7 @@ export const ANTHROPIC = {
       payload.output_config = { format: { type: "json_schema", schema } };
       if (features.effort) payload.output_config.effort = effort;
     } else {
-      payload.system = `${system}\n\n## Output\n\nReturn one JSON object and nothing else -- no prose before it, no code fence around it. It must match this schema exactly:\n\n${JSON.stringify(schema, null, 2)}`;
+      payload.system = `${system}\n\n## Output\n\nReturn one JSON object and nothing else -- no prose before it, no code fence around it, and not this schema itself. Fill it in. Every key below is required:\n\n${JSON.stringify(contractOnly(schema), null, 2)}`;
       if (features.effort) payload.output_config = { effort };
     }
     return payload;
@@ -138,12 +192,24 @@ export const ANTHROPIC = {
       throw new Error(`model declined: ${body.stop_details?.category ?? "unspecified"}`);
     }
     if (body.stop_reason === "max_tokens") {
-      // Models that think before answering spend that budget here too, so a
-      // ceiling sized for the visible answer runs out before the JSON starts.
+      // Say what it spent the budget on, because the three ways this happens
+      // want three different fixes and they are indistinguishable from the
+      // stop_reason alone:
+      //   blocks [thinking]           it deliberated instead of answering
+      //   blocks [text], text repeats it fell into a loop -- check temperature
+      //   blocks [] or no text        it produced nothing at all
+      // Without this the report is "it stopped early" and the next step is a
+      // guess. lantern-be7743 cost an afternoon to that.
+      const blocks = body.content ?? [];
+      const kinds = [...new Set(blocks.map((b) => b.type))];
+      const text = blocks.filter((b) => b.type === "text").map((b) => b.text).join("");
+      const spent = body.usage?.output_tokens;
       const error = new Error(
-        "the reply hit the token ceiling before it finished; on a model that " +
-        "thinks before answering, the thinking is spending the same budget");
+        `the reply hit the token ceiling before it finished: ${spent ?? "?"} output tokens, `
+        + `blocks [${kinds.join(", ") || "none"}], ${text.length} characters of text`
+        + (text ? ` starting "${text.replace(/\s+/g, " ").slice(0, 140)}"` : ""));
       error.code = "response_truncated";
+      error.detail = { spent, kinds, text };
       throw error;
     }
     return (body.content ?? [])

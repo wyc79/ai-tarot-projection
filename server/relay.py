@@ -14,6 +14,7 @@ relay does that the Worker deliberately cannot.
     python3 server/relay.py
 """
 
+import http.client
 import json
 import os
 import re
@@ -221,17 +222,34 @@ class Handler(BaseHTTPRequestHandler):
 
         # read1(), not read(): read() would block for a full buffer and turn a
         # token stream into one late delivery.
+        #
+        # A provider can also hang up mid-response -- chunked transfer with no
+        # terminating chunk, which http.client raises as IncompleteRead. That is
+        # the provider's problem and not a bug here, but the whole response is
+        # already committed by now (status line sent, headers sent), so there is
+        # no error shape left to send: the only honest thing is to end the
+        # stream where it stopped and let the client find the reply short. What
+        # is NOT acceptable is the traceback this used to print, which spills
+        # the request into the log on a relay whose whole promise is that it
+        # does not keep anything.
         seen = []
-        while True:
-            chunk = upstream.read1(65536)
-            if not chunk:
-                break
-            self.wfile.write(b"%x\r\n" % len(chunk) + chunk + b"\r\n")
-            self.wfile.flush()
-            if DEV_LOG:
-                seen.append(chunk)
-        self.wfile.write(b"0\r\n\r\n")
-        self.wfile.flush()
+        try:
+            while True:
+                chunk = upstream.read1(65536)
+                if not chunk:
+                    break
+                self.wfile.write(b"%x\r\n" % len(chunk) + chunk + b"\r\n")
+                self.wfile.flush()
+                if DEV_LOG:
+                    seen.append(chunk)
+        except (http.client.IncompleteRead, ConnectionError, OSError) as e:
+            devlog("!!! upstream hung up mid-response: %s" % type(e).__name__, key)
+        finally:
+            try:
+                self.wfile.write(b"0\r\n\r\n")
+                self.wfile.flush()
+            except (ConnectionError, OSError):
+                pass  # the browser left first; nothing to terminate for
         if DEV_LOG:
             devlog("<-- %s" % b"".join(seen).decode("utf-8", "replace"), key)
 
@@ -264,13 +282,17 @@ class Server(ThreadingHTTPServer):
     allow_reuse_address = True
 
     def handle_error(self, request, client_address):
-        """A client hanging up is normal traffic, not an incident.
+        """Either end hanging up is normal traffic, not an incident.
 
         Node's fetch closes keep-alive sockets abruptly, and the default handler
         prints a full traceback for it -- which buries the DEV_LOG output this
-        relay exists to produce. Real errors still print.
+        relay exists to produce, and which prints the request it was serving.
+        A relay that promises to keep nothing should not be spilling one into
+        the terminal because a provider dropped a connection. Real errors still
+        print.
         """
-        if not isinstance(sys.exc_info()[1], (ConnectionResetError, BrokenPipeError)):
+        quiet = (ConnectionResetError, BrokenPipeError, http.client.IncompleteRead)
+        if not isinstance(sys.exc_info()[1], quiet):
             super().handle_error(request, client_address)
 
 

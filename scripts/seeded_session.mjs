@@ -49,9 +49,21 @@ const SCRIPT = [
   // print, which is how run B's failure mode sat in our own fixture unnoticed.
   { answer: "lighter, maybe", gate: { disclosure_depth: 2, user_level: "evaluate", has_life_content: true, hedged: true, stakes: "low" } },
   // And the dwell on that one, before the closing beat. A disclosure on the
-  // last card buys its turn like any other, so the advice card runs to three.
+  // last card buys its turn like any other.
   { answer: "not carrying the phone around, mostly",
     gate: { disclosure_depth: 3, user_level: "evaluate", has_life_content: true, stakes: "low" } },
+  // The advice position targets three exchanges now, the way the obstacle does:
+  // the budget rises across the arc alongside the level ceiling. Without this
+  // one the fixture ends unclosed again, which is the failure it was written
+  // for in the first place.
+  { answer: "I'd have to say out loud that I'm not waiting for him to start",
+    gate: { disclosure_depth: 4, user_level: "intentions", has_life_content: true, stakes: "low" } },
+  // Eleven answers for three cards, and one of them is the hedge above: a
+  // hedged answer never counted toward the budget, so the advice card pays for
+  // "lighter, maybe" with an extra turn. That is the rule working, and it is
+  // the reason this script is a turn longer than the arithmetic suggests.
+  { answer: "before Sunday, probably. he never starts these",
+    gate: { disclosure_depth: 4, user_level: "plans", has_life_content: true, stakes: "low" } },
 ];
 
 function scriptedClient(prompts) {
