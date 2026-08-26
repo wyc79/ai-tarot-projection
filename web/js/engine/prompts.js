@@ -150,20 +150,31 @@ function ladderPlan(pack, session, standing = cardStanding(session)) {
   // ask.
   const scored = session.exchanges.filter((e) => !e.aside);
   const rail = scored[scored.length - 1]?.question_type ?? null;
+  // Across the whole session, not just this card: the closing step is sized to
+  // how far the reading actually got, and a reading that never left the ground
+  // closes on something small rather than on a plan nobody made.
+  const highest = session.exchanges
+    .map((e) => e.gate?.user_level)
+    .filter(Boolean)
+    .reduce((best, id) => (levelIndex(pack, id) > levelIndex(pack, best) ? id : best), null);
+  const target = targetLevel(pack, { userLevel, ceiling, deflected });
   return {
     userLevel,
     deflected,
     rail,
     ceiling,
-    target: targetLevel(pack, { userLevel, ceiling, deflected }),
+    target,
     targetIfCrossing: targetLevel(pack, { userLevel, ceiling, deflected, crossingRails: true }),
-    // Across the whole session, not just this card: the closing step is sized
-    // to how far the reading actually got, and a reading that never left the
-    // ground closes on something small rather than on a plan nobody made.
-    highest: session.exchanges
-      .map((e) => e.gate?.user_level)
-      .filter(Boolean)
-      .reduce((best, id) => (levelIndex(pack, id) > levelIndex(pack, best) ? id : best), null),
+    highest,
+    /** The rungs low to high, and which one they are standing on. */
+    rungs: pack.levels.map((level) => ({ id: level.id, here: level.id === userLevel })),
+    /** The target rung's own words. Only its exemplars are ever shown. */
+    aim: { asks: pack.level(target).asks, exemplars: pack.level(target).exemplars },
+    /**
+     * Whether the closing step may be something to DO rather than something to
+     * notice -- decided by how far the whole session got, not by this card.
+     */
+    reachedIntentions: levelIndex(pack, highest) >= levelIndex(pack, "intentions"),
   };
 }
 
@@ -174,14 +185,14 @@ function ladderPlan(pack, session, standing = cardStanding(session)) {
  * page of questions to choose from, and a reader with a page of questions in
  * front of it writes questions that sound chosen.
  */
-function describeLadder(pack, plan) {
+function describeLadder(plan) {
   if (!plan.ladder) return "";
-  const { userLevel, target, targetIfCrossing, rail, ceiling, deflected, highest } = plan.ladder;
+  const { userLevel, target, targetIfCrossing, rail, ceiling, deflected, highest,
+          aim, reachedIntentions } = plan.ladder;
   const turn = plan.kind;
-  const rungs = pack.levels
-    .map((level) => (level.id === userLevel ? `  ${level.id}  <- they are here` : `  ${level.id}`))
+  const rungs = plan.ladder.rungs
+    .map(({ id, here }) => (here ? `  ${id}  <- they are here` : `  ${id}`))
     .join("\n");
-  const aim = pack.level(target);
 
   return `
 ## How far to reach
@@ -200,7 +211,7 @@ ${rail ? `
 Your last question was about ${rail === "projection" ? "the card" : "their life"}. **If you cross to ${rail === "projection" ? "their life" : "the card"}, ask at ${targetIfCrossing} and no higher** — crossing is itself the step.` : ""}${
   turn === "close"
     ? `\n\nThe closing step is the one thing exempt from that ceiling. They reached ${highest ?? "nothing much"} this session, so it is ${
-  levelIndex(pack, highest) >= levelIndex(pack, "intentions")
+  reachedIntentions
     ? "something they could do, because they told you what they were after"
     : "something to notice, not something to carry out"}.`
     : ""}`;
@@ -216,7 +227,66 @@ Your last question was about ${rail === "projection" ? "the card" : "their life"
  * being improvised at the user rather than held. So this block is assembled
  * from state on every single turn and declared to outrank the history.
  */
-function describeRecap(pack, session) {
+function recapPlan(pack, session, standing = cardStanding(session)) {
+  const byPosition = new Map(session.cards.map((c) => [c.position, c]));
+  const table = tableau(session).map((slot, index) => {
+    const entry = byPosition.get(slot.position);
+    const card = entry ? pack.card(entry.card_id) : null;
+    return {
+      ordinal: index + 1,
+      position: slot.position,
+      face_up: Boolean(entry),
+      epilogue: slot.epilogue,
+      name: card?.name ?? null,
+      projection: entry?.user_projection || null,
+      said: firstSentence(entry?.ai_reading ?? "") || null,
+    };
+  });
+  const position = standing.card && pack.position(standing.position);
+  // The last exchange of the session, not of this card: an aside or a hedge is
+  // about the turn that just happened, wherever it happened.
+  const lastAnswer = session.exchanges[session.exchanges.length - 1];
+  return {
+    anchor: session.anchor
+      ? {
+        theme: session.anchor.theme,
+        phrases: session.anchor.user_phrases.map((ph) => ({ phrase: ph.phrase, source: ph.source })),
+        beat: session.anchor.resolution_beat,
+        grounded: session.anchor.grounded,
+      }
+      : null,
+    table,
+    face_down: table.filter((slot) => !slot.face_up).length,
+    closed: Boolean(session.closed),
+    /** Quoted back at the length the reader is shown, not the length it was said at. */
+    heavy: heavyMaterial(session)
+      .map((e) => String(e.a).replace(/\s+/g, " ").slice(0, 100)),
+    arc: position
+      ? {
+        id: position.id, arc_role: position.arc_role,
+        prompt_hint: position.prompt_hint, moves: position.moves,
+      }
+      : null,
+    depth: standing.depth,
+    settle: standing.card ? standing.settle : null,
+    asked_back: Boolean(lastAnswer?.aside),
+    hedged: Boolean(lastAnswer?.gate?.hedged),
+    /**
+     * The edges of what the reading found, and only in the afterglow. A question
+     * outside them there is a new subject, and a new subject then is an interview.
+     */
+    territory: session.phase === "afterglow"
+      ? [
+        ...(session.topic ? [session.topic] : []),
+        ...(session.anchor?.user_phrases ?? []).map((ph) => ph.phrase),
+      ]
+      : null,
+    safety: session.safety_state,
+  };
+}
+
+function describeRecap(plan) {
+  const { record, ladder } = plan;
   const lines = ["\n## Session record", "",
     "Assembled from the table, not from memory. Your reply must be consistent",
     "with everything here. Where this and the conversation above disagree, this",
@@ -226,15 +296,15 @@ function describeRecap(pack, session) {
     "what is below; it does not replace it or quietly move on from it.",
     ""];
 
-  if (session.anchor) {
+  if (record.anchor) {
     lines.push("anchor:");
-    lines.push(`  theme: ${session.anchor.theme}`);
-    const phrases = session.anchor.user_phrases
-      .map((p) => `"${p.phrase}" (${p.source})`).join(", ");
+    lines.push(`  theme: ${record.anchor.theme}`);
+    const phrases = record.anchor.phrases
+      .map((ph) => `"${ph.phrase}" (${ph.source})`).join(", ");
     lines.push(`  their exact words: ${phrases || "(none recorded)"}`);
     lines.push("  (verbatim. Reuse them as they are; a tidier synonym is a different word.)");
-    lines.push(`  should land on: ${session.anchor.resolution_beat}`);
-    if (!session.anchor.grounded) {
+    lines.push(`  should land on: ${record.anchor.beat}`);
+    if (!record.anchor.grounded) {
       lines.push("  GROUNDED: no. Every word above came from the picture, not from them.");
       lines.push("    Nothing is known about this person yet, and the theme is a placeholder.");
       lines.push("    Finding the ground is what this card is for, and the ownership offer is");
@@ -247,57 +317,45 @@ function describeRecap(pack, session) {
   }
 
   lines.push("", "cards on the table:");
-  const byPosition = new Map(session.cards.map((c) => [c.position, c]));
-  const table = tableau(session);
-  for (const [index, slot] of table.entries()) {
-    const entry = byPosition.get(slot.position);
-    if (!entry) {
+  for (const slot of record.table) {
+    if (!slot.face_up) {
       // Face down, and it stays that way in this block: the whole spread is on
       // the table from the start and you are looking at the backs of them.
-      lines.push(`  ${index + 1}. ${slot.position} — FACE DOWN${
+      lines.push(`  ${slot.ordinal}. ${slot.position} — FACE DOWN${
         slot.epilogue ? " (the fourth card, if this reading earns it)" : ""}`);
       continue;
     }
-    const card = pack.card(entry.card_id);
-    lines.push(`  ${index + 1}. ${slot.position} — ${card.name}`);
-    if (entry.user_projection) lines.push(`     they read it as: "${entry.user_projection}"`);
-    const said = firstSentence(entry.ai_reading);
-    if (said) lines.push(`     you said: ${said}`);
+    lines.push(`  ${slot.ordinal}. ${slot.position} — ${slot.name}`);
+    if (slot.projection) lines.push(`     they read it as: "${slot.projection}"`);
+    if (slot.said) lines.push(`     you said: ${slot.said}`);
   }
-  const down = table.filter((t) => !t.face_up);
-  if (down.length) {
-    lines.push(`  ${down.length} still face down. They were dealt with the rest and they are`);
+  if (record.face_down) {
+    lines.push(`  ${record.face_down} still face down. They were dealt with the rest and they are`);
     lines.push("    lying there in front of both of you — but you have not seen them and you");
     lines.push("    do not know what they are. Do not guess, do not hint, do not promise.");
   }
 
-  const standing = cardStanding(session);
-  const entry = standing.card;
-  const position = entry && pack.position(entry.position);
-  const depth = standing.depth;
   lines.push("", "now:");
-  if (session.closed) {
+  if (record.closed) {
     lines.push("  THE READING IS FINISHED. The closing beat is given and the spread is spent.");
     lines.push("    They are still here and still talking, which is theirs to do. Nothing below");
     lines.push("    can turn another card, and none of the pacing applies any more.");
   }
-  const heavy = heavyMaterial(session);
-  if (heavy.length) {
+  if (record.heavy.length) {
     // It does not stop being true because the subject moved on. The farewell is
     // the last chance anyone has to acknowledge it, and the session that taught
     // us this spent its ending on a side project instead.
     lines.push("  REAL-WORLD STAKES WERE SAID ALOUD IN THIS SESSION, and they still stand:");
-    for (const e of heavy) {
-      lines.push(`    "${String(e.a).replace(/\s+/g, " ").slice(0, 100)}"`);
-    }
+    for (const quote of record.heavy) lines.push(`    "${quote}"`);
     lines.push("    You are not to reopen it, advise on it, or make it the subject again.");
     lines.push("    You are not to act as though it was never said either.");
   }
-  lines.push(`  arc position: ${position ? `${position.id} (${position.arc_role} — ${position.prompt_hint})` : "nothing dealt yet"}`);
-  if (position) lines.push(`  moves weighted here: ${position.moves.join(", ")}`);
-  lines.push(`  disclosure depth on this card: ${depth === null ? "they have not answered yet" : depth}`);
-  if (entry) {
-    const settle = standing.settle;
+  const arc = record.arc;
+  lines.push(`  arc position: ${arc ? `${arc.id} (${arc.arc_role} — ${arc.prompt_hint})` : "nothing dealt yet"}`);
+  if (arc) lines.push(`  moves weighted here: ${arc.moves.join(", ")}`);
+  lines.push(`  disclosure depth on this card: ${record.depth === null ? "they have not answered yet" : record.depth}`);
+  if (record.settle) {
+    const settle = record.settle;
     if (settle.settled) {
       lines.push(`  bridge to their life: earned — ${settle.selfReferent
         ? "something of theirs is already on this card"
@@ -314,55 +372,56 @@ function describeRecap(pack, session) {
       lines.push("    answer that gets you.");
     }
   }
-  const lastAnswer = session.exchanges[session.exchanges.length - 1];
-  if (lastAnswer?.aside) {
+  if (record.asked_back) {
     lines.push("  THEY ASKED YOU WHAT YOU MEANT rather than answering. Nothing above moved:");
     lines.push("    the depth, the level and the exchange count are all where they were before");
     lines.push("    you asked. Answer them and ask again, smaller.");
   }
-  if (lastAnswer?.gate?.hedged) {
+  if (record.hedged) {
     lines.push("  THEY HEDGED THAT: it came with a way to take it back — \"i guess\", a");
     lines.push("    question mark on a statement. Do not repeat it back as settled fact and");
     lines.push("    do not build on it. Make walking it back easy and ask again more gently,");
     lines.push("    at the same height: \"could be nothing — what was the other one?\"");
   }
-  if (session.phase === "afterglow") {
-    const territory = [
-      ...(session.topic ? [session.topic] : []),
-      ...(session.anchor?.user_phrases ?? []).map((p) => p.phrase),
-    ];
+  if (record.territory) {
     lines.push("  THEY CHOSE TO STAY. This is not the reading and it is not a new one. The");
     lines.push("    ground is what the reading already found, and these are its edges:");
-    lines.push(`    ${territory.length ? territory.map((t) => `"${t}"`).join(", ") : "(nothing was ever found; there is very little here)"}`);
+    lines.push(`    ${record.territory.length ? record.territory.map((x) => `"${x}"`).join(", ") : "(nothing was ever found; there is very little here)"}`);
     lines.push("    A question about anything outside that is a new subject, and a new subject");
     lines.push("    now is an interview. Go up, into what they already said — never sideways");
     lines.push("    into what else there is.");
   }
-  const ladder = ladderPlan(pack, session, standing);
-  lines.push(`  they are standing at: ${ladder.userLevel ?? "nothing said on this card yet"}`);
-  lines.push(`  reach no further than: ${ladder.target}${ladder.ceiling ? ` (this position tops out at ${ladder.ceiling})` : ""}`);
-  lines.push(`  highest they have reached all session: ${ladder.highest ?? "nothing yet"}`);
-  lines.push(`  safety: ${session.safety_state}`);
+  lines.push(`  they are standing at: ${ladder?.userLevel ?? "nothing said on this card yet"}`);
+  lines.push(`  reach no further than: ${ladder?.target}${ladder?.ceiling ? ` (this position tops out at ${ladder.ceiling})` : ""}`);
+  lines.push(`  highest they have reached all session: ${ladder?.highest ?? "nothing yet"}`);
+  lines.push(`  safety: ${record.safety}`);
   return lines.join("\n");
 }
 
-/**
- * The card in front of them, and nothing about how to use it.
- *
- * How to use it is in the persona, which is sent once and cached; this is sent
- * every turn, so it carries only what changes. It used to carry both, which
- * meant a page and a half of standing instructions was re-read on every turn of
- * every session alongside the four lines that were actually new.
- */
-function describeCard(pack, session) {
-  const entry = currentCard(session);
-  if (!entry) return "";
+function cardPlan(pack, session, standing = cardStanding(session)) {
+  const entry = standing.card;
+  if (!entry) return null;
   const card = pack.card(entry.card_id);
   const position = pack.position(entry.position);
+  return {
+    name: card.name,
+    label: position.label,
+    arc_role: position.arc_role,
+    prompt_hint: position.prompt_hint,
+    details: card.details,
+    imagery_line: card.imagery_line,
+    /** Never volunteered. Both sides of a forced choice, or an answer if asked. */
+    meaning_here: pack.meaning(card, entry.position),
+    meaning_general: card.meanings.general,
+  };
+}
+
+function describeCard(card) {
+  if (!card) return "";
   return `
 ## The card on the table
 
-${card.name}, in the ${position.label} position (${position.arc_role} — ${position.prompt_hint}).
+${card.name}, in the ${card.label} position (${card.arc_role} — ${card.prompt_hint}).
 
 In the picture, for recognising what they point at — not to recite, not to
 assert, and only ever to point with:
@@ -372,8 +431,8 @@ The one line you may offer if they freeze: "${card.imagery_line}"
 
 Traditional sense, which you do not volunteer — the two sides of a forced
 choice, or a straight answer if they ask what it means:
-- in this position: ${pack.meaning(card, entry.position)}
-- generally: ${card.meanings.general}`;
+- in this position: ${card.meaning_here}
+- generally: ${card.meaning_general}`;
 }
 
 /**
@@ -436,6 +495,9 @@ export function turnPlan({ pack, session, turn, handback = false }) {
   if (session.safety_state === "drop_frame") rules.push("frame_dropped");
   else if (handback) rules.push("stakes_high");
 
+  // One read of the card's standing for the whole plan, rather than each half
+  // of the prompt going back to the ledger for its own copy.
+  const standing = cardStanding(session);
   return {
     kind: turn,
     rules,
@@ -444,9 +506,13 @@ export function turnPlan({ pack, session, turn, handback = false }) {
      * fourth card is decided before the close, so by the time this runs the
      * question is settled and the count is final.
      */
-    face_down: turn === "close" ? tableau(session).filter((t) => !t.face_up).length : 0,
+    face_down: turn === "close" ? tableau(session).filter((s) => !s.face_up).length : 0,
     /** Null before anything is dealt: there is no card to stand on yet. */
-    ladder: session.phase === "opening" ? null : ladderPlan(pack, session),
+    ladder: session.phase === "opening" ? null : ladderPlan(pack, session, standing),
+    /** What the reply must stay consistent with. The constraint, not the context. */
+    record: recapPlan(pack, session, standing),
+    /** The card in front of them, resolved out of the pack. Null before the deal. */
+    card: cardPlan(pack, session, standing),
   };
 }
 
@@ -459,11 +525,11 @@ export function turnPlan({ pack, session, turn, handback = false }) {
  * before. The turn instruction lands last of all, which is where an instruction
  * belongs.
  */
-export function readerTurnBlock({ pack, session, plan }) {
+function readerTurnBlock(plan) {
   const parts = [
-    describeRecap(pack, session),
-    describeCard(pack, session),
-    describeLadder(pack, plan),
+    describeRecap(plan),
+    describeCard(plan.card),
+    describeLadder(plan),
   ];
 
   if (plan.rules.includes("frame_dropped")) parts.push(RULES_WHEN_FRAME_DROPPED);
@@ -755,7 +821,7 @@ export function readerCall({ pack, session, turn, handback = false, stageDirecti
     system: readerSystem({ pack, session }),
     messages: readerMessages(pack, session, {
       stageDirection,
-      turnBlock: readerTurnBlock({ pack, session, plan }),
+      turnBlock: readerTurnBlock(plan),
     }),
   };
 }
