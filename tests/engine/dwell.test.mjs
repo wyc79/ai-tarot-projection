@@ -296,6 +296,14 @@ test("someone who wishes they had not said it is let out, and the reading still 
         gate: at({ depth: 2, life: false }) },
       { asks: "What is it about him that reads as going off the edge?",
         answer: "he isn't looking down", gate: at({ depth: 2, life: false }) },
+
+      // One real thing was said this session -- April, and their sister -- so
+      // the fourth card turns before the close even though they closed up again
+      // straight afterwards. It is another chance, not a reward.
+      { asks: "One more card, the last one. What's in it?",
+        answer: "a garden with a wall", gate: at({ depth: 2, life: false }) },
+      { asks: "What is it about the wall that stands out?",
+        answer: "it's higher than it needs to be", gate: at({ depth: 2, life: false }) },
     ],
   });
   const situation = session.exchanges.filter((e) => e.position === "situation");

@@ -108,6 +108,10 @@ button:disabled { opacity: 0.4; cursor: default; }
 .spread { display: flex; gap: 0.9rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
 .slot { margin: 0; width: 11rem; }
 .slot img { width: 100%; }
+/* Face down from the start. Dimmed rather than hidden: the point of dealing the
+   whole spread at once is that the positions ahead are visibly there. */
+.slot.down img { opacity: 0.55; filter: saturate(0.4); }
+.slot.down figcaption { color: var(--dim); }
 .slot figcaption { font-size: 0.75rem; margin-top: 0.5rem; line-height: 1.45; }
 /* Not .imagery: that class is a block-level callout on the pack page, and an
    inline span inheriting its padding overlaps the caption beside it. */

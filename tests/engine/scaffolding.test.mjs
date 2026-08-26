@@ -82,6 +82,14 @@ test("a reading that climbs one rung at a time scans clean", async () => {
         answer: "mine, and I know it while I'm doing it", gate: at(3, "evaluate") },
       { asks: "What happened the last time you didn't look?",
         answer: "I took the flat without seeing it", gate: at(3, "consequences") },
+
+      // And the fourth card, which a reading this grounded turns before it
+      // closes. Same four beats: read, elaborate, cross, dwell -- except its
+      // budget is two, so it closes on the crossing.
+      { asks: "One more card, the last one. What do you see in it?",
+        answer: "a woman turning a page", gate: at(2, "name") },
+      { asks: "What is it about her that reads as turning a page to you?",
+        answer: "she isn't looking at what's behind her", gate: at(2, "name") },
     ],
   });
   assert.equal(session.closed, true);
@@ -214,6 +222,13 @@ test("a reading that reached intentions gets a step it can act on", async () => 
         answer: "if I spend it I have to admit I'm staying", gate: at(4, "intentions") },
       { asks: "What happened the last time you nearly admitted it?", answer: "I didn't",
         gate: at(4, "consequences") },
+
+      { asks: "One more card, the last one. What do you see?", answer: "a coin held out",
+        gate: at(2, "name") },
+      { asks: "Whose held-out coin is that one?", answer: "one I keep not taking",
+        gate: at(3, "evaluate") },
+      { asks: "What happened the last time it was held out?", answer: "I said I was fine",
+        gate: at(3, "consequences") },
     ],
   });
   const closing = systemFor(client, "close");

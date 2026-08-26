@@ -64,6 +64,24 @@ const SCRIPT = [
   // the reason this script is a turn longer than the arithmetic suggests.
   { answer: "before Sunday, probably. he never starts these",
     gate: { disclosure_depth: 4, user_level: "plans", has_life_content: true, stakes: "low" } },
+  // The fourth card. It is decided at the advice-to-close boundary now rather
+  // than after the beat, so a session that got somewhere turns it and closes
+  // once, over four. Its budget is two, which is these:
+  { answer: "the one at the front, walking off with nothing",
+    gate: { disclosure_depth: 2, user_level: "name", has_life_content: false, stakes: "low" } },
+  { answer: "that I keep waiting to be asked, and then resenting it",
+    gate: { disclosure_depth: 4, user_level: "evaluate", has_life_content: true, stakes: "low" } },
+  // The dwell on that one. Even the last card of all does not end on the turn
+  // someone says the strongest thing they said.
+  { answer: "since about the same time, more or less",
+    gate: { disclosure_depth: 3, user_level: "consequences", has_life_content: true, stakes: "low" } },
+  // Past the closing beat. The first one gets a real answer -- that is what the
+  // tail is for -- and then the reader says goodbye rather than waiting to be
+  // dismissed. Two beats, not one, and not nine.
+  { answer: "what happens after the noticing though",
+    gate: { disclosure_depth: 2, user_level: "name", has_life_content: false, stakes: "low" } },
+  { answer: "fair enough. thanks",
+    gate: { disclosure_depth: 1, user_level: "name", has_life_content: false, stakes: "low" } },
 ];
 
 function scriptedClient(prompts) {
@@ -114,7 +132,9 @@ const reading = startReading({
 
 await reading.begin();
 for (const { answer } of SCRIPT) {
-  if (reading.session.closed) break;
+  // Runs past the closing beat now, because the ending is three beats rather
+  // than one: the close, a short tail, and the farewell that ends the session.
+  if (reading.session.ended) break;
   await reading.say(answer);
 }
 
@@ -129,6 +149,10 @@ const record = {
   decisions: events.filter((e) => e.type === "flip_decision")
     .map((e) => `depth ${e.gate.disclosure_depth} level ${e.gate.user_level} -> ${e.decision.flip ? "FLIP" : "hold"} (${e.decision.reason})`),
   closed: session.closed,
+  ended: session.ended,
+  face_down: (session.deal ?? [])
+    .filter((d) => !session.cards.some((c) => c.position === d.position))
+    .map((d) => d.position),
 };
 
 if (wantPrompt) {
@@ -149,6 +173,8 @@ if (wantPrompt) {
   console.log(`anchor      ${record.anchor_theme ?? "(none)"}`);
   console.log(`cards       ${record.cards.join("  ")}`);
   console.log(`closed      ${record.closed}`);
+  console.log(`ended       ${record.ended}${record.face_down.length
+    ? `  (face down: ${record.face_down.join(", ")})` : ""}`);
   console.log("pacing:");
   for (const line of record.decisions) console.log(`  ${line}`);
   console.log("flips:");

@@ -12,7 +12,7 @@ async function finished(seed = "moon-4f2a91") {
   const reading = startReading({
     pack,
     client: fakeClient({
-      gates: [gate(3), gate(4), gate(4), gate(4), gate(4), gate(4), gate(4), gate(4)],
+      gates: Array.from({ length: 12 }, (_, i) => gate(i === 0 ? 3 : 4)),
       opening: declines,
       reply: (turn) => (turn === "close" ? "this week, notice the bracing" : `[${turn}]`),
     }),
@@ -23,8 +23,12 @@ async function finished(seed = "moon-4f2a91") {
   for (const answer of ["it looks tired", "nobody is attacking me",
                         "money", "not the money", "the flat, I think",
                         "if I spend it I'm staying", "I'd have to say it out loud",
-                        "to my brother, probably"]) {
-    if (reading.session.closed) break;
+                        "to my brother, probably",
+                        // The fourth card, turned before the close now.
+                        "a hand holding something out", "and nobody taking it",
+                        // Past the beat: one answer, then the goodbye.
+                        "what happens after the noticing", "fair enough"]) {
+    if (reading.session.ended) break;
     await reading.say(answer);
   }
   return { pack, session: reading.session };

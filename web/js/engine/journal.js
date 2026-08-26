@@ -51,28 +51,10 @@ export function toMarkdown(pack, session) {
     }
   };
 
-  const isEpilogue = (c) => c.position === session.epilogue_position;
-  const spread = session.cards.filter((c) => !isEpilogue(c));
-  const epilogue = session.cards.find(isEpilogue);
-  for (const entry of spread) renderCard(entry);
-
-  // The beat the three cards ended on. Normally it is also the last thing in
-  // the file and is written once, at the bottom. When the conversation carried
-  // on and earned a fourth card it is not the last thing any more, and it
-  // belongs here, where it was actually said.
-  const firstBeat = spread[spread.length - 1]?.ai_reading?.trim();
-  if (epilogue && firstBeat) lines.push("## The step", "", firstBeat, "");
-
-  const afterward = exchangesFor(session, "afterward");
-  if (afterward.length) {
-    lines.push("## After that", "");
-    for (const exchange of afterward) {
-      if (exchange.q) lines.push(exchange.q.trim(), "");
-      lines.push(`**You:** ${exchange.a.trim()}`, "");
-    }
-  }
-
-  if (epilogue) renderCard(epilogue);
+  // Every card that turned, in the order it turned, the fourth one included.
+  // It used to need its own handling down the page, because it arrived after an
+  // ending and the file had to show two of them. There is one ending now.
+  for (const entry of session.cards) renderCard(entry);
 
   const offFrame = exchangesFor(session, "off_frame");
   if (offFrame.length) {
@@ -84,9 +66,33 @@ export function toMarkdown(pack, session) {
   }
 
   if (session.closing_reflection) {
-    lines.push(epilogue ? "## Where it actually ended" : "## The step", "",
-               session.closing_reflection.trim(), "");
+    lines.push("## The step", "", session.closing_reflection.trim(), "");
   }
+
+  // The card that stayed with the deck. Worth a line in the keepsake for the
+  // same reason it gets one in the closing beat: it is the reason to come back,
+  // and a spread that quietly shows three cards where four were dealt looks
+  // like something went wrong.
+  const dealt = session.deal ?? [];
+  const turned = new Set(session.cards.map((c) => c.position));
+  const down = dealt.filter((d) => !turned.has(d.position));
+  if (down.length && session.closed) {
+    lines.push(`_${down.length === 1 ? "One card" : `${down.length} cards`} stayed with the deck.`
+               + " Still there next time._", "");
+  }
+
+  for (const [position, heading] of [["afterward", "## After that"],
+                                     ["afterglow", "## A while longer"]]) {
+    const after = exchangesFor(session, position);
+    if (!after.length) continue;
+    lines.push(heading, "");
+    for (const exchange of after) {
+      if (exchange.q) lines.push(exchange.q.trim(), "");
+      lines.push(`**You:** ${exchange.a.trim()}`, "");
+    }
+  }
+
+  if (session.farewell) lines.push(session.farewell.trim(), "");
   if (session.safety_state === "drop_frame") {
     lines.push("---", "", "_This reading stopped being a reading partway through._", "");
   }

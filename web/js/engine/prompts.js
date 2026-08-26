@@ -11,7 +11,9 @@
  * transcript as a stage direction in the user role.
  */
 
-import { currentCard, settleOnCurrentCard, turnsOn } from "./state.js";
+import {
+  currentCard, heavyMaterial, settleOnCurrentCard, tableau, turnsOn,
+} from "./state.js";
 import { questionType } from "./questions.js";
 import { levelIndex, targetLevel } from "./levels.js";
 
@@ -256,9 +258,11 @@ function describeRecap(pack, session) {
   }
 
   lines.push("", "cards on the table:");
-  if (!session.cards.length) {
-    lines.push("  none yet");
-  } else {
+  const table = tableau(session);
+  const byPosition = new Map(session.cards.map((c) => [c.position, c]));
+  if (!table.length) {
+    // A session recorded before the whole spread was dealt at once. It still
+    // reads: the cards it turned are the cards it turned.
     for (const [index, entry] of session.cards.entries()) {
       const card = pack.card(entry.card_id);
       lines.push(`  ${index + 1}. ${entry.position} — ${card.name}`);
@@ -266,12 +270,34 @@ function describeRecap(pack, session) {
       const said = firstSentence(entry.ai_reading);
       if (said) lines.push(`     you said: ${said}`);
     }
+    if (!session.cards.length) lines.push("  none yet");
   }
-
-  const remaining = Math.max(0, session.positions.length - session.cards.length);
-  lines.push(`  ${remaining > 0
-    ? `${remaining} position${remaining > 1 ? "s" : ""} still to come, cards unknown to you`
-    : "every position dealt; there is no further card"}`);
+  for (const [index, slot] of table.entries()) {
+    const entry = byPosition.get(slot.position);
+    if (!entry) {
+      // Face down, and it stays that way in this block: the whole spread is on
+      // the table from the start and you are looking at the backs of them.
+      lines.push(`  ${index + 1}. ${slot.position} — FACE DOWN${
+        slot.epilogue ? " (the fourth card, if this reading earns it)" : ""}`);
+      continue;
+    }
+    const card = pack.card(entry.card_id);
+    lines.push(`  ${index + 1}. ${slot.position} — ${card.name}`);
+    if (entry.user_projection) lines.push(`     they read it as: "${entry.user_projection}"`);
+    const said = firstSentence(entry.ai_reading);
+    if (said) lines.push(`     you said: ${said}`);
+  }
+  const down = table.filter((t) => !t.face_up);
+  if (down.length) {
+    lines.push(`  ${down.length} still face down. They were dealt with the rest and they are`);
+    lines.push("    lying there in front of both of you — but you have not seen them and you");
+    lines.push("    do not know what they are. Do not guess, do not hint, do not promise.");
+  } else if (!table.length) {
+    const remaining = Math.max(0, session.positions.length - session.cards.length);
+    lines.push(`  ${remaining > 0
+      ? `${remaining} position${remaining > 1 ? "s" : ""} still to come, cards unknown to you`
+      : "every position dealt; there is no further card"}`);
+  }
 
   const entry = currentCard(session);
   const position = entry && pack.position(entry.position);
@@ -281,6 +307,18 @@ function describeRecap(pack, session) {
     lines.push("  THE READING IS FINISHED. The closing beat is given and the spread is spent.");
     lines.push("    They are still here and still talking, which is theirs to do. Nothing below");
     lines.push("    can turn another card, and none of the pacing applies any more.");
+  }
+  const heavy = heavyMaterial(session);
+  if (heavy.length) {
+    // It does not stop being true because the subject moved on. The farewell is
+    // the last chance anyone has to acknowledge it, and the session that taught
+    // us this spent its ending on a side project instead.
+    lines.push("  REAL-WORLD STAKES WERE SAID ALOUD IN THIS SESSION, and they still stand:");
+    for (const e of heavy) {
+      lines.push(`    "${String(e.a).replace(/\s+/g, " ").slice(0, 100)}"`);
+    }
+    lines.push("    You are not to reopen it, advise on it, or make it the subject again.");
+    lines.push("    You are not to act as though it was never said either.");
   }
   lines.push(`  arc position: ${position ? `${position.id} (${position.arc_role} — ${position.prompt_hint})` : "nothing dealt yet"}`);
   if (position) lines.push(`  moves weighted here: ${position.moves.join(", ")}`);
@@ -314,6 +352,18 @@ function describeRecap(pack, session) {
     lines.push("    question mark on a statement. Do not repeat it back as settled fact and");
     lines.push("    do not build on it. Make walking it back easy and ask again more gently,");
     lines.push("    at the same height: \"could be nothing — what was the other one?\"");
+  }
+  if (session.phase === "afterglow") {
+    const territory = [
+      ...(session.topic ? [session.topic] : []),
+      ...(session.anchor?.user_phrases ?? []).map((p) => p.phrase),
+    ];
+    lines.push("  THEY CHOSE TO STAY. This is not the reading and it is not a new one. The");
+    lines.push("    ground is what the reading already found, and these are its edges:");
+    lines.push(`    ${territory.length ? territory.map((t) => `"${t}"`).join(", ") : "(nothing was ever found; there is very little here)"}`);
+    lines.push("    A question about anything outside that is a new subject, and a new subject");
+    lines.push("    now is an interview. Go up, into what they already said — never sideways");
+    lines.push("    into what else there is.");
   }
   const ladder = ladderState(pack, session);
   lines.push(`  they are standing at: ${ladder.userLevel ?? "nothing said on this card yet"}`);
@@ -399,8 +449,41 @@ export function readerTurnBlock({ pack, session, turn, handback = false }) {
     parts.push(RULES_WHEN_STAKES_HIGH);
   }
 
+  // Before the instruction, not after it: turnKindOf reads the tail of the
+  // assembled prompt to say which turn this was, and anything appended past the
+  // instruction makes every turn read as "unknown".
+  parts.push(deckKeepsOne(session, turn));
   parts.push(TURN_INSTRUCTIONS[turn] ?? TURN_INSTRUCTIONS.respond);
   return parts.filter(Boolean).join("\n");
+}
+
+/**
+ * The card that never turned, and how to say so.
+ *
+ * Only on the closing turn, and only when one is still face down. The fourth
+ * card is decided before the close, so by the time this turn runs the question
+ * is settled: either it turned and the close covers four, or it did not and the
+ * close owes it a line. The line is the return hook and it must not land as a
+ * grade -- "you did not earn it" is exactly what a reading is not for.
+ */
+function deckKeepsOne(session, turn) {
+  if (turn !== "close") return "";
+  const down = tableau(session).filter((t) => !t.face_up);
+  if (!down.length) return "";
+  return `
+## One card stays face down
+
+There ${down.length === 1 ? "is a card" : `are ${down.length} cards`} on the table that never turned over, and
+they can see ${down.length === 1 ? "it" : "them"}. Say so, once, in one line near the end — something of the
+order of "one card stays with the deck today; it'll be there when you come back."
+
+**As an invitation, never as a verdict.** Not withheld, not unearned, not
+"maybe next time you'll open up more". The deck keeps one. That is all it is,
+and a reading that ends by grading someone is worse than a reading that ends
+short.
+
+Do not name it. Do not guess at it. Do not describe what it might have been.
+You have not seen it.`;
 }
 
 const TURN_INSTRUCTIONS = {
@@ -477,23 +560,22 @@ the card that just landed. The chase costs them the projection.`,
   after: `
 ## This turn
 
-The reading is finished. You gave the closing beat and they have kept talking,
-which is a normal thing for someone to do and is not a signal to start again.
+The reading is finished. You gave the closing beat and they have said one more
+thing, which is a normal thing for someone to do and is not a signal to start
+again.
 
-**No card turns over on this turn.** The table decides that and it has not told
-you to, which is the same rule as every other turn. Do not offer one, do not
-hint that one is coming, and do not promise a second reading — the spread was
-three cards and it is spent.
+**No card turns over.** The spread is spent and every card that was going to
+turn has turned. Do not offer one, do not hint that one is coming, and do not
+promise a second reading.
 
-Do not restate the step you left them with and do not summarise the session --
-they were there. Answer what they actually said, in their words, and keep
-routing it through the three cards on the table. Those are what you have, and
-they are the difference between this and a stranger asking personal questions.
+**This tail is short and you are near the end of it.** Answer what they actually
+said — properly, it was a real thing to say — and keep routing it through the
+cards on the table. Do not restate the step and do not summarise the session;
+they were there.
 
-Same shape as any other turn: one observation, one question. The exception is
-someone winding down. If they are saying goodbye, say goodbye — a short reply
-that asks nothing is the right answer to "thanks, that was interesting", and
-holding them with one more question is the worst possible last impression.`,
+Same shape as any other turn: one observation, one question. Do not say goodbye
+here and do not wind down — there is a turn for that and it is coming, and two
+goodbyes is worse than none.`,
 
   clarify: `
 ## This turn
@@ -516,10 +598,9 @@ Never repeat the question you just asked. They already told you it did not work.
   epilogue: `
 ## This turn
 
-They kept talking after the reading had ended, and then said something real —
-and the table has answered by turning one more card. This is the only one there
-will be, and it is not a second reading. It is the reading finding out it was
-not finished.
+The reading found somewhere left to go, and the table has answered by turning
+the last card — the fourth one, which has been lying face down with the others
+since the beginning. This is the last card there is.
 
 **One observation** on what they just said, in their words. **Then the card
 turns over:** name it and say it is the last one, in a clause, not a paragraph.
@@ -530,17 +611,26 @@ question is about what they see, not about what they just told you. You already
 answered that in the observation. Someone who knows nothing about this person
 should be able to answer it by looking at the card.
 
-Do not explain why it turned up, do not call it a gift or a sign, and do not
-remark on the fact that the reading has restarted. The table does what it does.`,
+Do not close the reading on this turn. Do not summarise, do not reach for a
+step, and do not say anything that sounds like an ending — there is a real
+ending coming and this would spend it. Do not explain why this card turned up,
+do not call it a gift or a sign, and do not remark on there being four.`,
 
   close: `
 ## This turn
 
-This is the last thing you say. Close the reading: name what moved across the
-three cards in their language, and turn it into one small concrete thing to
-notice or do in the coming week. Something they could actually catch themselves
-doing. Not a summary, not advice, not a list. Then stop — no offer to continue,
-no invitation to draw again.
+Close the reading. Name what moved across the cards that turned over, in their
+language, and turn it into one small concrete thing to notice or do in the
+coming week. Something they could actually catch themselves doing. Not a
+summary, not advice, not a list.
+
+**This happens once.** There is one closing beat in a session and this is it.
+
+**Do not open the same way every time.** "Across these three cards, in your own
+words..." is one shape and it is not the only one, and a reading that always
+ends on the same sentence pattern ends like a form letter. Start from the thing
+itself: the phrase they used most, the one that changed, the moment the reading
+turned. Count the cards only if the number is doing work.
 
 **Size the step to how far they actually got**, which the record above names.
 If they got as far as saying why something matters to them, the step can be
@@ -549,7 +639,85 @@ notice — one moment to catch, nothing to carry out. A plan handed to someone w
 never made one is homework, and they will not do it.
 
 This turn happens whatever height they reached. There is no reading too shallow
-to close.`,
+to close.
+
+Then stop. No question, or one small one at most — what comes after this is a
+short conversation and then a goodbye, and neither of them is another reading.`,
+
+  farewell: `
+## This turn
+
+This is the last thing you say. The reading closed, they said what they had left
+to say, and now you let them go.
+
+**It ends without a question.** This is the only turn in the whole session that
+does. Everything else you write reaches for one more thing; this one does not,
+because holding someone at the door is how a good hour becomes an awkward one.
+
+Three or four sentences at the outside:
+
+- **Echo the noticing** you left them with, in one line, in their words. Not the
+  whole step again — the shape of it, so it is the last thing they hear.
+- **Leave the door open**, plainly: the cards will be here, and so will you.
+  Not a sales line, not "come back soon", not an invitation to draw again now.
+- Say goodbye like a person. Warm, short, finished.
+
+If the record above says real-world stakes were named in this session, **one
+gentle line acknowledging it comes first** — before the door. Not advice, not a
+referral repeated, not reopening it: just that you heard it and it is still
+there. Something of the order of "and the thing about the lease is still the
+thing about the lease — that one's worth real advice, not cards." A goodbye that
+talks about everything except the heaviest thing they said is a goodbye that
+tells them you were not listening.
+
+Do not thank them for sharing. Do not summarise the session. Do not ask
+anything.`,
+
+  afterglow: `
+## This turn
+
+They said goodbye and then chose to stay a while. That is a different thing from
+the reading, and it has its own shape.
+
+**No card turns over, ever again in this session.** The spread is spent and the
+closing beat is given.
+
+**Stay inside what the reading found.** The record above names the ground: their
+topic and their own phrases. Every question you ask lives in there. "What would
+make the work feel like yours" is inside it; "what are you building" is a new
+subject, and a new subject now is an interview — you asking after the nouns in
+someone's life because the reading ran out of its own material. That is the
+failure this whole mode exists to prevent, and it does not feel like a failure
+while it is happening: it feels like interest.
+
+**Go up, not sideways.** What they already told you, at a greater height —
+whether it sits right with them, what they were hoping for, what it says about
+what they care about. Never a new corner of their life at name level.
+
+**You do not have to ask anything.** This is the one place where a turn can be a
+statement and stop. Receiving what someone said — setting it down in their words
+and leaving it there — is often the whole of what is wanted after an ending.
+Reach for a question only when there is a real one.
+
+Short. Shorter than a reading turn. They are winding down, not starting.`,
+
+  regroup: `
+## This turn
+
+Two answers running with nothing of their own in them. The conversation has
+drifted off what the reading was about, and there is no card left to move it
+along — so this turn either goes back or offers the door.
+
+Pick one, and do it in two sentences:
+
+- **Back to the anchor.** Name the thing the reading actually found, in their
+  words, and ask about that. Not the subject you have both wandered into.
+- **Or offer the ending again**, without making it a verdict on them: "we can
+  sit with this, or leave it here for today." Then let them choose.
+
+Do not carry on asking about whatever came up. Do not apologise for the drift or
+name it — "I notice we've moved away from" is you narrating the machinery at
+someone. Just turn back, or open the door.`,
 };
 
 /**

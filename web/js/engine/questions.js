@@ -139,3 +139,70 @@ export function questionLevel(text) {
   const found = LEVEL_MARKERS.find(([, patterns]) => patterns.some((re) => re.test(subject)));
   return found ? found[0] : "name";
 }
+
+
+// -- what a turn is about ----------------------------------------------------
+//
+// Two checks read these: the scanner's premise test, which asks whether a word
+// in a reader turn came from the pack rather than from the person, and the
+// afterglow territory rule, which asks whether a question is still about what
+// the reading found. Both are the same underlying question -- where did this
+// word come from -- so they share one definition of what counts as a word.
+
+// Words that carry no scene content, so a match on one means nothing. Not a
+// general stopword list -- just enough that what is left is mostly things and
+// actions in the picture.
+export const EMPTY_WORDS = new Set(`about above after again against also another around
+back because been before behind below beside between both came come does down each even
+ever every from geen gets give góing gone have here into just keep kind like
+look looked looking made make many more most much must near need never next
+front left right side under upon top bottom corner edge middle
+nothing only other over said same seem seems seen since some something
+still such take taken tell than that their them then there these they thing
+things this those through time turn turned under until upon very want wants
+were what when where which while will with without would your yours yourself`
+  .split(/\s+/).filter(Boolean));
+
+// Suffix stripping plus the handful of irregulars that actually turn up in
+// descriptions of pictures. Without "built -> build" the c145c7 obstacle turn's
+// "building what they want" does not match the pack's "being built to a plan",
+// which is the same assertion in a different tense.
+const IRREGULAR = {
+  built: "build", held: "hold", stood: "stand", sat: "sit", lay: "lie", lain: "lie",
+  worn: "wear", wore: "wear", hidden: "hide", hid: "hide", bound: "bind",
+  drawn: "draw", drew: "draw", woven: "weave", wove: "weave", spun: "spin",
+};
+const STEM = (word) => IRREGULAR[word] ?? word.replace(/(?:ing|ed|es|s)$/, "");
+
+/** Content words, stemmed, from any text. */
+export function contentWords(text) {
+  return new Set(String(text ?? "").toLowerCase().match(/[a-z']{4,}/g)
+    ?.filter((w) => !EMPTY_WORDS.has(w)).map(STEM) ?? []);
+}
+
+/**
+ * Is this question still inside the ground the reading found?
+ *
+ * The afterglow rule, and the engine and the scanner both call it so they
+ * cannot disagree about what drift is. Territory is the anchor's phrases and
+ * the topic they named, and nothing else -- deliberately not what has been said
+ * since, or drift bootstraps itself: the reader asks after a new subject, they
+ * answer about it, and now the new subject is in territory and the interview
+ * has licence to continue.
+ *
+ * The test is one shared word, not the absence of new ones. "What would make
+ * the work feel like yours" keeps "work" and passes; "what are you building"
+ * shares nothing with anything they came in with, and a question sharing
+ * nothing with the reading is a question about something else.
+ *
+ * @param {string} text a whole reader turn
+ * @param {string[]} phrases the anchor's phrases, plus the topic if there was one
+ */
+export function inTerritory(text, phrases) {
+  const ground = new Set();
+  for (const phrase of phrases) for (const word of contentWords(phrase)) ground.add(word);
+  if (!ground.size) return true;   // nothing was ever found; nothing to drift off
+  const asked = contentWords(finalQuestion(text) || text);
+  if (!asked.size) return true;    // a turn with no content words asserts nothing
+  return [...asked].some((word) => ground.has(word));
+}

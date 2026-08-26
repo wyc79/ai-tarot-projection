@@ -47,8 +47,20 @@ export const SETTLE_MIN = 2;
  *  disclosure. The cap exists so nobody is stuck on a card they have nothing to
  *  say about; someone who has just said something is not that person. */
 export const DWELL_GRACE = 1;
+/** Exchanges between the closing beat and the farewell, before it fires anyway. */
+export const AFTERWARD_TARGET = 1;
+/** And the most it will wait. After this the reader says goodbye whatever came back. */
+export const AFTERWARD_MAX = 3;
 
-export function createSession({ packId, seed, positions, epilogue = null, startedAt = Date.now() }) {
+export function createSession({
+  packId, seed, positions, epilogue = null, deal = [], startedAt = Date.now(),
+}) {
+  // Every position, epilogue included, paired with the card lying face down on
+  // it. Dealt once, here, before a word is said: the table shows the whole
+  // topology from the start and the cards turn over in place.
+  const table = [...positions, ...(epilogue ? [epilogue] : [])]
+    .map((p, i) => (deal[i] ? { position: p.id, card_id: deal[i] } : null))
+    .filter(Boolean);
   return {
     schema_version: STATE_VERSION,
     // Seed plus start time: unique enough to key a history list, and readable
@@ -67,13 +79,25 @@ export function createSession({ packId, seed, positions, epilogue = null, starte
     // the same shape: setup, then tension, then resolution. The card whose job
     // is to find the ground does not need long to find out that it has not, and
     // the cards after it are working with material that took a while to arrive.
-    budget: Object.fromEntries([...positions, ...(epilogue ? [epilogue] : [])].map((p) => [p.id, {
-      target: p.target ?? TARGET_EXCHANGES,
-      max: p.max ?? MAX_EXCHANGES,
-    }])),
+    budget: {
+      ...Object.fromEntries([...positions, ...(epilogue ? [epilogue] : [])].map((p) => [p.id, {
+        target: p.target ?? TARGET_EXCHANGES,
+        max: p.max ?? MAX_EXCHANGES,
+      }])),
+      // The tail after the beat has a budget too, and it is the tightest one on
+      // the table: it is not a card, it is the room to answer a last question.
+      afterward: { target: AFTERWARD_TARGET, max: AFTERWARD_MAX },
+    },
     /** The earned fourth card's position id, or null if this pack has none. */
     epilogue_position: epilogue?.id ?? null,
-    /** @type {"opening"|"reading"} nothing is dealt until they have been asked */
+    /**
+     * The spread as dealt: every position with its card, face down until the
+     * reading earns it. Which cards are face up is not stored twice -- it is
+     * cards[] -- so the two can never disagree. See tableau().
+     * @type {{position: string, card_id: string}[]}
+     */
+    deal: table,
+    /** @type {"opening"|"reading"|"afterward"|"afterglow"} */
     phase: "opening",
     /** @type {string|null} what they said they wanted to look at, in their words */
     topic: null,
@@ -92,9 +116,35 @@ export function createSession({ packId, seed, positions, epilogue = null, starte
     closing_reflection: null,
     /** The spread is done and the closing beat has been given. */
     closed: false,
-    /** They said they were done. Only a person sets this. */
+    /** The reading is over and the goodbye has been said. */
     ended: false,
+    /** The last thing said, once there is one. The one turn with no question. */
+    farewell: null,
   };
+}
+
+/**
+ * The table: every position, its card, and whether it is face up yet.
+ *
+ * Derived rather than stored. Face-down cards ahead are the flip-gating
+ * incentive made physical -- someone can see there are four and that three of
+ * them are still face down -- and the moment that becomes a second copy of
+ * cards[] it becomes a second copy that can be wrong.
+ */
+export function tableau(session) {
+  const up = new Map(session.cards.map((c) => [c.position, c]));
+  return (session.deal ?? []).map(({ position, card_id }) => ({
+    position,
+    card_id,
+    face_up: up.has(position),
+    /** The epilogue when it never turned: face down at the end, and that is fine. */
+    epilogue: position === session.epilogue_position,
+  }));
+}
+
+/** The card lying on a position, face up or not. */
+export function dealtCardFor(session, position) {
+  return (session.deal ?? []).find((d) => d.position === position)?.card_id ?? null;
 }
 
 export function currentCard(session) {
@@ -531,28 +581,89 @@ export function isReadyToClose(session, gate) {
 }
 
 /**
- * Has the conversation after the beat earned a fourth card?
+ * Has the reading earned its fourth card?
  *
- * The spread is three. This one is not part of it and is not dealt on a
- * schedule: it exists because someone kept talking after the reading had
- * already ended and then said something real, which is the most interesting
- * thing that can happen in this whole design and used to be answered with a
- * question and nothing else.
+ * Asked at the advice-to-close boundary, which is the change this round makes.
+ * It used to be asked after the closing beat, so a session that earned one
+ * closed twice: a reflection over three cards, a fourth card, and a second
+ * reflection reusing the same formula. Two endings is not a bonus, it is the
+ * reading not knowing when it finished.
  *
- * Earned means what it says. A real disclosure, not held at arm's length, at
- * the depth that buys a card anywhere else -- politeness after the beat is not
- * a fourth card, and neither is asking for one. Once, ever: an epilogue that
- * can happen twice is a second reading with extra steps, and the deck answering
- * the same question again is the thing the plan refuses on purpose.
+ * Asked here, the answer decides which of two endings happens, and only one of
+ * them happens. Earned: turn it, spend its budget, close once over four. Not
+ * earned: it stays face down and the closing names it in a line.
+ *
+ * Two ways to earn it, and the weaker one is about the card they are standing
+ * on. Something of their own, unhedged, on the advice card -- the reading is
+ * live right now and there is somewhere left to take it. Or, anywhere in the
+ * session, an answer at the depth that buys a card: the reading got somewhere
+ * real, even if the last card was quiet.
  */
-export function epilogueEarned(session, gate) {
-  return Boolean(session.closed)
-    && !session.ended
-    && Boolean(session.epilogue_position)
-    && !session.cards.some((c) => c.position === session.epilogue_position)
-    && gate?.has_life_content === true
-    && !gate?.hedged
+export function epilogueEarned(session) {
+  if (!session.epilogue_position) return false;
+  if (session.cards.some((c) => c.position === session.epilogue_position)) return false;
+  if (!dealtCardFor(session, session.epilogue_position)) return false;
+  const offered = (e) => e.gate?.has_life_content === true && !e.gate?.hedged;
+  const real = (e) => offered(e) && (e.gate?.disclosure_depth ?? 0) >= DEPTH_ENOUGH;
+  const last = session.cards[session.cards.length - 1];
+  if (last && turnsOn(session, last.position).some(offered)) return true;
+  return session.exchanges.filter((e) => !e.aside).some(real);
+}
+
+/**
+ * Did anything in this session carry real-world consequence?
+ *
+ * Not last_stakes, which is the most recent verdict and has usually moved on by
+ * the end. A lease running out is still true nine exchanges later, and the
+ * farewell is the last chance anyone has to acknowledge it. Asides count: the
+ * material was still said.
+ */
+export function heavyMaterial(session) {
+  return session.exchanges.filter((e) => e.gate?.stakes === "high");
+}
+
+/**
+ * Is it time to say goodbye?
+ *
+ * The tail after the closing beat is short on purpose. "What happens after
+ * noticing?" deserves an answer and usually two; nine exchanges of it is a
+ * content interview wearing the reading's clothes, and the session that taught
+ * us this spent them on the user's hobby project while the heaviest thing they
+ * had said sat unacknowledged.
+ *
+ * So: one answer, then goodbye -- unless they are still saying something real,
+ * in which case up to three. Past that the reader says goodbye anyway. Nothing
+ * here applies in the afterglow, which is a mode they chose and which has its
+ * own way out.
+ */
+export function farewellDue(session, gate) {
+  if (!session.closed || session.ended || session.phase !== "afterward") return false;
+  const spent = turnsOn(session, "afterward").length;
+  const { target, max } = session.budget?.afterward
+    ?? { target: AFTERWARD_TARGET, max: AFTERWARD_MAX };
+  if (spent >= max) return true;
+  // The first answers get real replies -- that is what the budget is FOR, and a
+  // goodbye handed to someone who just asked a genuine question is the reader
+  // hanging up mid-sentence. Past the target the farewell fires unless they are
+  // still saying something real, and past the cap it fires regardless.
+  if (spent <= target) return false;
+  const going = gate?.has_life_content === true
     && (gate?.disclosure_depth ?? 0) >= DEPTH_ENOUGH;
+  return !going;
+}
+
+/**
+ * Has the afterglow wandered off what the reading was about?
+ *
+ * Two answers running with nothing of their life in them. In the reading proper
+ * that is an ordinary quiet patch and the pacing handles it; here there is no
+ * card left to move on to, so it is the reader having found a subject of its
+ * own -- which is exactly what the nine-exchange tail looked like from inside.
+ */
+export function afterglowDrift(session) {
+  const here = turnsOn(session, "afterglow");
+  return here.length >= 2
+    && here.slice(-2).every((e) => e.gate?.has_life_content !== true);
 }
 
 /**
@@ -590,12 +701,12 @@ export function close(session, reflection) {
  * stakes still land, because a person is still talking and the frame can still
  * need dropping.
  */
-export function recordAfterward(session, { question, answer, gate }) {
+export function recordAfterward(session, { question, answer, gate, position = "afterward" }) {
   session.exchanges.push({
     q: question,
     a: answer,
     disclosure_depth: gate.disclosure_depth ?? 0,
-    position: "afterward",
+    position,
     question_type: questionType(question),
     question_level: questionLevel(question),
     gate: { ...gate },
@@ -606,14 +717,41 @@ export function recordAfterward(session, { question, answer, gate }) {
 }
 
 /**
- * They said they were done.
+ * The session ends.
  *
- * The reading closes on its own -- that rule is not negotiable and nothing here
- * touches it. What changes is that closing no longer hangs up on them. The beat
- * is given, the ledger is sealed, and if they keep talking the reader keeps
- * answering until they stop. Ending is theirs.
+ * It ends by itself now, which is the other half of this round's amendment. The
+ * previous design closed the reading and then left the conversation open until
+ * a person shut it, and what an open tail with no shape actually produced was
+ * an interview: nine exchanges of the reader asking after the nouns in someone's
+ * side project, at name level, while the heaviest thing they had said that
+ * session went unmentioned. A conversation with no ending does not end, it
+ * degrades.
+ *
+ * So there is a last turn and it is a goodbye. `farewell` holds it, beside the
+ * closing reflection rather than inside it -- they are two different things
+ * said at two different moments, and the keepsake reads wrong if the goodbye is
+ * folded into the step.
+ *
+ * A person can still call it early: the button exists for the whole reading and
+ * ends it without a farewell, which is what walking out looks like.
  */
-export function end(session) {
+export function end(session, farewell = null) {
   session.ended = true;
+  if (farewell) session.farewell = farewell;
+  return session;
+}
+
+/**
+ * They took the door back.
+ *
+ * The farewell offers to stop and to stay, and staying is a choice someone
+ * makes rather than a default the reading falls into. What it opens is not the
+ * old open tail: the afterglow has a contract of its own -- the anchor's
+ * territory, upward on the ladder, no obligation to ask anything -- and a way
+ * out when it stops going anywhere.
+ */
+export function stayAWhile(session) {
+  session.ended = false;
+  session.phase = "afterglow";
   return session;
 }

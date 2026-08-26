@@ -198,6 +198,18 @@ test("the session lantern should have had: elaborate, then cross on what that go
       { asks: "What happened the last time you waited?",
         answer: "nothing did, and then I stopped waiting",
         gate: at({ depth: 3, life: true, level: "consequences" }) },
+
+      // The fourth card, which a reading this grounded turns over before it
+      // closes. Same shape as the three before it: read it, elaborate, cross.
+      { asks: "One more card, the last one. What do you see in it?",
+        answer: "someone handing out coins to people below",
+        gate: at({ depth: 2, life: false }) },
+      { asks: "What is it about the handing out that reads that way to you?",
+        answer: "he's the one deciding who gets some",
+        gate: at({ depth: 2, life: false }) },
+      { asks: "Whose deciding who gets some is that, in your world?",
+        answer: "mine, and I hate that it is",
+        gate: at({ depth: 3, life: true, level: "evaluate" }) },
     ],
   });
 
@@ -431,144 +443,6 @@ test("a reading short enough to fit is sent whole, with nothing said about elidi
   };
   const messages = readerMessages(pack, session, { turnBlock: "TURN" });
   assert.ok(!messages.some((m) => /not repeated here/.test(m.content)));
-});
-
-// -- the earned fourth card ----------------------------------------------
-
-/** A finished three-card reading, with whatever comes after it left to drive. */
-async function finished(afterGates = []) {
-  const pack = await realPack();
-  const client = fakeClient({
-    opening: declines,
-    gates: [...Array.from({ length: 8 }, () => at({ depth: 3, life: true, level: "consequences" })),
-            ...afterGates],
-  });
-  const reading = startReading({ pack, client, seed: "moon-4f2a91" });
-  await reading.begin();
-  await reading.say("no, nothing in particular");
-  for (const a of ["a", "b", "c", "d", "e", "f", "g", "h"]) {
-    if (reading.session.closed) break;
-    await reading.say(a);
-  }
-  assert.equal(reading.session.closed, true, "the three-card reading closes on its own");
-  return { pack, reading, client };
-}
-
-test("a real disclosure after the beat earns one more card", async () => {
-  const { reading, client } = await finished([
-    at({ depth: 4, life: true, level: "intentions" }),
-  ]);
-  const beat = reading.session.closing_reflection;
-  await reading.say("the thing I didn't say is that I already handed my notice in");
-
-  const s = reading.session;
-  assert.equal(s.cards.length, 4);
-  assert.equal(s.cards[3].position, "epilogue");
-  assert.match(s.cards[3].flip_reason, /earned after the closing beat/);
-  assert.equal(client.calls.chat.at(-1).turn, "epilogue");
-  assert.equal(s.phase, "epilogue");
-  assert.equal(s.cards[2].ai_reading, beat,
-               "the advice card still holds the beat the reading ended on");
-});
-
-test("politeness after the beat does not earn one, and neither does a hedge", async () => {
-  for (const gate of [
-    at({ depth: 2, life: true, level: "name" }),                    // pleasant, thin
-    at({ depth: 4, life: true, level: "intentions", hedged: true }), // real, held back
-    at({ depth: 4, life: false, level: "name" }),                    // about the picture
-  ]) {
-    const { reading, client } = await finished([gate]);
-    await reading.say("mm");
-    assert.equal(reading.session.cards.length, 3,
-                 `a card was dealt for ${JSON.stringify(gate)}`);
-    assert.equal(client.calls.chat.at(-1).turn, "after");
-  }
-});
-
-test("it is earned once, and never again", async () => {
-  const rich = () => at({ depth: 4, life: true, level: "intentions" });
-  const { reading } = await finished([rich(), rich(), rich(), rich(), rich(), rich()]);
-  await reading.say("I already handed my notice in");       // earns it
-  assert.equal(reading.session.cards.length, 4);
-  // Spend the epilogue's budget: two exchanges, then it closes again.
-  await reading.say("last Tuesday");
-  await reading.say("nobody knows yet");
-  assert.equal(reading.session.phase, "afterward", "the epilogue closed on its own beat");
-
-  await reading.say("and there's the mortgage too");
-  assert.equal(reading.session.cards.length, 4, "a fifth card is a second reading");
-});
-
-test("the epilogue closes again, and the step is re-sized to where they got", async () => {
-  const { reading, client } = await finished([
-    at({ depth: 4, life: true, level: "intentions" }),
-    at({ depth: 4, life: true, level: "intentions" }),
-    at({ depth: 4, life: true, level: "plans" }),
-  ]);
-  const firstBeat = reading.session.closing_reflection;
-  await reading.say("I already handed my notice in");
-  await reading.say("last Tuesday, and nobody knows");
-  await reading.say("I'll tell my brother on Sunday");
-
-  const s = reading.session;
-  assert.equal(s.closed, true);
-  assert.equal(s.phase, "afterward", "and the conversation is open again");
-  assert.equal(client.calls.chat.at(-1).turn, "close");
-  assert.equal(s.cards[3].ai_reading, s.closing_reflection,
-               "the epilogue holds the beat it ended on");
-  assert.equal(s.cards[2].ai_reading, firstBeat, "and the advice card still holds the first");
-  assert.equal(s.exchanges.filter((e) => e.position === "epilogue").length, 2,
-               "the epilogue's own budget, spent like any card's");
-});
-
-test("the epilogue's flip is credited to the exchange that earned it", async () => {
-  const { pack, reading } = await finished([at({ depth: 4, life: true, level: "intentions" })]);
-  await reading.say("I already handed my notice in");
-  const { flipsAfterExchange } = await import("../../web/js/engine/state.js");
-  const flips = flipsAfterExchange(reading.session);
-  const at_ = [...flips.entries()].find(([, card]) => card.position === "epilogue");
-  assert.ok(at_, "the epilogue flip is not on the map at all");
-  assert.equal(reading.session.exchanges[at_[0]].position, "afterward",
-               "credited to the advice card's last turn instead of the one that earned it");
-  assert.ok(!scanSession(reading.session, pack).some((f) => f.code === "unclosed"));
-});
-
-test("the epilogue is pack data; a pack without one can never deal it", async () => {
-  const pack = await realPack();
-  assert.equal(pack.epilogue.id, "epilogue");
-  assert.equal(pack.position("epilogue").ceiling, "plans");
-  assert.ok(!pack.positions.some((p) => p.id === "epilogue"),
-            "the spread is three; this is not a fourth position in it");
-
-  const { createSession, epilogueEarned } = await import("../../web/js/engine/state.js");
-  const plainPack = createSession({ packId: "p", seed: "s", positions: pack.positions });
-  plainPack.closed = true;
-  assert.equal(epilogueEarned(plainPack, at({ depth: 4, life: true })), false);
-});
-
-test("the keepsake shows the beat it ended on, then what came after it", async () => {
-  const { pack, reading } = await finished([
-    at({ depth: 4, life: true, level: "intentions" }),
-    at({ depth: 4, life: true, level: "intentions" }),
-    at({ depth: 4, life: true, level: "plans" }),
-  ]);
-  const firstBeat = reading.session.closing_reflection;
-  await reading.say("I already handed my notice in");
-  await reading.say("last Tuesday, and nobody knows");
-  await reading.say("I'll tell my brother on Sunday");
-
-  const { toMarkdown } = await import("../../web/js/engine/journal.js");
-  const md = toMarkdown(pack, reading.session);
-  const order = ["## Situation", "## Obstacle", "## Advice", "## The step",
-                 "## After that", "## Epilogue", "## Where it actually ended"];
-  let at_ = -1;
-  for (const heading of order) {
-    const next = md.indexOf(heading);
-    assert.ok(next > at_, `${heading} is out of order or missing`);
-    at_ = next;
-  }
-  assert.ok(md.includes(firstBeat), "the first beat fell out of the keepsake entirely");
-  assert.ok(md.includes("I already handed my notice in"));
 });
 
 // -- a question back is not an answer ------------------------------------

@@ -17,9 +17,13 @@
  */
 
 import { readFile } from "node:fs/promises";
-import { finalQuestion, isOwnershipOffer, questionLevel, questionType } from "../web/js/engine/questions.js";
+import {
+  contentWords, finalQuestion, inTerritory, isOwnershipOffer, questionLevel, questionType,
+} from "../web/js/engine/questions.js";
 import { levelDistance, levelIndex } from "../web/js/engine/levels.js";
-import { SETTLE_MIN, disclosureArrivals, flipsAfterExchange } from "../web/js/engine/state.js";
+import {
+  SETTLE_MIN, disclosureArrivals, flipsAfterExchange, heavyMaterial,
+} from "../web/js/engine/state.js";
 import { loadPackFromDisk } from "./harness.mjs";
 
 /** Reader turns in order: every question asked, then the closing beat. */
@@ -38,7 +42,42 @@ export function readerTurns(session) {
       question_type: "close",
     });
   }
+  // The goodbye is stored beside the closing beat rather than as an exchange,
+  // because nothing answered it. It is the one turn that is allowed to ask
+  // nothing, and the one that owes the session's heavy material a line.
+  if (session.farewell) {
+    turns.push({
+      index: turns.length,
+      position: "farewell",
+      text: session.farewell.trim(),
+      question_type: "close",
+    });
+  }
   return turns.filter((t) => t.text);
+}
+
+/**
+ * A turn that ends the reading: no question, and enough of it to be saying what
+ * the reading came to rather than saying goodbye.
+ *
+ * There is exactly one of these in a session. The design that preceded this
+ * round produced two -- a reflection over three cards, then a fourth card, then
+ * a second reflection reusing the first one's formula -- and from inside the
+ * transcript each of them looked correct on its own.
+ */
+function closingShaped(turn) {
+  if (turn.position === "farewell" || turn.position === "opening") return false;
+  return !/\?/.test(turn.text) && sentencesIn(turn.text).length >= 2;
+}
+
+/** The ground the reading found: what they named, and their own phrases. */
+export function anchorTerritory(session) {
+  return [
+    ...(session.topic ? [session.topic] : []),
+    ...(session.anchor?.user_phrases ?? [])
+      .map((p) => (typeof p === "string" ? p : p.phrase))
+      .filter(Boolean),
+  ];
 }
 
 /**
@@ -60,6 +99,16 @@ function dealTurnIndexes(session) {
 }
 
 const sentencesIn = (text) => text.split(/(?<=[.?!])\s+/).filter(Boolean);
+
+// Ways of offering to stop. Narrow on purpose: this exempts a turn from the
+// forced-choice rule, and every one of these is an exit rather than a subject.
+const OFFERS_TO_STOP = [
+  /\bleave (it|this|them) (here|there)\b/i,
+  /\bfor (today|now)\b/i,
+  /\b(stop|finish|end|leave off) (here|there)\b/i,
+  /\bcome back to (it|this)\b/i,
+  /\banother (day|time)\b/i,
+];
 
 /**
  * Reader turns nobody answered.
@@ -94,6 +143,10 @@ function permittedForcedChoice(session, turn) {
   // persona tells it to make declining easy. There is nothing on the table for
   // it to be a forced choice about yet, so the rule does not apply.
   if (turn.position === "opening") return true;
+  // The other end of the session: "we can sit with this, or leave it here for
+  // today" is the sanctioned way out of an afterglow that has stopped going
+  // anywhere. The second option is the door, not a second question.
+  if (OFFERS_TO_STOP.some((re) => re.test(turn.text))) return true;
   const previous = session.exchanges[turn.index - 1];
   if (!previous) return false;
   const nothingOfTheirs = previous.disclosure_depth === 1
@@ -111,22 +164,44 @@ function permittedForcedChoice(session, turn) {
 export function scanSession(session, pack = null) {
   const findings = [];
   const deals = dealTurnIndexes(session);
+  const turns = readerTurns(session);
+  // Everything the reading ended on. One is correct; the rest are the shape
+  // this round exists to stop.
+  const closes = turns.filter(closingShaped).map((t) => t.index);
+  const territory = anchorTerritory(session);
   const add = (turn, code, message) =>
     findings.push({ index: turn.index, position: turn.position, code, message, text: turn.text });
 
-  for (const turn of readerTurns(session)) {
+  for (const turn of turns) {
     const question = finalQuestion(turn.text);
     const questions = (turn.text.match(/\?/g) ?? []).length;
     const sentences = sentencesIn(turn.text);
-    // The closing beat ends on a step, and a turn after the reading has closed
-    // may end on a goodbye. Neither owes anyone a question.
-    const closing = turn.position === "close" || turn.position === "afterward";
+    // Two turn shapes end without asking anything: the closing beat, which ends
+    // on a step, and the farewell, which ends. The afterglow is the third and
+    // it is a permission rather than a shape -- a turn there MAY receive what
+    // was said and stop. Nothing else may, the short tail after the close
+    // included: a reading that trails off is not a reading that ended.
+    const mayNotAsk = turn.position === "close" || turn.position === "farewell"
+      || turn.position === "afterglow";
+
+    if (closes.indexOf(turn.index) > 0) {
+      add(turn, "double_close",
+          "a second closing turn; the reading already ended once, and two endings "
+          + "read as the reader losing track of where it finished");
+      continue;
+    }
+    if ((turn.position === "afterward" || turn.position === "afterglow")
+        && question && !inTerritory(turn.text, territory)) {
+      add(turn, "off_territory",
+          "after the close, and asking about something the reading never found; "
+          + "a new subject here is an interview, not a conversation");
+    }
 
     if (deals.has(turn.index) && question && questionType(turn.text) !== "projection") {
       add(turn, "deal_turn_life_question",
           "dealt a card and then asked about their life; nothing was left to project onto");
     }
-    if (!closing && questions === 0) {
+    if (!mayNotAsk && questions === 0) {
       add(turn, "no_question", "the turn does not end on a question");
     }
     if (questions > 1) {
@@ -147,6 +222,8 @@ export function scanSession(session, pack = null) {
   findings.push(...scanHedges(session, [...readerTurns(session), ...trailingTurns(session)]));
   if (pack) findings.push(...scanScaffolding(session, pack), ...scanPremises(session, pack));
 
+  findings.push(...scanHeavyMaterial(session, turns));
+
   if (!session.closed) {
     findings.push({
       index: session.exchanges.length, position: "end", code: "unclosed",
@@ -156,35 +233,37 @@ export function scanSession(session, pack = null) {
   return findings;
 }
 
-// Words that carry no scene content, so a match on one means nothing. Not a
-// general stopword list -- just enough that what is left is mostly things and
-// actions in the picture.
-const EMPTY_WORDS = new Set(`about above after again against also another around
-back because been before behind below beside between both came come does down each even
-ever every from geen gets give góing gone have here into just keep kind like
-look looked looking made make many more most much must near need never next
-front left right side under upon top bottom corner edge middle
-nothing only other over said same seem seems seen since some something
-still such take taken tell than that their them then there these they thing
-things this those through time turn turned under until upon very want wants
-were what when where which while will with without would your yours yourself`
-  .split(/\s+/).filter(Boolean));
-
-// Suffix stripping plus the handful of irregulars that actually turn up in
-// descriptions of pictures. Without "built -> build" the c145c7 obstacle turn's
-// "building what they want" does not match the pack's "being built to a plan",
-// which is the same assertion in a different tense.
-const IRREGULAR = {
-  built: "build", held: "hold", stood: "stand", sat: "sit", lay: "lie", lain: "lie",
-  worn: "wear", wore: "wear", hidden: "hide", hid: "hide", bound: "bind",
-  drawn: "draw", drew: "draw", woven: "weave", wove: "weave", spun: "spin",
-};
-const STEM = (word) => IRREGULAR[word] ?? word.replace(/(?:ing|ed|es|s)$/, "");
-
-/** Content words, stemmed, from any text. */
-function contentWords(text) {
-  return new Set(String(text ?? "").toLowerCase().match(/[a-z']{4,}/g)
-    ?.filter((w) => !EMPTY_WORDS.has(w)).map(STEM) ?? []);
+/**
+ * Did the session's heaviest material survive to the end of it?
+ *
+ * Someone says a thing with real consequence in it -- a lease running out, a
+ * diagnosis, money that decides something -- and the reading acknowledges it,
+ * hands agency back once, and moves on. That is correct. What is not correct is
+ * the ending never coming back to it: the closing beat about the three cards,
+ * a tail about something else entirely, and the heaviest thing anyone said that
+ * hour left where it fell.
+ *
+ * The test is word reuse from the closing beat onward, which is crude in the
+ * same way scanHedges is crude. A finding is an ending to go and read.
+ */
+function scanHeavyMaterial(session, turns) {
+  const heavy = heavyMaterial(session);
+  if (!heavy.length || !session.closed) return [];
+  const from = turns.findIndex((t) => closingShaped(t));
+  const ending = turns.slice(from === -1 ? turns.length : from);
+  if (!ending.length) return [];
+  const theirs = new Set(heavy.flatMap((e) => [...contentWords(e.a)]));
+  const acknowledged = ending.some((t) =>
+    [...contentWords(t.text)].some((w) => theirs.has(w)));
+  if (acknowledged) return [];
+  const last = ending[ending.length - 1];
+  return [{
+    index: last.index, position: last.position, code: "heavy_material_dropped",
+    message: `they said something with real stakes in it ("${
+      String(heavy[0].a).replace(/\s+/g, " ").slice(0, 60)}") and nothing from the `
+      + "closing beat onward comes back to it; the ending is about everything else",
+    text: last.text,
+  }];
 }
 
 /**

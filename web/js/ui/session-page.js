@@ -11,7 +11,7 @@ import { loadPack } from "../pack.js";
 import { makeLlmClient, DEFAULT_CONFIG, PROVIDERS } from "../llmClient.js";
 import { makeStorage, memoryBackend } from "../storage.js";
 import { startReading } from "../engine/reading.js";
-import { exchangesOnCurrentCard } from "../engine/state.js";
+import { exchangesOnCurrentCard, tableau } from "../engine/state.js";
 import { describeSession, loadHistory, toJson, toMarkdown } from "../engine/journal.js";
 import { newSeed } from "../engine/rng.js";
 import { staircaseSvg } from "./staircase.js";
@@ -99,17 +99,42 @@ function reportError(error) {
 
 // -- rendering ---------------------------------------------------------------
 
-function renderFlip(card, position) {
-  const slot = document.createElement("figure");
-  slot.className = "slot";
-  // No caption describing the picture. A printed description is something to
-  // agree with, and agreeing is not projecting -- whatever they say about the
-  // card should come from looking at it, not from reading a sentence about it.
-  // The line survives as alt text, where it belongs.
-  slot.innerHTML = `<img src="${pack.imageUrl(card)}" alt="${card.imagery_line}">
-    <figcaption><strong>${card.name}</strong><br>
-    <span class="label">${position}</span></figcaption>`;
-  $("spread").append(slot);
+/**
+ * The table: every position, from the first second, with its card face down
+ * until the reading turns it.
+ *
+ * Redrawn whole on every flip rather than appending one slot at a time. The
+ * spread does not grow any more -- it is all there from the start and cards
+ * turn over in place, which is the point: the face-down ones ahead are what the
+ * flip gate is an incentive toward, and they were previously invisible.
+ */
+function renderTable() {
+  const spread = $("spread");
+  spread.innerHTML = "";
+  if (!reading || !pack) return;
+  for (const slot of tableau(reading.session)) {
+    const figure = document.createElement("figure");
+    figure.className = `slot ${slot.face_up ? "up" : "down"}`;
+    const position = pack.position(slot.position);
+    if (slot.face_up) {
+      const card = pack.card(slot.card_id);
+      // No caption describing the picture. A printed description is something
+      // to agree with, and agreeing is not projecting -- whatever they say
+      // about the card should come from looking at it, not from reading a
+      // sentence about it. The line survives as alt text, where it belongs.
+      figure.innerHTML = `<img src="${pack.imageUrl(card)}" alt="${card.imagery_line}">
+        <figcaption><strong>${card.name}</strong><br>
+        <span class="label">${position?.label ?? slot.position}</span></figcaption>`;
+    } else {
+      // The fourth one is deliberately unlabelled: naming it "epilogue" before
+      // it turns tells someone there is a bonus card to play for, and a card
+      // played for is not a card earned.
+      figure.innerHTML = `<img src="${pack.cardBackUrl}" alt="a card, face down">
+        <figcaption><span class="label">${
+          slot.epilogue ? "·" : position?.label ?? slot.position}</span></figcaption>`;
+    }
+    spread.append(figure);
+  }
 }
 
 function addLine(who, text) {
@@ -191,7 +216,7 @@ function onEvent(event) {
       $("seed").value = event.seed; // so a bad reading can be reproduced exactly
       break;
     case "flip":
-      renderFlip(event.card, event.position);
+      renderTable();
       break;
     case "reader_start":
       streamingLine = addLine("reader", "");
@@ -225,19 +250,29 @@ function onEvent(event) {
       break;
     case "closed":
       renderStaircase();
-      // The reading is finished; the conversation is not. The form stays, and
-      // the person decides when to stop rather than being hung up on.
-      setStatus("reading closed — keep talking, or end it when you want", "ok");
+      // The reading is finished. What is left is a short tail and a goodbye,
+      // and the reader gets there on its own now.
+      setStatus("reading closed — a little more, then goodbye", "ok");
       $("end-reading").hidden = false;
       // The label is written before close() runs, so it would otherwise keep
       // calling a finished reading unfinished until the next reload.
       refreshHistory();
       break;
     case "ended":
-      setStatus("ended", "ok");
+      setStatus(event.farewell ? "the reading ended" : "ended", "ok");
       $("reply-form").hidden = true;
       $("end-reading").hidden = true;
+      // Only after a real farewell: staying a while is taking back a door that
+      // was offered, and nobody offered one to someone who walked out.
+      $("ended-row").hidden = !event.farewell;
       refreshHistory();
+      break;
+    case "afterglow":
+      setStatus("still here — the reading is over, the conversation is not", "ok");
+      $("ended-row").hidden = true;
+      $("reply-form").hidden = false;
+      $("end-reading").hidden = false;
+      $("reply").focus();
       break;
     default:
       break;
@@ -270,7 +305,10 @@ async function start() {
 
   $("reply-form").hidden = false;
   $("end-reading").hidden = true;
+  $("ended-row").hidden = true;
   $("settings").open = false;
+  // Every card, face down, before a word is said.
+  renderTable();
   try {
     await reading.begin();
   } catch (error) {
@@ -344,9 +382,11 @@ async function main() {
     $("reply").value = "";
     say(text);
   });
-  // Only a person ends a reading. The button appears when the closing beat has
-  // been given and does nothing before that.
+  // Walking out. Available from the closing beat on, and different from the
+  // farewell: this one does not say goodbye, it stops.
   $("end-reading").addEventListener("click", () => reading?.end());
+  $("stay-a-while").addEventListener("click", () => reading?.stayAWhile());
+  $("new-reading").addEventListener("click", start);
 
   setStatus(`${pack.name}, ${pack.cards.length} cards`);
 }
