@@ -593,7 +593,40 @@ Internal machinery: the levels are never named to the user.
   what the document is before the first line of it. Named for what it is rather than what is in
   it today, so the tier-3 profile becomes another section of the same file in M6 rather than a
   second export beside it. One "Download all" control per page, wired through session.js
-- User-provided cards mode
+- User-provided cards mode - DECIDED AND BUILT as the physical deck. They have their own deck,
+  draw from it themselves, and the app deals nothing. The shape:
+  - At the start they are asked to lay four cards FACE DOWN in a row on their own table. That is
+    the face-down deal the engine already models, made physical. Reveal order and flip gating are
+    completely unchanged - it is the same table with a different pile-holder
+  - session.card_source is "dealt" | "physical" (STATE_VERSION 3). In a physical session every
+    deal[] slot exists from the start with card_id: null, and an id arrives only when a person
+    turns that card over and says what it is. cards[] - the ledger everything downstream reads -
+    is untouched, because a card only reaches it by flipping, and a physical flip cannot complete
+    until the card has been named. So prompts, judgements, journal and scanner never learn there
+    are two modes
+  - The seam is one callback: startReading({ cardSource: "physical", identifyCard }) where
+    identifyCard({position, taken}) resolves with a card_id. It is awaited in cardFor(), the only
+    asynchronous step between the flip decision and the flip, so the event stream is
+    gate -> flip_decision -> [identified] -> flip -> reader_start, and everything from `flip`
+    onwards is byte-identical between the modes. Physical mode without identifyCard throws
+  - session.seed is null for a physical session and session_id is `own-deck-<started_at>`: nothing
+    was seeded, and a seed there would be an invitation to try re-running it. The journal prints
+    "your own deck" where a dealt reading prints its seed
+  - nameCard() keeps the deck's arithmetic - 78 cards, each once - and throws on a repeat. The
+    picker also filters what is already on the table, because being unable to make the mistake
+    beats being told about it, but a rule only the UI keeps is one refactor from gone
+  - epilogueEarned() asks whether the epilogue has a SLOT, not whether it has a card. Asking for
+    a card made the fourth one unearnable in the mode it matters most in
+  - An unearned fourth card is never asked about, so the app never learns what it was. It stays
+    face down on their table, unnamed in state, unnamed in the export. This is the mode's best
+    moment and cardFor() is called from inside the earned branch only
+  - Mode selection: one select on the styled page's intro, dealt by default. The debug page gets
+    the same control in its settings and the same picker, because a mode that page cannot run is
+    a mode whose prompt assembly nobody can watch, which is the one thing that page is for
+  - The picker (web/js/ui/picker.js) is a type-ahead over the 78 names, forgiving about how a
+    name is typed ("5 of cups" finds Five of Cups), one full-width target per row on a phone, and
+    no cancel - the reading cannot go on without an answer. The reply form is inert while it is
+    open, or a second say() runs on top of the turn that is parked waiting
 - Done when: a stranger can complete a session on a phone without instructions
 
 ### M5 - Ship
@@ -652,6 +685,17 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-27): user-provided cards, built as the physical deck, on branch m4-ui - the last
+  item in M4. Shape written up in the M4 section above; the short form is that card identity is
+  the only thing that moves. STATE_VERSION 3, deal slots whose card_id is null until a person
+  turns a real card over and says what it is, one identifyCard callback awaited in cardFor(), and
+  everything from the `flip` event onwards identical between the modes. Two things the engine had
+  to be told: epilogueEarned() was asking whether the epilogue had a CARD, which made the fourth
+  one unearnable in the mode it matters most in, and it now asks whether it has a slot; and the
+  reply form has to go inert while the picker is open, because the picker is a row in the chat
+  column rather than a layer over it and the input underneath stayed live. Dealt mode is
+  byte-identical - seeded_session.mjs and all eight assembled turn prompts hashed before and
+  after. Saved sessions at v2 are dropped, not migrated, per the working agreements.
 - v1.5 (2026-08-27): the full export, on branch m4-ui. toArchive(pack, sessions) in journal.js
   puts every saved reading in one file, newest first, behind a warning line and a contents list.
   It opens on the warning because of what it is: twenty readings is twenty sessions of someone
@@ -751,7 +795,9 @@ Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider
 - v1: initial plan through the architecture decisions (dual dumb relays, client-side assembly)
 
 ## Open items (next working session)
-- The rest of M4, later commits on branch m4-ui: the profile/full export with its warning
-  line, and user-provided cards mode
-- Then: playtests with real tarot-curious non-dev people (the second half of M3's done-when),
-  which is what the styled page existed to unblock
+- M4 is built. What is left of its done-when is the check itself: a stranger completing a
+  session on a phone without instructions, which is the playtest
+- Playtests with real tarot-curious non-dev people (the second half of M3's done-when), which is
+  what the styled page existed to unblock. Both card modes are worth putting in front of people:
+  the physical one is the stronger idea and the one nobody has used yet
+- Then M5: Pages deploy, Worker relay, README

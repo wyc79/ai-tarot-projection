@@ -13,10 +13,12 @@
 import { mountSession, setStatus } from "./session.js";
 import { cardStanding, tableau } from "../engine/state.js";
 import { staircaseSvg } from "./staircase.js";
+import { makePicker } from "./picker.js";
 
 const $ = (id) => document.getElementById(id);
 
 let ui = null;
+let picker = null;
 
 // -- rendering ---------------------------------------------------------------
 
@@ -155,6 +157,7 @@ function onStart() {
   $("spread").innerHTML = "";
   $("gate").textContent = "—";
   $("anchor").textContent = "not committed yet";
+  picker.close();
   // Every card, face down, before a word is said.
   renderTable();
 }
@@ -163,10 +166,15 @@ async function main() {
   ui = await mountSession({
     onEvent,
     onStart,
+    // The same picker the styled page uses. A mode this page cannot run is a
+    // mode whose prompt assembly nobody can watch, which is the one thing this
+    // page is for.
+    identifyCard: (request) => picker.ask(request),
     onDebug: (event) => {
       $("debug-payload").textContent = JSON.stringify(event, null, 2);
     },
   });
+  picker = makePicker($("picker"), ui.pack);
   setStatus(`${ui.pack.name}, ${ui.pack.cards.length} cards`);
 }
 

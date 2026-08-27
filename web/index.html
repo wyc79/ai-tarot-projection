@@ -93,6 +93,14 @@
     <p class="quiet">This is a space for reflection, not therapy or crisis support. If things are
        heavy right now, <a href="https://findahelpline.com" target="_blank" rel="noopener">findahelpline.com</a>
        lists people who can actually help.</p>
+    <!-- One choice, and the default is the one that needs nothing. -->
+    <label class="choice">Cards
+      <select id="card-source">
+        <option value="dealt">the app deals them</option>
+        <option value="physical">I'll use my own deck</option>
+      </select>
+    </label>
+
     <button id="start" class="primary">Begin</button>
     <p class="note">Your key goes in Settings, above.</p>
   </div>
@@ -103,10 +111,18 @@
        scrolled away from in either case. -->
   <section id="table">
     <div id="spread" class="spread"></div>
+    <p id="own-deck-note" class="own-deck-note" hidden>
+      Your deck. Shuffle, and lay four cards face down in a row — you turn them
+      over when the reading gets to them.
+    </p>
   </section>
 
   <section id="chat">
     <div id="transcript" class="transcript"></div>
+
+    <!-- Physical mode only, and only for as long as it takes to answer: the
+         reading cannot go on until the app is told what turned over. -->
+    <div id="picker" class="picker" hidden></div>
 
     <form id="reply-form" class="reply" hidden>
       <input id="reply" placeholder="in your own words…" autocomplete="off">

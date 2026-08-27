@@ -19,6 +19,8 @@ import { DEFAULT_PROVIDER, PROVIDERS } from "./providers/index.js";
 export { PROVIDERS };
 
 export const DEFAULT_CONFIG = {
+  /** Whose deck. "dealt" is the app's; "physical" is a real one on their table. */
+  cardSource: "dealt",
   mode: "relay",
   relayBase: "",
   provider: DEFAULT_PROVIDER,

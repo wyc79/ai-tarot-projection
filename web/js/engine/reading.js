@@ -18,8 +18,8 @@ import { judgements } from "./judgements.js";
 import { flipDirection, readerCall } from "./prompts.js";
 import {
   afterglowDrift, close, commitAnchor, createSession, currentCard, dealtCardFor, end,
-  epilogueEarned, farewellDue, flipCard, flipDecision, flipEpilogue, nextPosition,
-  recordAfterward, recordExchange, recordOffFrame, recordAside,
+  epilogueEarned, farewellDue, flipCard, flipDecision, flipEpilogue, nameCard, namedCards,
+  nextPosition, recordAfterward, recordExchange, recordOffFrame, recordAside,
   recordOpening, recordReading, spreadComplete, stayAWhile, updateAnchor,
 } from "./state.js";
 import { makeDeal } from "./draw.js";
@@ -54,7 +54,28 @@ export function unwrapQuotes(text) {
   return /[.?!]$/.test(inner) ? inner : trimmed;
 }
 
-export function startReading({ pack, client, storage = null, seed = newSeed(), onEvent = () => {} }) {
+/**
+ * @param {object} options
+ * @param {object} options.pack
+ * @param {object} options.client
+ * @param {object} [options.storage]
+ * @param {string} [options.seed]
+ * @param {(event: object) => void} [options.onEvent]
+ * @param {"dealt"|"physical"} [options.cardSource]  whose deck this is
+ * @param {(request: {position: string, taken: string[]}) => Promise<string>} [options.identifyCard]
+ *   Physical mode only: they have just been told to turn a card over, and this
+ *   resolves with what they say it is. The one seam the mode needs -- the engine
+ *   still does not know what a picker is.
+ */
+export function startReading({
+  pack, client, storage = null, seed = newSeed(), onEvent = () => {},
+  cardSource = "dealt", identifyCard = null,
+}) {
+  const physical = cardSource === "physical";
+  if (physical && !identifyCard) {
+    throw new Error("physical mode needs identifyCard: nothing else can know what they drew");
+  }
+
   // The whole spread comes off the pile at once, epilogue included, and goes
   // face down on the table before anything is said. Nothing about the pacing
   // changes -- cards still turn over only when the reading earns them -- but
@@ -63,15 +84,20 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
   // can see rather than a thing they are told about.
   //
   // Same pile, same order, so a seed deals what it always dealt.
-  const deal = makeDeal(pack.cards.map((c) => c.card_id), seed);
+  //
+  // When the deck is theirs, none of that changes except who holds the pile.
+  // They lay four down face down; the app deals nothing and knows nothing until
+  // a position turns over and they say what came up.
+  const deal = physical ? null : makeDeal(pack.cards.map((c) => c.card_id), seed);
   const session = createSession({
-    packId: pack.id, seed, positions: pack.positions, epilogue: pack.epilogue,
-    deal: deal.take(pack.positions.length + (pack.epilogue ? 1 : 0)),
+    packId: pack.id, seed: physical ? null : seed, cardSource,
+    positions: pack.positions, epilogue: pack.epilogue,
+    deal: physical ? [] : deal.take(pack.positions.length + (pack.epilogue ? 1 : 0)),
   });
 
   // The seed is logged the moment the session exists: a reading nobody can
   // reproduce is a reading nobody can debug.
-  onEvent({ type: "session_start", seed: session.seed, pack: pack.id });
+  onEvent({ type: "session_start", seed: session.seed, pack: pack.id, cardSource });
 
   // The three judgements, bound to this reading's client and pack. Everything
   // about how one is assembled -- which system prompt, which messages, which
@@ -83,6 +109,29 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
   });
 
   let lastQuestion = "";
+
+  /**
+   * Which card is lying on this position.
+   *
+   * The whole of the physical mode, in one function. Dealt, it is a lookup that
+   * was settled by the seed before the reading started. Theirs, it is a pause
+   * while somebody turns a real card over and says what it is -- and the only
+   * asynchronous thing between the flip decision and the flip.
+   *
+   * It is called from inside the earned branch and nowhere else, which is what
+   * keeps the mode's best moment intact: a fourth card that is not earned is
+   * never asked about, so it stays face down on their table and unnamed here.
+   */
+  async function cardFor(position) {
+    if (!physical) return dealtCardFor(session, position);
+    const cardId = await identifyCard({ position, taken: namedCards(session) });
+    // The engine keeps the deck's arithmetic, not the picker: 78 cards, once
+    // each. nameCard throws if this one is already on the table.
+    nameCard(session, position, cardId);
+    persist();
+    onEvent({ type: "identified", position, card: pack.card(cardId) });
+    return cardId;
+  }
 
   function persist() {
     if (!storage) return;
@@ -184,7 +233,7 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
       // either the epilogue turns and the close covers four, or it stays face
       // down and the close names it in a line.
       if (epilogueEarned(session)) {
-        flipEpilogue(session, dealtCardFor(session, session.epilogue_position), {
+        flipEpilogue(session, await cardFor(session.epilogue_position), {
           reason: "earned before the close: the reading had somewhere left to go",
         });
         const entry = currentCard(session);
@@ -205,7 +254,7 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
       return { gate, decision, closed: true };
     }
 
-    flipNext(decision.reason);
+    await flipNext(decision.reason);
     // A bridge answers the card behind it while the new one is already up.
     await readerTurn("bridge", {
       stageDirection: flipDirection(pack, session),
@@ -214,10 +263,10 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
     return { gate, decision, flipped: true };
   }
 
-  function flipNext(reason) {
+  async function flipNext(reason) {
     // Off the table, not off the pile: the card has been lying on this position
     // face down since the reading began.
-    flipCard(session, dealtCardFor(session, nextPosition(session)), { reason });
+    flipCard(session, await cardFor(nextPosition(session)), { reason });
     const entry = currentCard(session);
     onEvent({ type: "flip", card: pack.card(entry.card_id), position: entry.position, reason });
     return entry;
@@ -402,7 +451,7 @@ export function startReading({ pack, client, storage = null, seed = newSeed(), o
       // The first card is not earned, it is dealt: the gate has nothing to
       // judge yet. Saying so is better than leaving the one blank flip reason
       // in the ledger to be read as a missing value.
-      flipNext("the opening question was answered; the reading begins");
+      await flipNext("the opening question was answered; the reading begins");
       await readerTurn("invite", { stageDirection: flipDirection(pack, session) });
       return { opening, dealt: true };
     },

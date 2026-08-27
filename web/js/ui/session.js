@@ -66,6 +66,9 @@ function today() {
  * @param {(event: object) => void} [options.onEvent]  page rendering, after the shared handling
  * @param {(reading: object) => void} [options.onStart]  a reading exists; clear and prepare
  * @param {(event: object) => void} [options.onDebug]  every assembled payload, pre-send
+ * @param {(request: {position: string, taken: string[]}) => Promise<string>} [options.identifyCard]
+ *   Physical mode: how this page asks what they just turned over. A page that
+ *   does not supply one cannot offer the mode.
  * @returns {Promise<object>} the pack, the store, and the live reading
  */
 export async function mountSession({
@@ -73,6 +76,7 @@ export async function mountSession({
   onEvent = () => {},
   onStart = () => {},
   onDebug = () => {},
+  identifyCard = null,
 } = {}) {
   const store = makeStorage();
   // The key gets its own storage so "remember on this device" is a real switch:
@@ -92,6 +96,7 @@ export async function mountSession({
 
   function saveConfig() {
     store.set(CONFIG_KEY, {
+      cardSource: $("card-source").value,
       provider: $("provider").value,
       mode: $("mode").value,
       relayBase: $("relay-base").value,
@@ -201,6 +206,25 @@ export async function mountSession({
     onEvent(event);
   }
 
+  /**
+   * The identify step, with the reply form switched off around it.
+   *
+   * The picker is a row in the chat column, not a layer over it, so without
+   * this the input underneath stays live while a turn is parked waiting for an
+   * answer -- and a second say() on top of the first one is two turns running
+   * at once over one session. The form belongs to this module, the picker
+   * belongs to the page, and the engine knows about neither.
+   */
+  const askForCard = identifyCard && (async (request) => {
+    const form = $("reply-form");
+    form.inert = true;
+    try {
+      return await identifyCard(request);
+    } finally {
+      form.inert = false;
+    }
+  });
+
   const client = makeLlmClient({
     getKey: () => $("api-key").value.trim(),
     getConfig: config,
@@ -218,6 +242,8 @@ export async function mountSession({
       client,
       storage: store,
       seed: $("seed")?.value.trim() || newSeed(),
+      cardSource: $("card-source").value,
+      identifyCard: askForCard,
       onEvent: handleEvent,
     });
 
@@ -257,6 +283,8 @@ export async function mountSession({
     $("judge-model").value = entry.defaultModel;
     saveConfig();
   });
+  $("card-source").value = c.cardSource;
+  $("card-source").addEventListener("change", saveConfig);
   $("mode").value = c.mode;
   $("relay-base").value = c.relayBase;
   $("chat-model").value = c.chatModel;

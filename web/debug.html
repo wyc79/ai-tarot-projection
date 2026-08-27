@@ -28,6 +28,12 @@
         remember on this device <span id="key-note" class="label"></span>
       </label>
 
+      <label>Cards
+        <select id="card-source">
+          <option value="dealt">dealt by the app</option>
+          <option value="physical">their own deck</option>
+        </select>
+      </label>
       <label>Provider
         <select id="provider"></select>
       </label>
@@ -71,6 +77,7 @@
   <div class="session-layout">
     <section>
       <div id="spread" class="spread"></div>
+      <div id="picker" class="picker" hidden></div>
       <div id="transcript" class="transcript"></div>
       <form id="reply-form" class="row" hidden>
         <input id="reply" placeholder="what does it look like it is pointing at?" autocomplete="off">

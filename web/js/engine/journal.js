@@ -37,7 +37,12 @@ export function toMarkdown(pack, session, { depth = 1 } = {}) {
   const h1 = "#".repeat(depth);
   const h2 = "#".repeat(depth + 1);
   const lines = [`${h1} Reading — ${isoDate(session.started_at)}`, ""];
-  lines.push(`${pack.name} · seed \`${session.seed}\``, "");
+  // Where the cards came from, and it is not decoration: a dealt reading can be
+  // re-run from its seed and a reading off someone's own deck cannot be re-run
+  // at all. Printing a seed on one of those would be an invitation to try.
+  lines.push(session.card_source === "physical"
+    ? `${pack.name} · your own deck`
+    : `${pack.name} · seed \`${session.seed}\``, "");
 
   if (session.anchor) {
     lines.push(`**What it was about:** ${session.anchor.theme}`, "");

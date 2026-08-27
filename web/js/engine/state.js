@@ -30,14 +30,15 @@ import { questionLevel, questionType } from "./questions.js";
 
 /**
  * The session shape. Bumped when it changes in a way an older saved session
- * cannot be read as -- v2 is the face-down deal, which every session now
- * carries and no session before it had.
+ * cannot be read as -- v3 is card_source, and the deal slots whose card_id is
+ * not known until someone turns a card over on their own table and says what it
+ * is. v2 was the face-down deal.
  *
  * There is no upgrade path and there is not going to be one. Sessions live in
  * one browser's localStorage, capped at twenty, and a migration layer for them
  * would outlive every session it was written for.
  */
-export const STATE_VERSION = 2;
+export const STATE_VERSION = 3;
 
 /** The top of the 1-4 disclosure scale: a rich answer earns the next card early. */
 export const DEPTH_RICH = 4;
@@ -63,20 +64,38 @@ export const AFTERWARD_MAX = 3;
 
 export function createSession({
   packId, seed, positions, epilogue = null, deal = [], startedAt = Date.now(),
+  cardSource = "dealt",
 }) {
+  const slots = [...positions, ...(epilogue ? [epilogue] : [])];
   // Every position, epilogue included, paired with the card lying face down on
   // it. Dealt once, here, before a word is said: the table shows the whole
   // topology from the start and the cards turn over in place.
-  const table = [...positions, ...(epilogue ? [epilogue] : [])]
-    .map((p, i) => (deal[i] ? { position: p.id, card_id: deal[i] } : null))
-    .filter(Boolean);
+  //
+  // When the deck is theirs the topology is identical and the identities are
+  // not there yet: four slots with nothing on them until someone turns a real
+  // card over and says what it is. Same table, same face-down row, same order.
+  const table = cardSource === "physical"
+    ? slots.map((p) => ({ position: p.id, card_id: null }))
+    : slots.map((p, i) => (deal[i] ? { position: p.id, card_id: deal[i] } : null)).filter(Boolean);
   return {
     schema_version: STATE_VERSION,
     // Seed plus start time: unique enough to key a history list, and readable
     // enough to say out loud when reporting a reading that went wrong.
-    session_id: `${seed}-${startedAt}`,
+    session_id: `${seed ?? "own-deck"}-${startedAt}`,
     pack_id: packId,
-    seed: String(seed),
+    /**
+     * Where the cards come from. "dealt" is the app's shuffled pile; "physical"
+     * is a real deck on a real table, which the app never sees and only ever
+     * hears the name of.
+     * @type {"dealt"|"physical"}
+     */
+    card_source: cardSource,
+    /**
+     * Null when the deck is theirs, because nothing here was seeded and a seed
+     * on that session would be an invitation to try re-running it.
+     * @type {string|null}
+     */
+    seed: seed === null ? null : String(seed),
     started_at: startedAt,
     positions: positions.map((p) => p.id),
     // Per-position pacing, denormalised off the pack the way positions are, and
@@ -103,7 +122,11 @@ export function createSession({
      * The spread as dealt: every position with its card, face down until the
      * reading earns it. Which cards are face up is not stored twice -- it is
      * cards[] -- so the two can never disagree. See tableau().
-     * @type {{position: string, card_id: string}[]}
+     *
+     * card_id is null on a physical slot nobody has named yet, and the fourth
+     * one usually stays that way: an unearned epilogue is never asked about, so
+     * the app never learns what it was. That is the mode's best moment.
+     * @type {{position: string, card_id: string|null}[]}
      */
     deal: table,
     /** @type {"opening"|"reading"|"afterward"|"afterglow"} */
@@ -151,9 +174,33 @@ export function tableau(session) {
   }));
 }
 
-/** The card lying on a position, face up or not. */
+/** The card lying on a position, face up or not -- null if nobody has named it. */
 export function dealtCardFor(session, position) {
   return session.deal.find((d) => d.position === position)?.card_id ?? null;
+}
+
+/** Every card this session has on the table, in either mode. */
+export function namedCards(session) {
+  return session.deal.map((d) => d.card_id).filter(Boolean);
+}
+
+/**
+ * They turned their own card over and said what it is.
+ *
+ * The one way a card_id ever reaches a physical session, and the only place
+ * that enforces a deck's own arithmetic: 78 cards, each of them once. The UI
+ * filters the picker for the same reason, but a rule the UI is the only keeper
+ * of is a rule one refactor from gone.
+ */
+export function nameCard(session, position, cardId) {
+  const slot = session.deal.find((d) => d.position === position);
+  if (!slot) throw new Error(`no slot for ${position}`);
+  if (slot.card_id) throw new Error(`${position} is already ${slot.card_id}`);
+  if (namedCards(session).includes(cardId)) {
+    throw new Error(`${cardId} is already on the table`);
+  }
+  slot.card_id = cardId;
+  return session;
 }
 
 export function currentCard(session) {
@@ -632,7 +679,10 @@ export function isReadyToClose(session, gate) {
 export function epilogueEarned(session) {
   if (!session.epilogue_position) return false;
   if (session.cards.some((c) => c.position === session.epilogue_position)) return false;
-  if (!dealtCardFor(session, session.epilogue_position)) return false;
+  // A slot for it, not a card on it: in a physical session nothing has been
+  // named yet, and asking whether it has been would make the fourth card
+  // unearnable in the mode it matters most in.
+  if (!session.deal.some((d) => d.position === session.epilogue_position)) return false;
   const offered = (e) => e.gate?.has_life_content === true && !e.gate?.hedged;
   const real = (e) => offered(e) && (e.gate?.disclosure_depth ?? 0) >= DEPTH_ENOUGH;
   const last = session.cards[session.cards.length - 1];
