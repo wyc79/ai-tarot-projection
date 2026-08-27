@@ -20,7 +20,7 @@ import { loadPack } from "../pack.js";
 import { makeLlmClient, DEFAULT_CONFIG, PROVIDERS } from "../llmClient.js";
 import { makeStorage, memoryBackend } from "../storage.js";
 import { startReading } from "../engine/reading.js";
-import { describeSession, loadHistory, toJson, toMarkdown } from "../engine/journal.js";
+import { describeSession, loadHistory, toArchive, toJson, toMarkdown } from "../engine/journal.js";
 import { newSeed } from "../engine/rng.js";
 
 const $ = (id) => document.getElementById(id);
@@ -54,6 +54,10 @@ function download(filename, text, type) {
 
 function filenameFor(session, extension) {
   return `reading-${new Date(session.started_at).toISOString().slice(0, 10)}-${session.seed}.${extension}`;
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 /**
@@ -114,6 +118,7 @@ export async function mountSession({
     const has = saved.length > 0;
     $("history-md").disabled = !has;
     $("history-json").disabled = !has;
+    $("save-all").disabled = !has;
     return saved;
   }
 
@@ -278,6 +283,10 @@ export async function mountSession({
   $("start").addEventListener("click", start);
   $("save-md").addEventListener("click", () => saveSession(reading.session, "md"));
   $("save-json").addEventListener("click", () => saveSession(reading.session, "json"));
+  // Everything at once. One file, and it opens on what it is -- see toArchive.
+  $("save-all").addEventListener("click", () => {
+    download(`ai-tarot-readings-${today()}.md`, toArchive(pack, loadHistory(store)), "text/markdown");
+  });
   for (const [id, kind] of [["history-md", "md"], ["history-json", "json"]]) {
     $(id).addEventListener("click", () => {
       const chosen = loadHistory(store).find((s) => s.session_id === $("history").value);

@@ -588,7 +588,11 @@ Internal machinery: the levels are never named to the user.
 - Key management: paste key, localStorage vs session-only toggle, provider/model settings
 - Session journal export (Markdown) and per-session JSON: DONE early in M3, because playtesting
   without transcripts loses the sessions worth reading. Every turn is saved to a capped history in
-  localStorage, unfinished readings included. Still M4: the profile/full export with warning line
+  localStorage, unfinished readings included. The full export is toArchive(pack, sessions) in
+  journal.js: every saved reading in one Markdown file, newest first, opening on a warning about
+  what the document is before the first line of it. Named for what it is rather than what is in
+  it today, so the tier-3 profile becomes another section of the same file in M6 rather than a
+  second export beside it. One "Download all" control per page, wired through session.js
 - User-provided cards mode
 - Done when: a stranger can complete a session on a phone without instructions
 
@@ -648,6 +652,13 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-27): the full export, on branch m4-ui. toArchive(pack, sessions) in journal.js
+  puts every saved reading in one file, newest first, behind a warning line and a contents list.
+  It opens on the warning because of what it is: twenty readings is twenty sessions of someone
+  saying true things about their life, and the per-session keepsake is something a person chose
+  to keep at the end of one conversation where this is the whole drawer. toMarkdown gains a depth
+  option rather than the archive demoting headings afterwards -- the user's own words go into
+  that file verbatim, and an answer that starts with "## " is an answer, not a heading.
 - v1.5 (2026-08-26): M4's first round on branch m4-ui - the two-page split, the styled desktop
   and phone layout, and the draw-in/flip treatment. index.html is the styled reading and the
   debug page is debug.html with its panel collapsed by default; the session plumbing both pages

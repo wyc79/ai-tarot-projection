@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { startReading } from "../../web/js/engine/reading.js";
 import { makeStorage, memoryBackend } from "../../web/js/storage.js";
 import {
-  HISTORY_LIMIT, describeSession, loadHistory, saveToHistory, toJson, toMarkdown,
+  HISTORY_LIMIT, describeSession, loadHistory, saveToHistory, toArchive, toJson, toMarkdown,
 } from "../../web/js/engine/journal.js";
 import { STATE_VERSION } from "../../web/js/engine/state.js";
 import { declines, fakeClient, gate, realPack } from "./helpers.mjs";
@@ -168,5 +168,84 @@ test("both stakes descriptions name advice-to-others, not just decisions", async
   const { OPENING_SCHEMA, gateSchema } = await import("../../web/js/engine/schemas.js");
   for (const schema of [gateSchema(await realPack()), OPENING_SCHEMA]) {
     assert.match(schema.properties.stakes.description, /advice of that kind\s*they intend to give someone else|advice they intend to give\s*someone else/);
+  }
+});
+
+// -- the archive -------------------------------------------------------------
+
+const EXPORTED = Date.UTC(2026, 7, 27);
+
+test("the archive opens on what it is before the first reading of it", async () => {
+  const { pack, session } = await finished();
+  const md = toArchive(pack, [session], { now: EXPORTED });
+  const warning = md.split("\n").findIndex((l) => /^> \*\*Handle this/.test(l));
+  const firstReading = md.split("\n").findIndex((l) => /^## Reading — /.test(l));
+  assert.ok(warning > -1, "no warning line");
+  assert.ok(firstReading > warning, "a reading appears above the warning about the readings");
+  assert.match(md, /diary/, "the warning has to say what kind of document this is");
+  assert.match(md, /_1 reading, .* Exported 2026-08-27\._/);
+});
+
+test("the archive carries every saved reading, newest first", async () => {
+  const { pack, session } = await finished();
+  const older = { ...structuredClone(session), session_id: "older",
+                  started_at: Date.UTC(2026, 0, 2) };
+  const newer = { ...structuredClone(session), session_id: "newer",
+                  started_at: Date.UTC(2026, 5, 9) };
+  const md = toArchive(pack, [newer, older], { now: EXPORTED });
+
+  const dates = [...md.matchAll(/^## Reading — (\S+)/gm)].map((m) => m[1]);
+  assert.deepEqual(dates, ["2026-06-09", "2026-01-02"], "newest first, both present");
+  assert.match(md, /_2 readings, 2026-01-02 to 2026-06-09\./);
+  // Every answer from every session, or the file is not the record it claims.
+  // Counted as whole lines: "money" is a substring of "not the money", and a
+  // substring count says four where the answer appears twice.
+  const said = md.split("\n").filter((l) => l.startsWith("**You:** "));
+  for (const exchange of session.exchanges) {
+    assert.equal(said.filter((l) => l === `**You:** ${exchange.a}`).length, 2,
+                 `once per reading: ${exchange.a}`);
+  }
+});
+
+test("a reading nests under the archive title instead of competing with it", async () => {
+  const { pack, session } = await finished();
+  const md = toArchive(pack, [session], { now: EXPORTED });
+  assert.equal([...md.matchAll(/^# (?!#)/gm)].length, 1, "exactly one top-level heading");
+  assert.match(md, /^### Situation — /m, "a reading's own sections drop a level with it");
+  // And the standalone keepsake is untouched by any of that.
+  assert.match(toMarkdown(pack, session), /^# Reading — /m);
+  assert.match(toMarkdown(pack, session), /^## Situation — /m);
+});
+
+test("the archive lists what is in it before printing it", async () => {
+  const { pack, session } = await finished();
+  const md = toArchive(pack, [session], { now: EXPORTED });
+  assert.match(md, /^## Contents$/m);
+  assert.ok(md.includes(`- ${describeSession(session)}`), "the picker's label, in the file");
+});
+
+test("an empty archive still says what it would have been", async () => {
+  const pack = await realPack();
+  const md = toArchive(pack, [], { now: EXPORTED });
+  assert.match(md, /^> \*\*Handle this/m, "the warning does not depend on there being readings");
+  assert.match(md, /Nothing saved yet\. Exported 2026-08-27\./);
+});
+
+test("the archive is what loadHistory holds, in the order it holds it", async () => {
+  const storage = makeStorage(memoryBackend());
+  const { pack, session } = await finished();
+  for (const [id, at] of [["a", 1], ["b", 2], ["c", 3]]) {
+    saveToHistory(storage, { ...structuredClone(session), session_id: id, started_at: at });
+  }
+  const md = toArchive(pack, loadHistory(storage), { now: EXPORTED });
+  assert.equal([...md.matchAll(/^## Reading — /gm)].length, 3);
+  assert.match(md, /_3 readings,/);
+});
+
+test("the archive carries no trailing whitespace either", async () => {
+  const { pack, session } = await finished();
+  session.closing_reflection = "the step, with a stray space ";
+  for (const line of toArchive(pack, [session], { now: EXPORTED }).split("\n")) {
+    assert.equal(line, line.trimEnd(), `trailing space on: ${JSON.stringify(line)}`);
   }
 });

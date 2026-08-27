@@ -23,8 +23,20 @@ function exchangesFor(session, position) {
   return session.exchanges.filter((e) => e.position === position);
 }
 
-export function toMarkdown(pack, session) {
-  const lines = [`# Reading — ${isoDate(session.started_at)}`, ""];
+/**
+ * @param {object} pack
+ * @param {object} session
+ * @param {object} [options]
+ * @param {number} [options.depth]  heading level for the reading's own title, so
+ *   the same renderer produces a standalone keepsake and a section of the
+ *   archive. Demoting the headings afterwards is not an option: the user's own
+ *   words go into this file verbatim, and an answer that starts with "## " is
+ *   an answer, not a heading.
+ */
+export function toMarkdown(pack, session, { depth = 1 } = {}) {
+  const h1 = "#".repeat(depth);
+  const h2 = "#".repeat(depth + 1);
+  const lines = [`${h1} Reading — ${isoDate(session.started_at)}`, ""];
   lines.push(`${pack.name} · seed \`${session.seed}\``, "");
 
   if (session.anchor) {
@@ -35,7 +47,7 @@ export function toMarkdown(pack, session) {
   // said they came for is part of the reading, and sometimes the best part.
   const opening = exchangesFor(session, "opening");
   if (opening.length) {
-    lines.push("## Before the cards", "");
+    lines.push(`${h2} Before the cards`, "");
     for (const exchange of opening) {
       if (exchange.q) lines.push(exchange.q.trim(), "");
       lines.push(`**You:** ${exchange.a.trim()}`, "");
@@ -45,7 +57,7 @@ export function toMarkdown(pack, session) {
   const renderCard = (entry) => {
     const card = pack.card(entry.card_id);
     const position = pack.position(entry.position);
-    lines.push(`## ${position?.label ?? entry.position} — ${card.name}`, "");
+    lines.push(`${h2} ${position?.label ?? entry.position} — ${card.name}`, "");
     lines.push(`> ${card.imagery_line}`, "");
     for (const exchange of exchangesFor(session, entry.position)) {
       if (exchange.q) lines.push(exchange.q.trim(), "");
@@ -60,7 +72,7 @@ export function toMarkdown(pack, session) {
 
   const offFrame = exchangesFor(session, "off_frame");
   if (offFrame.length) {
-    lines.push("## After the frame was dropped", "");
+    lines.push(`${h2} After the frame was dropped`, "");
     for (const exchange of offFrame) {
       if (exchange.q) lines.push(exchange.q.trim(), "");
       lines.push(`**You:** ${exchange.a.trim()}`, "");
@@ -68,7 +80,7 @@ export function toMarkdown(pack, session) {
   }
 
   if (session.closing_reflection) {
-    lines.push("## The step", "", session.closing_reflection.trim(), "");
+    lines.push(`${h2} The step`, "", session.closing_reflection.trim(), "");
   }
 
   // The card that stayed with the deck. Worth a line in the keepsake for the
@@ -82,8 +94,8 @@ export function toMarkdown(pack, session) {
                + " Still there next time._", "");
   }
 
-  for (const [position, heading] of [["afterward", "## After that"],
-                                     ["afterglow", "## A while longer"]]) {
+  for (const [position, heading] of [["afterward", `${h2} After that`],
+                                     ["afterglow", `${h2} A while longer`]]) {
     const after = exchangesFor(session, position);
     if (!after.length) continue;
     lines.push(heading, "");
@@ -103,6 +115,62 @@ export function toMarkdown(pack, session) {
 /** Everything, for re-running a transcript against a changed prompt. */
 export function toJson(session) {
   return JSON.stringify({ schema_version: JOURNAL_SCHEMA_VERSION, session }, null, 2);
+}
+
+/**
+ * Everything this browser is holding, in one file, newest first.
+ *
+ * Named for what it is rather than for what is in it today. There is no stored
+ * profile yet -- tier-3 user memory is M6 -- and when there is, it becomes
+ * another section of this same document rather than a second export beside it.
+ *
+ * It opens on a warning because of what it is: twenty readings is twenty
+ * sessions of someone saying true things about their life, in their own words,
+ * with the questions that got them there. The per-session keepsake is something
+ * a person chose to keep at the end of one conversation. This is the whole
+ * drawer, and it should say so before the first line of it.
+ *
+ * @param {object} pack
+ * @param {object[]} sessions  as loadHistory returns them: newest first
+ * @param {object} [options]
+ * @param {number} [options.now]  the export's own timestamp, injectable so a
+ *   test can pin it
+ */
+export function toArchive(pack, sessions, { now = Date.now() } = {}) {
+  const lines = [
+    "# AI Tarot Projection — every reading saved in this browser",
+    "",
+    "> **Handle this the way you would handle a diary, because that is what it is.**",
+    "> Every reading below is a record of things you said about your own life, in your",
+    "> own words, with the questions that got you there. Nothing in it left your browser",
+    "> except to the model you brought the key for. Where you put this file, it stays.",
+    "",
+  ];
+
+  if (!sessions.length) {
+    lines.push(`_Nothing saved yet. Exported ${isoDate(now)}._`, "");
+    return lines.join("\n");
+  }
+
+  const oldest = isoDate(Math.min(...sessions.map((s) => s.started_at)));
+  const newest = isoDate(Math.max(...sessions.map((s) => s.started_at)));
+  lines.push(`_${sessions.length} reading${sessions.length === 1 ? "" : "s"}, `
+             + `${oldest === newest ? oldest : `${oldest} to ${newest}`}. `
+             + `Exported ${isoDate(now)}._`, "");
+
+  // What is in here, before the twenty of them start. The same label the
+  // readings picker uses, so the file and the page name a session alike.
+  lines.push("## Contents", "");
+  for (const session of sessions) lines.push(`- ${describeSession(session)}`);
+  lines.push("");
+
+  for (const session of sessions) {
+    lines.push("---", "");
+    // Demoted one level: the readings are sections of this document, and their
+    // own headings have to sit under its title rather than beside it.
+    lines.push(toMarkdown(pack, session, { depth: 2 }));
+  }
+  return lines.join("\n");
 }
 
 /** A short label for a saved reading, built from what it was about. */
