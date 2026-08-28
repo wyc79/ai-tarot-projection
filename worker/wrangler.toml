@@ -8,9 +8,16 @@ compatibility_date = "2025-01-01"
 # anything that touches a key.
 
 [vars]
-# Set to the deployed frontend origin before going live. "*" is a local-dev
-# default and leaves the relay open to anyone.
-ALLOWED_ORIGINS = "*"
+# The deployed frontend origin, and only that: "*" would leave the relay open
+# for anyone to spend their own key through, which is a bill somebody else pays
+# in attention even if not in money. A fork changes this line and the matching
+# one in web/js/relayBase.js.
+#
+# For local dev, copy .dev.vars.example to .dev.vars and put "*" there. Wrangler
+# reads .dev.vars only under `wrangler dev`, never on deploy, and vars are NOT
+# inherited by named [env.*] blocks -- an [env.dev] would have to restate
+# PROVIDERS too, and a second copy of the provider map is a thing to get wrong.
+ALLOWED_ORIGINS = "https://wyc79.github.io"
 
 # Requests per IP per minute.
 RATE_LIMIT = "30"

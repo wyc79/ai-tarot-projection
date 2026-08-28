@@ -225,6 +225,10 @@ __marimo__/
 # wrangler dev local state
 worker/.wrangler/
 
+# Local-dev var overrides. Never deployed; the committed file is the example.
+worker/.dev.vars*
+!worker/.dev.vars.example
+
 # checkpoint transcripts: real sessions, kept out of git
 checkpoint/
 

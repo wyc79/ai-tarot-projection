@@ -1,0 +1,9 @@
+# Copy to worker/.dev.vars (gitignored) for local development.
+#
+# Wrangler loads this file only when running `wrangler dev`, and its values take
+# precedence over [vars] in wrangler.toml. Nothing here is ever deployed.
+#
+# The one thing local dev needs differently: the page is served from
+# http://localhost:8787 rather than from the Pages origin, so the deployed
+# allow-list would refuse it.
+ALLOWED_ORIGINS="*"
