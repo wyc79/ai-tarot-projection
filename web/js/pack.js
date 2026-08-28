@@ -4,7 +4,8 @@
  * Takes any pack directory, not just this one -- "fork it, drop in your own
  * deck" means pointing this at another dir and nothing else changing. Paths are
  * resolved relative to the document, never from the site root, so the same code
- * works at http://localhost:8787/ and at https://user.github.io/ai-tarot/.
+ * works at http://localhost:8787/ and at
+ * https://wyc79.github.io/ai-tarot-projection/.
  */
 
 const SCHEMA_VERSION = 5;
