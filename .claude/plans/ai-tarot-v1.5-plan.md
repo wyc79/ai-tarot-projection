@@ -328,6 +328,13 @@ Per session:
   by a person walking out early, in which case `farewell` stays null. `farewell` sits beside
   closing_reflection rather than inside it - two different things said at two different moments,
   and the keepsake reads wrong if the goodbye is folded into the step
+- pending_question: the reader's last turn, for as long as nobody has answered it. Every other
+  reader turn reaches the record as the `q` of the exchange its answer became; this one has no
+  answer, and without it the turn is in no exchange at all and the keepsake ends one turn short of
+  where the reading stopped. Cleared by whatever takes it - an exchange's `q`, the closing step,
+  the goodbye - so it is held here or it is in the record, never both. Not the same thing as a
+  card's ai_reading, which is the last thing said while that card was up whether or not it was
+  answered, and is overwritten every reader turn
 - exchanges: [{ q, a, disclosure_depth, position, question_type, question_level, gate }] - position
   is a card's position, or "opening" (before the deal) or "off_frame" (after the frame is dropped)
   or "afterward" / "afterglow" (after the closing beat).
@@ -685,6 +692,21 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-28): the reader's unanswered last turn, on branch trailing-reader-turn. The
+  keepsake rendered the transcript as exchanges, so a reader turn only reached the file once
+  somebody answered it -- and whenever the reader spoke last, the export ended one turn early, on
+  what the person said rather than on what was said back. Most visible after the frame is dropped,
+  because from then on the reader is always the last speaker: the turn that went missing was the
+  reply to a crisis. session.pending_question holds it now, set where reading.js sets its
+  lastQuestion and cleared by whatever takes it into the record, and toMarkdown prints it at the
+  end of the section the last recorded exchange is in -- before the step, the goodbye and the line
+  saying the reading stopped. It is not read off card.ai_reading, which was the only persisted
+  copy and is the wrong one: that is the last thing said while a card was up whether or not it was
+  answered, and it is overwritten every reader turn. STATE_VERSION 4, saved readings at v3 dropped
+  rather than migrated, per the working agreements. Found and deliberately not fixed: once any
+  card has been dealt, post-drop-frame turns go through recordExchange at that card's position,
+  because the off_frame branch in say() only fires when no card was ever turned -- so "After the
+  frame was dropped" never appears in those exports and the turns read under the last card.
 - v1.5 (2026-08-27): user-provided cards, built as the physical deck, on branch m4-ui - the last
   item in M4. Shape written up in the M4 section above; the short form is that card identity is
   the only thing that moves. STATE_VERSION 3, deal slots whose card_id is null until a person
