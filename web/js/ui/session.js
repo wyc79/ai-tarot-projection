@@ -17,6 +17,7 @@
  */
 
 import { loadPack } from "../pack.js";
+import { defaultRelayBase } from "../relayBase.js";
 import { makeLlmClient, DEFAULT_CONFIG, PROVIDERS } from "../llmClient.js";
 import { makeStorage, memoryBackend } from "../storage.js";
 import { startReading } from "../engine/reading.js";
@@ -91,7 +92,12 @@ export async function mountSession({
   const pack = await loadPack(packDir);
 
   function config() {
-    return { ...DEFAULT_CONFIG, ...store.get(CONFIG_KEY, {}) };
+    const saved = { ...DEFAULT_CONFIG, ...store.get(CONFIG_KEY, {}) };
+    // Whatever they typed wins. Blank is not a choice, it is the absence of one,
+    // and it resolves to wherever this deployment's relay is -- so the hosted
+    // page arrives already pointed at the Worker and a stranger never sees a URL
+    // they would have had to be told.
+    return { ...saved, relayBase: saved.relayBase || defaultRelayBase(location.origin) };
   }
 
   function saveConfig() {
