@@ -166,6 +166,10 @@ export function startReading({
     // afterwards rewrites how the reading ended.
     if (onCard) recordReading(session, text, { offset: readingOffset });
     lastQuestion = text;
+    // And on the session, which is the half that survives the tab closing.
+    // lastQuestion steers the next turn; this is the record of the turn, held
+    // until an answer, the closing step or the goodbye takes it.
+    session.pending_question = text;
     onEvent({ type: "reader_done", text, turn });
     persist();
     return text;

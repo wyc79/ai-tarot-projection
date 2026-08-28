@@ -30,15 +30,16 @@ import { questionLevel, questionType } from "./questions.js";
 
 /**
  * The session shape. Bumped when it changes in a way an older saved session
- * cannot be read as -- v3 is card_source, and the deal slots whose card_id is
- * not known until someone turns a card over on their own table and says what it
- * is. v2 was the face-down deal.
+ * cannot be read as -- v4 is pending_question, the reader's unanswered last
+ * turn, which the record had nowhere to put. v3 was card_source, and the deal
+ * slots whose card_id is not known until someone turns a card over on their own
+ * table and says what it is. v2 was the face-down deal.
  *
  * There is no upgrade path and there is not going to be one. Sessions live in
  * one browser's localStorage, capped at twenty, and a migration layer for them
  * would outlive every session it was written for.
  */
-export const STATE_VERSION = 3;
+export const STATE_VERSION = 4;
 
 /** The top of the 1-4 disclosure scale: a rich answer earns the next card early. */
 export const DEPTH_RICH = 4;
@@ -152,6 +153,26 @@ export function createSession({
     ended: false,
     /** The last thing said, once there is one. The one turn with no question. */
     farewell: null,
+    /**
+     * The reader's last turn, for as long as nobody has answered it.
+     *
+     * Every other turn the reader takes reaches the record as the `q` of the
+     * exchange its answer became, so the transcript is answers with the
+     * questions that got them. The last turn has no answer, and without this it
+     * is in no exchange at all: the keepsake ends on whatever the person said,
+     * one turn short of where the reading actually stopped. After the frame is
+     * dropped the reader is always the last to speak, which makes the turn that
+     * goes missing the reply to a crisis.
+     *
+     * Cleared by whatever takes it -- an exchange's `q`, the closing step, the
+     * goodbye. It is held here or it is in the record, never both.
+     *
+     * Not the current card's `ai_reading`: that is the last thing said while
+     * this card was up whether or not it was answered, and it is overwritten
+     * every reader turn. This is the one turn nothing else keeps.
+     * @type {string|null}
+     */
+    pending_question: null,
   };
 }
 
@@ -424,6 +445,15 @@ export function flipCard(session, cardId, { flippedAt = Date.now(), reason = "" 
 }
 
 /**
+ * Something has taken the reader's last turn into the record -- as an exchange's
+ * `q`, as the closing step, as the goodbye -- so the session stops holding it.
+ * See `pending_question`.
+ */
+function questionAnswered(session) {
+  session.pending_question = null;
+}
+
+/**
  * The turn before anything is dealt. Kept in the transcript like any other
  * exchange, under its own position so it never counts toward a card's rhythm.
  */
@@ -435,6 +465,7 @@ export function recordOpening(session, { question, answer, opening }) {
     position: "opening",
     gate: { ...opening },
   });
+  questionAnswered(session);
   session.topic = opening.has_topic && opening.topic.trim() ? opening.topic.trim() : null;
   session.last_stakes = opening.stakes;
   if (opening.stakes === "crisis") session.safety_state = "drop_frame";
@@ -454,6 +485,7 @@ export function recordOffFrame(session, { question, answer, stakes = "crisis" })
     position: "off_frame",
     gate: { stakes },
   });
+  questionAnswered(session);
   session.last_stakes = stakes;
   return session;
 }
@@ -475,6 +507,7 @@ export function recordAside(session, { question, answer, gate }) {
     aside: true,
     gate: { ...gate },
   });
+  questionAnswered(session);
   session.last_stakes = gate.stakes ?? session.last_stakes;
   if (gate.stakes === "crisis") session.safety_state = "drop_frame";
   return session;
@@ -501,6 +534,7 @@ export function recordExchange(session, { question, answer, gate }) {
     // prompt change is only useful if you can see what the judge thought then.
     gate: { ...gate },
   });
+  questionAnswered(session);
 
   session.last_stakes = gate.stakes;
   // Crisis is one-way. Once the frame is dropped it stays dropped for the
@@ -769,6 +803,8 @@ export function flipEpilogue(session, cardId, { flippedAt = Date.now(), reason =
 export function close(session, reflection) {
   session.closing_reflection = reflection;
   session.closed = true;
+  // The step is a reader turn, and this is what takes it into the record.
+  questionAnswered(session);
   return session;
 }
 
@@ -791,6 +827,7 @@ export function recordAfterward(session, { question, answer, gate, position = "a
     question_level: questionLevel(question),
     gate: { ...gate },
   });
+  questionAnswered(session);
   session.last_stakes = gate.stakes ?? session.last_stakes;
   if (gate.stakes === "crisis") session.safety_state = "drop_frame";
   return session;
@@ -817,7 +854,13 @@ export function recordAfterward(session, { question, answer, gate, position = "a
  */
 export function end(session, farewell = null) {
   session.ended = true;
-  if (farewell) session.farewell = farewell;
+  // Same for the goodbye. Walking out has no goodbye to take the last turn, so
+  // whatever the reader was saying when they left stays pending and reaches the
+  // keepsake that way -- which is the honest record of where they left.
+  if (farewell) {
+    session.farewell = farewell;
+    questionAnswered(session);
+  }
   return session;
 }
 
