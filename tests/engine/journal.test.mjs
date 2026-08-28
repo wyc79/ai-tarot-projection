@@ -79,6 +79,86 @@ test("a dropped-frame reading says so in the file", async () => {
   assert.match(toMarkdown(pack, session), /stopped being a reading partway through/);
 });
 
+// -- the turn nobody answered ------------------------------------------------
+
+/**
+ * A reading that stopped with the reader talking.
+ *
+ * Every reader turn but the last one reaches the record as the `q` of the
+ * exchange its answer became. The last one has no answer, so nothing else in
+ * the session carries it -- and after the frame is dropped the reader is
+ * always the last to speak, which makes the missing turn the crisis reply.
+ *
+ * Every turn is numbered as it is said, so a test can count a specific one
+ * rather than a substring of several.
+ */
+async function stoppedMidTurn(gates, answers) {
+  const pack = await realPack();
+  let n = 0;
+  const reading = startReading({
+    pack,
+    seed: "moon-4f2a91",
+    client: fakeClient({ gates, opening: declines, reply: (turn) => `${turn} turn ${n += 1}` }),
+  });
+  await reading.begin();
+  for (const answer of answers) await reading.say(answer);
+  return { pack, reading, session: reading.session };
+}
+
+/** How many whole lines of the file are exactly this. */
+const saidOnce = (md, line) => md.split("\n").filter((l) => l === line).length;
+
+test("the reader's unanswered last turn is in the keepsake, under the card it was said on", async () => {
+  const { pack, session } = await stoppedMidTurn(
+    [gate(2)], ["no, nothing in particular", "it looks tired"]);
+
+  const md = toMarkdown(pack, session);
+  assert.equal(saidOnce(md, "respond turn 3"), 1,
+               "the last thing the reader said is in the file, exactly once");
+  const lines = md.split("\n");
+  assert.ok(lines.indexOf("respond turn 3") > lines.findIndex((l) => /^## Situation — /.test(l)),
+            "under the card it was said on");
+});
+
+test("a reader turn that did get answered is not printed a second time", async () => {
+  const { pack, reading } = await stoppedMidTurn(
+    [gate(2), gate(2)],
+    ["no, nothing in particular", "it looks tired", "nobody is attacking me"]);
+
+  const md = toMarkdown(pack, reading.session);
+  assert.equal(saidOnce(md, "respond turn 3"), 1,
+               "answered, it is the question above their answer and nothing besides");
+  assert.equal(saidOnce(md, "respond turn 4"), 1,
+               "and the one nobody answered has taken its place at the end");
+});
+
+test("the opening question is in the keepsake even when nobody answered it", async () => {
+  const { pack, session } = await stoppedMidTurn([], []);
+  const md = toMarkdown(pack, session);
+  assert.match(md, /## Before the cards/, "the reading got that far and no further");
+  assert.equal(saidOnce(md, "opening turn 1"), 1, "and that is the whole of it");
+});
+
+test("a reading where nobody has spoken at all prints no empty section", async () => {
+  const pack = await realPack();
+  const reading = startReading({ pack, seed: "moon-4f2a91", client: fakeClient({}) });
+  assert.doesNotMatch(toMarkdown(pack, reading.session), /Before the cards/,
+                      "a heading with nothing under it is worse than no heading");
+});
+
+test("the reply after the frame was dropped comes before the line saying so", async () => {
+  const { pack, reading } = await stoppedMidTurn(
+    [gate(2), gate(3, "crisis")],
+    ["no, nothing in particular", "it looks tired", "i already got help, i'm safe now"]);
+  assert.equal(reading.session.safety_state, "drop_frame", "the frame was dropped");
+
+  const lines = toMarkdown(pack, reading.session).split("\n");
+  const reply = lines.indexOf("respond turn 4");
+  assert.ok(reply > -1, "the crisis reply is in the file at all");
+  assert.ok(lines.findIndex((l) => /stopped being a reading partway through/.test(l)) > reply,
+            "and above the line saying the reading stopped");
+});
+
 test("history keeps one entry per session, updated in place", async () => {
   const storage = makeStorage(memoryBackend());
   const { session } = await finished();

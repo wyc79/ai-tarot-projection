@@ -48,15 +48,28 @@ export function toMarkdown(pack, session, { depth = 1 } = {}) {
     lines.push(`**What it was about:** ${session.anchor.theme}`, "");
   }
 
+  // The reader's last turn, when nobody answered it. Every other one is printed
+  // as the question above the answer it got; this one has no answer to sit
+  // above, so it goes at the end of whichever section the conversation had
+  // reached -- which is the section the last recorded exchange is in. Nothing
+  // recorded at all means the reading got as far as the opening question and no
+  // further. Null when there is no such turn, so no section is opened for it.
+  const pending = session.pending_question?.trim();
+  const pendingIn = pending ? session.exchanges.at(-1)?.position ?? "opening" : null;
+  const printPending = (position) => {
+    if (position === pendingIn) lines.push(pending, "");
+  };
+
   // The turn before anything was dealt belongs in the record too: what they
   // said they came for is part of the reading, and sometimes the best part.
   const opening = exchangesFor(session, "opening");
-  if (opening.length) {
+  if (opening.length || pendingIn === "opening") {
     lines.push(`${h2} Before the cards`, "");
     for (const exchange of opening) {
       if (exchange.q) lines.push(exchange.q.trim(), "");
       lines.push(`**You:** ${exchange.a.trim()}`, "");
     }
+    printPending("opening");
   }
 
   const renderCard = (entry) => {
@@ -68,6 +81,7 @@ export function toMarkdown(pack, session, { depth = 1 } = {}) {
       if (exchange.q) lines.push(exchange.q.trim(), "");
       lines.push(`**You:** ${exchange.a.trim()}`, "");
     }
+    printPending(entry.position);
   };
 
   // Every card that turned, in the order it turned, the fourth one included.
@@ -82,6 +96,7 @@ export function toMarkdown(pack, session, { depth = 1 } = {}) {
       if (exchange.q) lines.push(exchange.q.trim(), "");
       lines.push(`**You:** ${exchange.a.trim()}`, "");
     }
+    printPending("off_frame");
   }
 
   if (session.closing_reflection) {
@@ -108,6 +123,7 @@ export function toMarkdown(pack, session, { depth = 1 } = {}) {
       if (exchange.q) lines.push(exchange.q.trim(), "");
       lines.push(`**You:** ${exchange.a.trim()}`, "");
     }
+    printPending(position);
   }
 
   if (session.farewell) lines.push(session.farewell.trim(), "");
