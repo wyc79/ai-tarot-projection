@@ -164,6 +164,42 @@ export async function mountSession({
   }
 
   /**
+   * Which settings box a failure is actually about, or null for one that is
+   * not about a setting at all. A rate limit and a truncated reply are real
+   * errors and nothing in this panel fixes either, so they leave it shut.
+   *
+   * The mapping is read off the codes llmClient already assigns; nothing here
+   * re-decides what a failure was.
+   */
+  function fieldForError(error) {
+    switch (error.code) {
+      case "invalid_key":
+      case "missing_key":
+        return "api-key";
+      case "unknown_provider":
+        return "provider";
+      case "unknown_model": {
+        // Two boxes, one code. The provider usually quotes the id it did not
+        // recognise, which is the only thing that tells them apart -- and when
+        // both boxes hold the same id there is nothing to tell apart anyway.
+        const judge = $("judge-model").value.trim();
+        return judge && judge !== $("chat-model").value.trim() && error.message.includes(judge)
+          ? "judge-model"
+          : "chat-model";
+      }
+      case "connection_failed":
+        // In direct mode the browser went to the provider; the relay URL is
+        // not what failed, and the way out is the mode itself.
+        return $("mode").value === "relay" ? "relay-base" : "mode";
+      case "origin_denied":
+      case "upstream_unreachable":
+        return "relay-base";
+      default:
+        return null;
+    }
+  }
+
+  /**
    * Errors go where the user is looking, not only into the status bar. The
    * first version reported them into the settings panel, which start()
    * collapses -- so a failed request looked exactly like no request at all.
@@ -184,6 +220,11 @@ export async function mountSession({
     // returns to its door on this; the debug page, whose start button never
     // goes anywhere, ignores it.
     onEvent({ type: "reading_failed", error, spoke });
+    // Last, so the page has finished putting itself back together before the
+    // cursor lands: the styled page returns to its door on the event above,
+    // and focus taken before that is focus inside a section on its way out.
+    const field = fieldForError(error);
+    if (field) revealField(field);
   }
 
   /**
