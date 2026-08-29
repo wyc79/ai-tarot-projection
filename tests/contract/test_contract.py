@@ -27,6 +27,12 @@ ALLOWED_ORIGIN = os.environ.get("RELAY_ORIGIN", "http://localhost:1234")
 # Distinctive enough that finding it in any output stream is unambiguous.
 CANARY_KEY = "sk-canary-0ff1ce-do-not-log-me"
 
+# urllib's default identifies itself as Python, which Cloudflare's edge refuses
+# outright (error 1010) before a request reaches the Worker -- so against a
+# deployed relay every test would fail on a 403 that the relay never sent. The
+# contract says nothing about user agents; naming ourselves is enough.
+USER_AGENT = "ai-tarot-contract-suite/1"
+
 WORKER_SRC = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
     "worker", "src", "index.js")
@@ -37,6 +43,7 @@ def call(path="/v1/chat", body=None, key=CANARY_KEY, origin=None, method="POST",
     data = raw if raw is not None else (json.dumps(body).encode() if body is not None else None)
     req = urllib.request.Request(BASE + path, data=data, method=method)
     req.add_header("Content-Type", "application/json")
+    req.add_header("User-Agent", USER_AGENT)
     if key:
         req.add_header("Authorization", "Bearer %s" % key)
     if origin:
@@ -142,6 +149,7 @@ class ForwardingTest(unittest.TestCase):
             method="POST")
         req.add_header("Content-Type", "application/json")
         req.add_header("Authorization", "Bearer %s" % CANARY_KEY)
+        req.add_header("User-Agent", USER_AGENT)
 
         start = time.monotonic()
         arrivals, received = [], b""
@@ -175,6 +183,7 @@ class ForwardingTest(unittest.TestCase):
             method="POST")
         req.add_header("Content-Type", "application/json")
         req.add_header("Authorization", "Bearer %s" % CANARY_KEY)
+        req.add_header("User-Agent", USER_AGENT)
         try:
             resp = urllib.request.urlopen(req, timeout=15)
             received = b""

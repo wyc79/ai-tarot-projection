@@ -642,7 +642,7 @@ Internal machinery: the levels are never named to the user.
 - Self-host release: clean clone -> .env -> run works per README
 - README: positioning ("for people who don't believe in tarot but believe in thinking out loud"), BYOK trust story (three modes: local Python relay, hosted Worker relay, direct; key never stored/logged anywhere, both relay sources short enough to read), fork-your-own-deck pack docs, MIT attribution notes, LICENSE-ART.md provenance
 - Resume/portfolio writeup; link from personal site
-- Done when: repo is public, hosted demo works end-to-end on Pages + Worker, demo also runs from a clean clone, README answers "why should I trust this with my key"
+- Done when, in this order: hosted demo works end-to-end on Pages + Worker, demo also runs from a clean clone, README answers "why should I trust this with my key", repo is public. Public last on purpose - a public repo whose demo 404s is worse than a private one, and the demo is the thing the playtest needs
 
 ### M6 - Only if M3 validated
 - Tier-3 user memory (see section above) with familiarity stages, memory screen, export/import
@@ -692,6 +692,14 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-28): M5 moved ahead of the stranger playtest, on branch m5-ship. The open items
+  had the playtest first and it cannot be run in that order: the playtest is a stranger opening a
+  URL on their own phone with their own key, and that URL does not exist until the static site is
+  on Pages and a relay is deployed in front of it. Asking someone to clone a repo and run a Python
+  server is a different experiment with a different population. So M5 goes first, and its done-when
+  is ordered too -- hosted demo working, then clean clone, then README, then public -- because
+  making the repo public is the one step that cannot be taken back, and it should be taken over
+  something that works. Neither milestone's content changed; only which one is next.
 - v1.5 (2026-08-28): the reader's unanswered last turn, on branch trailing-reader-turn. The
   keepsake rendered the transcript as exchanges, so a reader turn only reached the file once
   somebody answered it -- and whenever the reader spoke last, the export ended one turn early, on
@@ -817,9 +825,9 @@ Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider
 - v1: initial plan through the architecture decisions (dual dumb relays, client-side assembly)
 
 ## Open items (next working session)
+- M5 first: Pages deploy, Worker relay, README. It is what the playtest is waiting on
 - M4 is built. What is left of its done-when is the check itself: a stranger completing a
   session on a phone without instructions, which is the playtest
-- Playtests with real tarot-curious non-dev people (the second half of M3's done-when), which is
-  what the styled page existed to unblock. Both card modes are worth putting in front of people:
-  the physical one is the stronger idea and the one nobody has used yet
-- Then M5: Pages deploy, Worker relay, README
+- Then playtests with real tarot-curious non-dev people (the second half of M3's done-when),
+  which is what the styled page existed to unblock. Both card modes are worth putting in front
+  of people: the physical one is the stronger idea and the one nobody has used yet

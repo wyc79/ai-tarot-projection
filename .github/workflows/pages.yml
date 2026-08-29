@@ -1,0 +1,74 @@
+# Publish the static site to GitHub Pages on every push to main.
+#
+# No build step, per the plan: the frontend is plain HTML/CSS/JS and the packs
+# are static files it fetches. All this workflow does is arrange two directories
+# into the shape the pages already expect.
+#
+# THE SITE ROOT IS A COMPOSED DIRECTORY, NOT THE REPO ROOT.
+#
+#   site/            <- web/    (index.html, debug.html, pack.html, css/, js/)
+#   site/data/       <- data/   (deck.json, persona.md, few-shots.json, Cards-jpg/)
+#
+# which is exactly what server/relay.py's serve_static() serves ("web/ at the
+# root, data/ under /data/"). That is the point: one shape for both deployments,
+# so a relative path that resolves in self-host resolves on Pages too.
+#
+# Publishing the repo root instead would put the pages at /web/index.html, and
+# every path they use is document-relative -- pack.js's loadPack("data") would
+# ask for /web/data/deck.json, which does not exist. Composing costs two cp
+# lines; the alternative costs a rewrite of every path in the frontend and a
+# second shape for the Python relay to serve.
+#
+# Nothing but web/ and data/ is copied, so .env, checkpoint/, redactions/,
+# references/ and _to_delete/ cannot reach the published site. They are also all
+# gitignored and therefore absent from the checkout to begin with -- two
+# independent reasons, which is the right number for a directory that becomes a
+# public URL.
+
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# The defaults are read-only; Pages needs these three and nothing more.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time, and never cancel one that is mid-flight: a half-written
+# site is worse than a stale one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compose the site
+        run: |
+          mkdir -p site
+          cp -R web/. site/
+          cp -R data site/data
+          find site -type f | sort
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

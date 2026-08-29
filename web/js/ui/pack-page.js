@@ -5,6 +5,7 @@
  */
 
 import { loadPack } from "../pack.js";
+import { defaultRelayBase } from "../relayBase.js";
 
 const $ = (id) => document.getElementById(id);
 const RELAY_KEY = "tarot:relay_base";
@@ -54,7 +55,8 @@ async function main() {
   renderCard(pack, pack.cards[0]);
 
   const relayInput = $("relay-base");
-  relayInput.value = localStorage.getItem(RELAY_KEY) ?? "";
+  // Same rule as the reading page: their setting, or this deployment's relay.
+  relayInput.value = localStorage.getItem(RELAY_KEY) || defaultRelayBase(location.origin);
   $("relay-check").addEventListener("click", () => {
     localStorage.setItem(RELAY_KEY, relayInput.value);
     checkRelay(relayInput.value);
