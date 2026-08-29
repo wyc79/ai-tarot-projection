@@ -298,6 +298,13 @@ export async function mountSession({
   $("api-key").value = keyStore.get(KEY_KEY, "") || store.get(KEY_KEY, "");
   $("key-persist").checked = Boolean(store.get(KEY_KEY, ""));
   $("key-note").textContent = store.persistent ? "" : "(this browser blocks storage; memory only)";
+  // Opened, never closed. The one thing a stranger has to do before anything
+  // works is behind this panel, and on a first visit the panel is shut. What
+  // decides it is whether a key came back from either store -- the remembered
+  // one or the tab's own -- and not a flag of its own, so there is nothing to
+  // keep in step with the key. Only ever opening it also leaves the debug page
+  // alone, where the markup opens it and the Start button is inside it.
+  if (!$("api-key").value) $("settings").open = true;
 
   $("key-persist").addEventListener("change", () => {
     const key = $("api-key").value.trim();
