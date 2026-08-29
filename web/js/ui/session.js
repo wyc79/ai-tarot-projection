@@ -27,11 +27,31 @@ import { newSeed } from "../engine/rng.js";
 const $ = (id) => document.getElementById(id);
 const CONFIG_KEY = "config";
 const KEY_KEY = "apikey";
+/** Long enough for a cold Worker, short enough that Begin still feels pressed. */
+const HEALTH_TIMEOUT_MS = 4000;
 
 /** A message about the session itself. Each page styles the bar its own way. */
 export function setStatus(text, cls = "") {
   $("status").textContent = text;
   $("status-bar").className = `status-bar ${cls}`;
+}
+
+/**
+ * Put a settings field where it can be seen and typed into.
+ *
+ * The two pages fold the same fields up differently -- index.html buries the
+ * relay and model boxes in an Advanced <details> inside the settings one, the
+ * debug page has them all at the top level -- so walk whatever chain of
+ * <details> this page happened to wrap the field in, rather than naming
+ * panels that only exist on one of them.
+ */
+export function revealField(id) {
+  const field = $(id);
+  if (!field) return;
+  for (let box = field.closest("details"); box; box = box.parentElement?.closest("details")) {
+    box.open = true;
+  }
+  field.focus();
 }
 
 export function addLine(who, text) {
@@ -237,9 +257,73 @@ export async function mountSession({
     onDebug,
   });
 
-  async function start() {
-    if (!$("api-key").value.trim()) return setStatus("no API key", "bad");
+  /** A refusal that says what is wrong and leaves the cursor in the fix. */
+  function refuse(message, fieldId) {
+    setStatus(message, "bad");
+    revealField(fieldId);
+    return false;
+  }
+
+  /**
+   * Whether the relay in the box answers at all. A GET to /v1/health, which
+   * reaches no provider and costs nothing; the point is only to tell "that URL
+   * is wrong" apart from every failure that looks like it once a reading is
+   * already running on top of it.
+   *
+   * Raced against a clock because the failure being caught includes a host
+   * that accepts the connection and then says nothing, and Begin is a button
+   * that must always come back.
+   *
+   * @returns {Promise<string|null>} what went wrong, or null if it answered
+   */
+  async function relayUnreachable() {
+    const timeout = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`no answer in ${HEALTH_TIMEOUT_MS / 1000}s`)), HEALTH_TIMEOUT_MS);
+    });
+    try {
+      const body = await Promise.race([client.health(), timeout]);
+      return body?.ok ? null : "something answered there, but not a relay";
+    } catch (error) {
+      return error.message;
+    }
+  }
+
+  /**
+   * Everything wrong with the settings that can be found out for free, in the
+   * order someone runs into it. Each answer names the field, opens whatever
+   * this page folded it into, and puts the cursor in it.
+   *
+   * What is deliberately not checked here is whether the key works. The first
+   * real turn already says invalid_key through reportError, a second later and
+   * with the same words; asking the provider first only pays twice for it.
+   */
+  async function preflight() {
+    if (!$("api-key").value.trim()) {
+      return refuse("no API key — paste one in Settings, then Begin", "api-key");
+    }
+    if (!PROVIDERS[$("provider").value]) {
+      return refuse(`no such provider: ${$("provider").value}`, "provider");
+    }
+    for (const [id, name] of [["chat-model", "Chat model"], ["judge-model", "Judge model"]]) {
+      if (!$(id).value.trim()) return refuse(`${name} is blank — every request has to name one`, id);
+    }
+    // Saved before the relay check rather than after all of them, because the
+    // check has to ask the URL that is in the box: health() reads the stored
+    // config, and a base typed but never saved would be checked in its old
+    // form and then used in its new one.
     saveConfig();
+    if ($("mode").value === "relay") {
+      const why = await relayUnreachable();
+      if (why) {
+        return refuse(`the relay at ${config().relayBase || location.origin} could not be reached — ${why}`,
+                      "relay-base");
+      }
+    }
+    return true;
+  }
+
+  async function start() {
+    if (!(await preflight())) return;
     $("transcript").innerHTML = "";
     spoke = false;
 
