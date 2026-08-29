@@ -27,11 +27,41 @@ import { newSeed } from "../engine/rng.js";
 const $ = (id) => document.getElementById(id);
 const CONFIG_KEY = "config";
 const KEY_KEY = "apikey";
+/** Long enough for a cold Worker, short enough that Begin still feels pressed. */
+const HEALTH_TIMEOUT_MS = 4000;
 
 /** A message about the session itself. Each page styles the bar its own way. */
 export function setStatus(text, cls = "") {
   $("status").textContent = text;
   $("status-bar").className = `status-bar ${cls}`;
+}
+
+/**
+ * Take the message down. Every complaint this module makes is about something
+ * on screen that can be changed, so touching that thing is the answer to it --
+ * a red line left standing beside a field that has since been fixed is worse
+ * than no line at all.
+ */
+export function clearStatus() {
+  setStatus("");
+}
+
+/**
+ * Put a settings field where it can be seen and typed into.
+ *
+ * The two pages fold the same fields up differently -- index.html buries the
+ * relay and model boxes in an Advanced <details> inside the settings one, the
+ * debug page has them all at the top level -- so walk whatever chain of
+ * <details> this page happened to wrap the field in, rather than naming
+ * panels that only exist on one of them.
+ */
+export function revealField(id) {
+  const field = $(id);
+  if (!field) return;
+  for (let box = field.closest("details"); box; box = box.parentElement?.closest("details")) {
+    box.open = true;
+  }
+  field.focus();
 }
 
 export function addLine(who, text) {
@@ -134,6 +164,42 @@ export async function mountSession({
   }
 
   /**
+   * Which settings box a failure is actually about, or null for one that is
+   * not about a setting at all. A rate limit and a truncated reply are real
+   * errors and nothing in this panel fixes either, so they leave it shut.
+   *
+   * The mapping is read off the codes llmClient already assigns; nothing here
+   * re-decides what a failure was.
+   */
+  function fieldForError(error) {
+    switch (error.code) {
+      case "invalid_key":
+      case "missing_key":
+        return "api-key";
+      case "unknown_provider":
+        return "provider";
+      case "unknown_model": {
+        // Two boxes, one code. The provider usually quotes the id it did not
+        // recognise, which is the only thing that tells them apart -- and when
+        // both boxes hold the same id there is nothing to tell apart anyway.
+        const judge = $("judge-model").value.trim();
+        return judge && judge !== $("chat-model").value.trim() && error.message.includes(judge)
+          ? "judge-model"
+          : "chat-model";
+      }
+      case "connection_failed":
+        // In direct mode the browser went to the provider; the relay URL is
+        // not what failed, and the way out is the mode itself.
+        return $("mode").value === "relay" ? "relay-base" : "mode";
+      case "origin_denied":
+      case "upstream_unreachable":
+        return "relay-base";
+      default:
+        return null;
+    }
+  }
+
+  /**
    * Errors go where the user is looking, not only into the status bar. The
    * first version reported them into the settings panel, which start()
    * collapses -- so a failed request looked exactly like no request at all.
@@ -154,6 +220,11 @@ export async function mountSession({
     // returns to its door on this; the debug page, whose start button never
     // goes anywhere, ignores it.
     onEvent({ type: "reading_failed", error, spoke });
+    // Last, so the page has finished putting itself back together before the
+    // cursor lands: the styled page returns to its door on the event above,
+    // and focus taken before that is focus inside a section on its way out.
+    const field = fieldForError(error);
+    if (field) revealField(field);
   }
 
   /**
@@ -237,9 +308,75 @@ export async function mountSession({
     onDebug,
   });
 
-  async function start() {
-    if (!$("api-key").value.trim()) return setStatus("no API key", "bad");
+  /** A refusal that says what is wrong and leaves the cursor in the fix. */
+  function refuse(message, fieldId) {
+    setStatus(message, "bad");
+    revealField(fieldId);
+    return false;
+  }
+
+  /**
+   * Whether the relay in the box answers at all. A GET to /v1/health, which
+   * reaches no provider and costs nothing; the point is only to tell "that URL
+   * is wrong" apart from every failure that looks like it once a reading is
+   * already running on top of it.
+   *
+   * Raced against a clock because the failure being caught includes a host
+   * that accepts the connection and then says nothing, and Begin is a button
+   * that must always come back.
+   *
+   * @returns {Promise<string|null>} what went wrong, or null if it answered
+   */
+  async function relayUnreachable() {
+    const timeout = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`no answer in ${HEALTH_TIMEOUT_MS / 1000}s`)), HEALTH_TIMEOUT_MS);
+    });
+    try {
+      const body = await Promise.race([client.health(), timeout]);
+      return body?.ok ? null : "something answered there, but not a relay";
+    } catch (error) {
+      return error.message;
+    }
+  }
+
+  /**
+   * Everything wrong with the settings that can be found out for free, in the
+   * order someone runs into it. Each answer names the field, opens whatever
+   * this page folded it into, and puts the cursor in it.
+   *
+   * What is deliberately not checked here is whether the key works. The first
+   * real turn already says invalid_key through reportError, a second later and
+   * with the same words; asking the provider first only pays twice for it.
+   */
+  async function preflight() {
+    if (!$("api-key").value.trim()) {
+      return refuse("no API key — paste one in Settings, then Begin", "api-key");
+    }
+    if (!PROVIDERS[$("provider").value]) {
+      return refuse(`no such provider: ${$("provider").value}`, "provider");
+    }
+    for (const [id, name] of [["chat-model", "Chat model"], ["judge-model", "Judge model"]]) {
+      if (!$(id).value.trim()) return refuse(`${name} is blank — every request has to name one`, id);
+    }
+    // Saved before the relay check rather than after all of them, because the
+    // check has to ask the URL that is in the box: health() reads the stored
+    // config, and a base typed but never saved would be checked in its old
+    // form and then used in its new one.
     saveConfig();
+    if ($("mode").value === "relay") {
+      const why = await relayUnreachable();
+      if (why) {
+        return refuse(`the relay at ${config().relayBase || location.origin} could not be reached — ${why}`,
+                      "relay-base");
+      }
+    }
+    return true;
+  }
+
+  async function start() {
+    if (!(await preflight())) return;
+    // Whatever the last attempt complained about has been dealt with.
+    clearStatus();
     $("transcript").innerHTML = "";
     spoke = false;
 
@@ -298,6 +435,13 @@ export async function mountSession({
   $("api-key").value = keyStore.get(KEY_KEY, "") || store.get(KEY_KEY, "");
   $("key-persist").checked = Boolean(store.get(KEY_KEY, ""));
   $("key-note").textContent = store.persistent ? "" : "(this browser blocks storage; memory only)";
+  // Opened, never closed. The one thing a stranger has to do before anything
+  // works is behind this panel, and on a first visit the panel is shut. What
+  // decides it is whether a key came back from either store -- the remembered
+  // one or the tab's own -- and not a flag of its own, so there is nothing to
+  // keep in step with the key. Only ever opening it also leaves the debug page
+  // alone, where the markup opens it and the Start button is inside it.
+  if (!$("api-key").value) $("settings").open = true;
 
   $("key-persist").addEventListener("change", () => {
     const key = $("api-key").value.trim();
@@ -313,6 +457,16 @@ export async function mountSession({
     const target = $("key-persist").checked ? store : keyStore;
     target.set(KEY_KEY, $("api-key").value.trim());
   });
+
+  // Editing the thing a message was about answers the message. Typing counts:
+  // waiting for a blur to admit that a key has been pasted leaves the word
+  // "no API key" beside a field full of dots.
+  for (const id of ["api-key", "relay-base", "chat-model", "judge-model"]) {
+    $(id).addEventListener("input", clearStatus);
+  }
+  for (const id of ["provider", "mode"]) {
+    $(id).addEventListener("change", clearStatus);
+  }
 
   $("start").addEventListener("click", start);
   $("save-md").addEventListener("click", () => saveSession(reading.session, "md"));
