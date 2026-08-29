@@ -37,6 +37,16 @@ export function setStatus(text, cls = "") {
 }
 
 /**
+ * Take the message down. Every complaint this module makes is about something
+ * on screen that can be changed, so touching that thing is the answer to it --
+ * a red line left standing beside a field that has since been fixed is worse
+ * than no line at all.
+ */
+export function clearStatus() {
+  setStatus("");
+}
+
+/**
  * Put a settings field where it can be seen and typed into.
  *
  * The two pages fold the same fields up differently -- index.html buries the
@@ -324,6 +334,8 @@ export async function mountSession({
 
   async function start() {
     if (!(await preflight())) return;
+    // Whatever the last attempt complained about has been dealt with.
+    clearStatus();
     $("transcript").innerHTML = "";
     spoke = false;
 
@@ -404,6 +416,16 @@ export async function mountSession({
     const target = $("key-persist").checked ? store : keyStore;
     target.set(KEY_KEY, $("api-key").value.trim());
   });
+
+  // Editing the thing a message was about answers the message. Typing counts:
+  // waiting for a blur to admit that a key has been pasted leaves the word
+  // "no API key" beside a field full of dots.
+  for (const id of ["api-key", "relay-base", "chat-model", "judge-model"]) {
+    $(id).addEventListener("input", clearStatus);
+  }
+  for (const id of ["provider", "mode"]) {
+    $(id).addEventListener("change", clearStatus);
+  }
 
   $("start").addEventListener("click", start);
   $("save-md").addEventListener("click", () => saveSession(reading.session, "md"));
