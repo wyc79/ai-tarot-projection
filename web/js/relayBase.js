@@ -23,16 +23,15 @@
  */
 
 /**
- * FILL THIS IN once the Cloudflare project exists. It is the Worker's URL with
- * no trailing slash and no path -- https://ai-tarot-relay.<subdomain>.workers.dev
- * on the workers.dev domain, or whatever custom domain the route uses.
+ * The deployed Worker: its URL with no trailing slash and no path. Deployed
+ * from /worker through Cloudflare's Git integration, so this only changes if
+ * the Cloudflare project is renamed or moves behind a custom domain.
  *
- * Until it is filled in, the Pages deployment falls back to same origin, where
- * there is no relay, and every call fails with a 404 the status bar reports.
- * That is the honest failure: the hosted demo does not work until this line and
- * ALLOWED_ORIGINS in worker/wrangler.toml agree about the two ends of the hop.
+ * This line and ALLOWED_ORIGINS in worker/wrangler.toml are the two ends of one
+ * hop and have to agree -- the page points at the Worker, the Worker allows the
+ * origin the page was served from. A fork changes both, and PAGES_ORIGIN below.
  */
-export const HOSTED_RELAY_BASE = "";
+export const HOSTED_RELAY_BASE = "https://ai-tarot-relay.yuanchen-wang79.workers.dev";
 
 /** Where .github/workflows/pages.yml publishes. A fork changes this line. */
 export const PAGES_ORIGIN = "https://wyc79.github.io";

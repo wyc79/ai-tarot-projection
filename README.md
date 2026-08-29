@@ -140,9 +140,11 @@ they existed in the checkout, which being gitignored they don't. Enable it under
 Then wire the two ends together, which is two edits that have to agree:
 
 - `HOSTED_RELAY_BASE` in [`web/js/relayBase.js`](web/js/relayBase.js) — the
-  Worker's URL, no trailing slash (`https://ai-tarot-relay.<subdomain>.workers.dev`).
-  Until this is filled in, the hosted page falls back to same-origin, where
-  there is no relay, and every call fails.
+  Worker's URL, no trailing slash. For this repo that is
+  `https://ai-tarot-relay.yuanchen-wang79.workers.dev`; a fork gets its own
+  subdomain and puts that here instead. A page whose constant does not name a
+  live Worker falls back to same-origin, where there is no relay, and every call
+  fails.
 - `ALLOWED_ORIGINS` in `worker/wrangler.toml` — the Pages origin, which for this
   repo is `https://wyc79.github.io`. Leaving it `*` would let anyone point their
   own page at your Worker.
