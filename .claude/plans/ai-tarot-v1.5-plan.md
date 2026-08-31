@@ -692,6 +692,33 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-30): a documentation pass over what M5 shipped, and the two things in it that
+  turned out not to be documentation. The Python relay's built-in map carried an `openai` entry
+  that nothing could reach: there is one wire adapter and it is Anthropic-shaped, so no page
+  could build a body for it, the Worker never had it, .env.example said "three built-in entries"
+  underneath a map of four, and the comment three lines above it already said an OpenAI-shaped
+  provider needs an adapter rather than a line there. Removed, per the working agreements -- and
+  the two relays' default /v1/health answers are now identical, which is the contract's own rule
+  read one level out. Second: an OpenCode Zen account with no balance refuses with a 401 saying
+  "Insufficient balance", which classifyUpstream read as invalid_key, so the panel opened at the
+  API-key field and the hint said to check a key that was never wrong. It is its own code now,
+  insufficient_balance, matched on the provider's wording within 401/402/403 only so a 429 that
+  mentions a quota stays a rate limit, and it maps to no settings field because nothing in that
+  panel fixes it. Docs corrected against the source they describe: RELAY.md was missing
+  test_provider_hangup_mid_response_is_not_a_crash from a list of a suite that has twenty,
+  LICENSE-ART.md said ~52 KB an image for a set averaging 43, README pointed at
+  run_contract_tests.sh without ever naming scripts/test.sh, and .env.example described the
+  "opencode/" prefix as though OpenCode sold one thing -- it sells two, Zen and Go, on two base
+  urls with two config prefixes, and only their /v1/messages models can be driven from here.
+  Same round, the art provenance TODO closed, and it turned into a licence correction rather
+  than a form to fill in. The files are the Cards-jpg.zip download from luciellaes' "Rider-Waite
+  Smith Tarot Cards (CC0)" on itch.io -- established, not guessed: that page's three preview
+  images are byte-identical to 02-TheHighPriestess.jpg, 03-TheEmpress.jpg and CardBacks.jpg
+  here, and the directory is still named after the zip. Which settles the 78/1 ICC split noticed
+  earlier the same day, and settles it into a defect: CardBacks.jpg is not a 1909 scan at all,
+  it is the pack author's own drawing released under CC0, and both LICENSE-ART.md and the README
+  had it filed under a public-domain-by-age claim that does not cover it. The 78 cards keep that
+  claim and no longer lean on the pack author's own assessment of Australian law for it.
 - v1.5 (2026-08-28): M5 moved ahead of the stranger playtest, on branch m5-ship. The open items
   had the playtest first and it cannot be run in that order: the playtest is a stranger opening a
   URL on their own phone with their own key, and that URL does not exist until the static site is
@@ -825,7 +852,12 @@ Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider
 - v1: initial plan through the architecture decisions (dual dumb relays, client-side assembly)
 
 ## Open items (next working session)
-- M5 first: Pages deploy, Worker relay, README. It is what the playtest is waiting on
+- M5 is done. Pages serves the site, the Worker answers /v1/health with its three providers,
+  the README is written, and the repo is public. Its done-when was ordered on the reasoning
+  that going public is the step that cannot be taken back, and in the event the repo went
+  public with the art provenance still an open TODO -- the order was right and it was not
+  followed. Nothing was wrong underneath, as it turned out, but that was luck rather than
+  process, and the finding is the reason to say so here
 - M4 is built. What is left of its done-when is the check itself: a stranger completing a
   session on a phone without instructions, which is the playtest
 - Then playtests with real tarot-curious non-dev people (the second half of M3's done-when),

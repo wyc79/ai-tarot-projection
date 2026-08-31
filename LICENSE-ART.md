@@ -1,31 +1,67 @@
 # Card art provenance
 
-The 78 card images plus a card back in `data/Cards-jpg/` (300×527 JPEG, ~52 KB
-each, 3.4 MB total) are scans of the Smith-Waite deck first published by
-William Rider & Son in 1909, illustrated by Pamela Colman Smith. The 1909
-edition is in the public domain in the United States and in countries with a
-life-plus-70 term (Smith died in 1951).
+`data/Cards-jpg/` holds 79 files (300×527 JPEG, 26–60 KB each, 43 KB mean,
+3.4 MB total), and they are two different things with two different answers.
 
-## TODO: record where these files came from
+**The 78 cards** are scans of the Smith-Waite deck first published by William
+Rider & Son in 1909, illustrated by Pamela Colman Smith, cleaned up and resized
+by a third party. The 1909 edition is in the public domain in the United States
+and in countries with a life-plus-70 term (Smith died in 1951).
 
-**Owner: Yuanchen.** The images were already in the repo when this milestone
-started, so their exact source is not known here and has not been guessed. Fill
-in before the repo goes public:
+**`CardBacks.jpg` is not a 1909 scan.** It is an original design drawn by the
+pack's author, who released it under CC0. Age has nothing to do with why it is
+free to use, so it does not travel on the 1909 argument above and is listed
+separately below.
 
-- Source (URL of the repo, set, or scan collection):
-- License stated by that source:
-- Date obtained:
+## Where these files came from
 
-Candidate sources, if it turns out to be one of them — each has a different
-licence statement worth quoting exactly:
+Source: **"Rider-Waite Smith Tarot Cards (CC0)" by luciellaes**,
+<https://luciellaes.itch.io/rider-waite-smith-tarot-cards-cc0> — the
+`Cards-jpg.zip` download, whose name this directory still carries. The pack also
+ships `Cards-png.zip` (rounded corners, 20 MB) and a `cardBorder.png`; neither
+is used here.
 
-- <https://github.com/mixvlad/TarotCards> — downloads from Wikimedia Commons and
-  verifies the licence per file
-- <https://luciellaes.itch.io/rider-waite-smith-tarot-cards-cc0> — CC0
-  restoration, card backs included
-- <https://github.com/metabismuth/tarot-json> — JSON dataset plus 350×600 images
-- Wikimedia Commons, "Rider–Waite tarot deck" categories — the canonical 1909
-  scans (Pam-A, Roses & Lilies, Holly Voley)
+Licence, in that page's own words, and quoted rather than summarised because the
+two halves are not the same claim:
+
+> I have personally assessed that the original Rider-Waite Smith tarot
+> illustrations are within the public domain according to my own country's
+> copyright laws (Australia). Please make your own assessment for your use case
+> and your country. I am also happy to release rights to the included cardback
+> design under CC0 (it took about 2 minutes with the multi-brush tool, so no big
+> loss!).
+
+and on what the card images are:
+
+> The cards are scans of the original Rider-Waite Smith deck, sourced from
+> Wikipedia and then cleaned up (slightly) and resized by me, with a small black
+> border added.
+
+So the CC0 in the pack's title is an explicit grant over the cardback only. For
+the 78 cards it is one person's reading of Australian law, offered as such —
+this project does not rest on it, and makes the 1909 publication argument above
+on its own account. That argument is about the artwork, not about the scan: a
+faithful photographic reproduction of a public-domain flat work attracts no new
+copyright in the US (*Bridgeman v. Corel*) or under the EU's 2019 Article 14,
+and the pack's own edits are a resize and a black border.
+
+Date obtained: on or before **2026-08-23**, when they arrive whole in `f1230cb`,
+the commit that added the pack scaffold. Nothing earlier is in the history.
+
+How this was established, since it was an open question for a while and the
+answer should not have to be taken on trust: the three preview images on that
+itch.io page are **byte-identical** to `02-TheHighPriestess.jpg`,
+`03-TheEmpress.jpg` and `CardBacks.jpg` here — same MD5, not merely the same
+picture. The page also states the set is 300×527, which is the exact size of all
+79 files. Two other candidates were ruled out on the way: `mixvlad/TarotCards`
+is 1086×1810 at a different aspect ratio, and `metabismuth/tarot-json` is
+350×600 under different filenames.
+
+It also explains the one structural oddity in the directory. The 78 cards carry
+an HP-authored `sRGB IEC61966-2.1` ICC profile and `CardBacks.jpg` carries a
+littleCMS `sRGB-elle-V2-srgbtrc.icc` one — a clean 78/1 split, because the cards
+passed through someone's photo pipeline and the back was drawn from scratch in a
+paint program.
 
 ## Naming
 

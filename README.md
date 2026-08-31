@@ -194,13 +194,19 @@ goes somewhere the cards have no business being.
 
 The code is MIT — see [LICENSE](LICENSE).
 
-The card images are scans of the Smith-Waite deck first published by William
+The 78 card images are scans of the Smith-Waite deck first published by William
 Rider & Son in 1909 and illustrated by Pamela Colman Smith, which is in the
-public domain in the United States and in life-plus-70 countries. The deck is
-called "Smith-Waite (1909)" throughout rather than by the more familiar name,
-because US Games Systems holds trademarks around that branding and the
-public-domain status of the artwork is a separate question from the name used to
-sell it. The imagery lines and per-position meanings in `deck.json` are written
-for this project. Full provenance, including the outstanding question of which
-scan set these particular files came from, is in
-[LICENSE-ART.md](LICENSE-ART.md).
+public domain in the United States and in life-plus-70 countries. The card back
+is not a scan and is not old: it was drawn by [luciellaes][pack], who released it
+under CC0. Both reach this repo through that one asset pack, [Rider-Waite Smith
+Tarot Cards (CC0)][pack] — CC0 asks for no credit, and it is given here because
+the work was worth the ask.
+
+The deck is called "Smith-Waite (1909)" throughout rather than by the more
+familiar name, because US Games Systems holds trademarks around that branding and
+the public-domain status of the artwork is a separate question from the name used
+to sell it. The imagery lines and per-position meanings in `deck.json` are
+written for this project. Full provenance, including how the source was pinned
+down and which claim rests on what, is in [LICENSE-ART.md](LICENSE-ART.md).
+
+[pack]: https://luciellaes.itch.io/rider-waite-smith-tarot-cards-cc0
