@@ -56,7 +56,12 @@ Worker source to keep it that way.
 You do not have to take any of that on faith. `scripts/run_contract_tests.sh`
 runs the same suite against both relays, and among the twenty assertions are a
 canary key that must appear in no captured output, and the same canary checked
-against every error branch.
+against every error branch. It is one of the four legs of `scripts/test.sh`,
+which is everything that can be checked without a key or a network — the engine
+tests, the pack schema, a seeded session that has to reach its ending, and the
+relay contract. `scripts/test.sh --fast` skips the contract leg, which is the
+slow one; the Worker half of it needs `wrangler` or `npx` on PATH and says so
+loudly rather than passing one relay and reporting two.
 
 ## Bring your own deck
 
@@ -93,7 +98,7 @@ To check the relay is up before you spend a token on it:
 
 ```
 curl http://localhost:8787/v1/health
-{"ok": true, "providers": ["anthropic", "deepseek", "openai", "opencode"]}
+{"ok": true, "providers": ["anthropic", "deepseek", "opencode"]}
 ```
 
 `http://localhost:8787/pack.html` browses every card in the deck and pings the

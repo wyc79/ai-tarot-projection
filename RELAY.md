@@ -57,7 +57,7 @@ writing it in one go is a contract violation (see `test_stream_is_incremental`).
 ### `GET /v1/health`
 
 ```json
-{ "ok": true, "providers": ["anthropic", "openai"] }
+{ "ok": true, "providers": ["anthropic", "deepseek", "opencode"] }
 ```
 
 Used by the debug page and the contract suite. **No field may identify the
@@ -114,6 +114,11 @@ here and nowhere else.
 - `auth` — `"x-api-key"` (header `x-api-key: <key>`) or `"bearer"`
   (header `Authorization: Bearer <key>`).
 - `headers` — optional static headers merged into the upstream request.
+
+The example is two auth styles, not two working providers: whether anything can
+build a body that upstream understands is the frontend's problem, and this app
+only has an Anthropic-shaped adapter. A relay that refused an entry on those
+grounds would have to read the payload, which is the one thing it does not do.
 
 The contract suite registers a `test` provider pointing at a local mock upstream.
 That is config, not a test-only code path.
@@ -197,6 +202,11 @@ Both must pass:
   `X-Relay-Error`
 - `test_stream_is_incremental` — the first chunk arrives well before the last,
   so a token stream is not buffered into one late delivery
+- `test_provider_hangup_mid_response_is_not_a_crash` — a provider that drops a
+  chunked response mid-flight leaves the relay serving. The status line is long
+  gone by then, so the client gets a short reply and its own truncation handling
+  deals with it; what must not happen is the relay falling over, or a traceback
+  carrying the request into a log
 - `test_key_never_logged` — a canary key appears in no captured output
 - `test_error_paths_never_leak_key` — the canary survives no error branch, in
   neither the response body nor the log

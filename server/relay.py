@@ -48,10 +48,6 @@ DEFAULT_PROVIDERS = {
         "auth": "x-api-key",
         "headers": {"anthropic-version": "2023-06-01"},
     },
-    "openai": {
-        "url": "https://api.openai.com/v1/chat/completions",
-        "auth": "bearer",
-    },
 }
 
 SECRET_HEADER = re.compile(r"authorization|api[-_]?key|cookie|token|secret", re.I)
