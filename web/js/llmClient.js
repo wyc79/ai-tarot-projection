@@ -46,6 +46,20 @@ class RelayError extends Error {
  */
 function classifyUpstream(status, message) {
   const said = message || `provider returned ${status}`;
+  // Money, not credentials, and it has to be asked first because it arrives
+  // wearing a credential's status code: OpenCode Zen refuses an empty balance
+  // with a 401, which reads as "invalid_key" and sends someone off to re-paste
+  // a key that was never wrong. DeepSeek says the same thing with a 402. The
+  // provider's own wording is the only thing that tells the two apart, so the
+  // match is scoped to the statuses where the confusion happens -- a 429 that
+  // mentions a quota is still a rate limit.
+  if (status === 402
+      || ((status === 401 || status === 403)
+          && /insufficient|balance|credit|billing|payment|quota/i.test(said))) {
+    return new RelayError("insufficient_balance",
+      `the provider will not bill this account — ${said}`,
+      { hint: "the key is fine; it is the balance or plan behind it that is not" });
+  }
   if (status === 401 || status === 403) {
     return new RelayError("invalid_key", `the provider rejected this key — ${said}`,
       { hint: "check the key itself, and that the relay's banner names the host you meant" });

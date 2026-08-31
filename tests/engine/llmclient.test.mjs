@@ -115,6 +115,11 @@ test("failures are told apart, because they need different fixes", async () => {
   const cases = [
     [401, "Invalid API key.", "invalid_key"],
     [403, "forbidden", "invalid_key"],
+    // An empty account is not a wrong key, whichever status it arrives under.
+    [401, "Insufficient balance. Manage your billing here: https://x.test/billing",
+     "insufficient_balance"],
+    [402, "Insufficient Balance", "insufficient_balance"],
+    [429, "quota exceeded for this minute", "provider_rate_limited"],
     [400, "Model Not Exist", "unknown_model"],
     [404, "no route", "endpoint_not_found"],
     [429, "slow down", "provider_rate_limited"],
@@ -131,6 +136,20 @@ test("failures are told apart, because they need different fixes", async () => {
       return true;
     });
   }
+});
+
+test("an empty balance does not send them back to the key field", async () => {
+  const { client } = harness({
+    respond: () => new Response(
+      JSON.stringify({ error: { message: "Insufficient balance. Manage your billing here: https://x.test" } }),
+      { status: 401 }),
+  });
+  await assert.rejects(client.chat({ system: "s", messages: [] }), (e) => {
+    assert.equal(e.code, "insufficient_balance");
+    assert.doesNotMatch(e.hint, /check the key/,
+                        "the hint pointed at the one thing that was not wrong");
+    return true;
+  });
 });
 
 test("a request that never completed is a connection failure, not a bad key", async () => {
