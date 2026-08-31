@@ -692,6 +692,21 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-31): OpenCode Go as its own provider, found by a live failure. A Go subscriber
+  selecting "OpenCode Zen" gets billed nowhere, because Go and Zen are separate subscriptions
+  behind one login on separate bases -- so the key is valid, has never had a Zen balance, and
+  Zen says "Insufficient balance", which the day before had been taught to stop saying
+  "invalid_key" and now said something true but unhelpful. Both are entries now, in the registry
+  and in both relays: choosing happens once in the dropdown instead of being diagnosed from an
+  error later, and the balance hint names the split when the provider is either of them. Two
+  things established rather than assumed. Go takes the same x-api-key header, probed against the
+  live endpoint -- a bad x-api-key answers "Invalid API key" and a bearer token answers "Missing
+  API key", which is the endpoint saying which header it reads. And only eight Go models speak
+  Messages; the rest are on /responses or /chat/completions, which this app has no adapter for.
+  The default is minimax-m3, the strongest of the eight rather than the cheapest, which inverts
+  the deepseek-v4-flash decision on purpose: that one was measured against per-token billing,
+  and Go is a flat subscription, so the tradeoff it was decided under is not present. Untested
+  against a real key -- nobody here has one -- and the model box is one edit if it reads badly.
 - v1.5 (2026-08-30): a documentation pass over what M5 shipped, and the two things in it that
   turned out not to be documentation. The Python relay's built-in map carried an `openai` entry
   that nothing could reach: there is one wire adapter and it is Anthropic-shaped, so no page

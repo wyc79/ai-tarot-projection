@@ -43,6 +43,14 @@ DEFAULT_PROVIDERS = {
         "url": "https://opencode.ai/zen/v1/messages",
         "auth": "x-api-key",
     },
+    # Go is a different subscription from Zen, not a different model on it, so
+    # it is a different url. Same auth header: probed, not assumed -- Go answers
+    # a bad x-api-key with "Invalid API key" and a bearer token with "Missing
+    # API key", which is the endpoint saying which header it reads.
+    "opencode-go": {
+        "url": "https://opencode.ai/zen/go/v1/messages",
+        "auth": "x-api-key",
+    },
     "anthropic": {
         "url": "https://api.anthropic.com/v1/messages",
         "auth": "x-api-key",

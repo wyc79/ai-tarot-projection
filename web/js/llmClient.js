@@ -44,7 +44,7 @@ class RelayError extends Error {
  * key, an unreachable host and a wrong model id all used to arrive as
  * "provider_error", which is three different afternoons of debugging.
  */
-function classifyUpstream(status, message) {
+function classifyUpstream(status, message, providerId = "") {
   const said = message || `provider returned ${status}`;
   // Money, not credentials, and it has to be asked first because it arrives
   // wearing a credential's status code: OpenCode Zen refuses an empty balance
@@ -56,9 +56,16 @@ function classifyUpstream(status, message) {
   if (status === 402
       || ((status === 401 || status === 403)
           && /insufficient|balance|credit|billing|payment|quota/i.test(said))) {
+    // OpenCode sells Zen and Go as separate subscriptions behind one login, so
+    // the commonest way to see this is not an empty account but a key pointed
+    // at the other one's endpoint, where it has never had a balance to spend.
+    const openCode = providerId === "opencode" || providerId === "opencode-go";
     return new RelayError("insufficient_balance",
       `the provider will not bill this account — ${said}`,
-      { hint: "the key is fine; it is the balance or plan behind it that is not" });
+      { hint: openCode
+          ? "the key is fine. OpenCode bills Zen and Go separately, so check the "
+            + "Provider box names the one you subscribe to"
+          : "the key is fine; it is the balance or plan behind it that is not" });
   }
   if (status === 401 || status === 403) {
     return new RelayError("invalid_key", `the provider rejected this key — ${said}`,
@@ -145,7 +152,7 @@ export function makeLlmClient({ getKey, getConfig, onDebug = () => {} }) {
             : "",
         });
       }
-      throw classifyUpstream(response.status, detail?.error?.message);
+      throw classifyUpstream(response.status, detail?.error?.message, provider.id);
     }
     return response;
   }

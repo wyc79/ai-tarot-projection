@@ -98,7 +98,7 @@ To check the relay is up before you spend a token on it:
 
 ```
 curl http://localhost:8787/v1/health
-{"ok": true, "providers": ["anthropic", "deepseek", "opencode"]}
+{"ok": true, "providers": ["anthropic", "deepseek", "opencode", "opencode-go"]}
 ```
 
 `http://localhost:8787/pack.html` browses every card in the deck and pings the

@@ -233,8 +233,33 @@ test("each provider carries its own default model, since ids are not portable", 
   assert.equal(PROVIDERS.deepseek.defaultModel, "deepseek-v4-flash");
   assert.equal(PROVIDERS.anthropic.defaultModel, "claude-opus-5");
   assert.equal(PROVIDERS.opencode.defaultModel, "claude-opus-4-8");
+  assert.equal(PROVIDERS["opencode-go"].defaultModel, "minimax-m3");
   assert.equal(PROVIDERS.anthropic.features.structuredOutput, true);
   assert.equal(PROVIDERS.deepseek.features.structuredOutput, false);
+});
+
+test("Zen and Go are two subscriptions, so they are two entries on two urls", async () => {
+  const { PROVIDERS } = await import("../../web/js/llmClient.js");
+  assert.equal(PROVIDERS.opencode.directUrl, "https://opencode.ai/zen/v1/messages");
+  assert.equal(PROVIDERS["opencode-go"].directUrl, "https://opencode.ai/zen/go/v1/messages");
+  // The id is what the relay looks up, so it has to survive the object key.
+  assert.equal(PROVIDERS["opencode-go"].id, "opencode-go");
+});
+
+test("an OpenCode balance refusal says which of the two subscriptions to check", async () => {
+  for (const provider of ["opencode", "opencode-go"]) {
+    const { client } = harness({
+      config: { provider },
+      respond: () => new Response(
+        JSON.stringify({ error: { message: "Insufficient balance. Manage your billing here: https://x.test" } }),
+        { status: 401 }),
+    });
+    await assert.rejects(client.chat({ system: "s", messages: [] }), (e) => {
+      assert.equal(e.code, "insufficient_balance");
+      assert.match(e.hint, /Zen and Go/, `${provider} got the generic hint`);
+      return true;
+    });
+  }
 });
 
 test("a refusal is caught even though it arrives as HTTP 200", async () => {

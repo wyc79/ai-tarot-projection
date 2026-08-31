@@ -77,6 +77,30 @@ export const PROVIDERS = {
     directUrl: "https://opencode.ai/zen/v1/messages",
     features: NONE,
   },
+  "opencode-go": {
+    id: "opencode-go",
+    label: "OpenCode Go",
+    wire: ANTHROPIC,
+    // Go is a separate subscription from Zen behind the same login, on its own
+    // base url, and a key for one has no balance on the other -- which arrives
+    // as "Insufficient balance" rather than as anything about the wrong door.
+    // Both entries exist so that choosing is done in the dropdown, once, rather
+    // than diagnosed from an error message later.
+    //
+    // Only part of the Go catalogue speaks Messages; the rest is on /responses
+    // or /chat/completions, which this app has no adapter for. The eight that
+    // do, as of 2026-08-31: minimax-m3, minimax-m2.7, minimax-m2.5,
+    // qwen3.8-max, qwen3.8-flash, qwen3.7-max, qwen3.7-plus, qwen3.6-plus.
+    //
+    // The default is the strongest of them rather than the cheapest, which is
+    // the opposite of the deepseek default -- that one was measured, and it was
+    // measured against per-token billing where flash-vs-pro is a real bill. Go
+    // is a flat subscription, so the tradeoff it was decided under does not
+    // apply here. Nothing in this repo has been run against Go yet.
+    defaultModel: "minimax-m3",
+    directUrl: "https://opencode.ai/zen/go/v1/messages",
+    features: NONE,
+  },
 };
 
 export const DEFAULT_PROVIDER = "deepseek";

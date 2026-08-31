@@ -23,4 +23,4 @@ ALLOWED_ORIGINS = "https://wyc79.github.io"
 RATE_LIMIT = "30"
 
 # Adding a provider is a config change here, not a code change.
-PROVIDERS = '''{"deepseek":{"url":"https://api.deepseek.com/anthropic/v1/messages","auth":"x-api-key"},"opencode":{"url":"https://opencode.ai/zen/v1/messages","auth":"x-api-key"},"anthropic":{"url":"https://api.anthropic.com/v1/messages","auth":"x-api-key","headers":{"anthropic-version":"2023-06-01"}}}'''
+PROVIDERS = '''{"deepseek":{"url":"https://api.deepseek.com/anthropic/v1/messages","auth":"x-api-key"},"opencode":{"url":"https://opencode.ai/zen/v1/messages","auth":"x-api-key"},"opencode-go":{"url":"https://opencode.ai/zen/go/v1/messages","auth":"x-api-key"},"anthropic":{"url":"https://api.anthropic.com/v1/messages","auth":"x-api-key","headers":{"anthropic-version":"2023-06-01"}}}'''
