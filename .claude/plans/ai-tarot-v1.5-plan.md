@@ -692,6 +692,32 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-09-01): the opening turn is scripted from pack data, on branch playtest-1. Two
+  findings from the first stranger playtest, and they turn out to be one change. The transcript
+  never said who was talking or what this is: the intro says both, but `body[data-phase=
+  "reading"] #intro { display: none }` hides it the moment a reading starts, and a phone user
+  has skimmed straight to Begin -- so the first thing on screen was a question from nobody. And
+  the opening question was already fixed content: TURN_INSTRUCTIONS.opening pinned it to two
+  sentences that ask one thing and make declining easy, so the call bought a paraphrase, a
+  per-session round trip in front of the first card, and one more thing that can fail before a
+  stranger has seen anything work. Both are now `opening.disclosure` and `opening.question` in
+  deck.json, emitted by begin() as two `reader_scripted` events and rendered by the UI as a
+  quiet app-voice line and a normal reader line. The honesty line in particular should not be
+  improvised: it is a statement of fact about the app -- what it is, that it does not predict,
+  where the text goes, that it is not therapy -- and a model asked to write it in character
+  will write it differently every session. What this costs is persona-voice variation on a
+  two-sentence question, which nobody will notice. What it does not cost is the record:
+  openWith still runs judge.opening on the answer and recordOpening still writes the scripted
+  question above it, so the session, the journal and the scanner see the opening exactly as
+  before. toMarkdown prints the disclosure once above the transcript, from the pack rather than
+  from the session -- it is true of every reading in the drawer, and a copy per session would
+  only be a copy to keep in step. Deleted rather than deprecated, per the working agreements:
+  TURN_INSTRUCTIONS.opening, describeTopic's `phase === "opening"` early return, and
+  ladderPlan's `shown` with the describeLadder guard it existed for -- all three reachable only
+  from a reader turn taken before anything was dealt, which no longer happens. Pack schema
+  5 -> 6, since a pack without an opening cannot open a reading. Not changed, and worth saying
+  because it looks like it should have been: the fixtures under tests/fixtures/ carry an
+  opening-position *exchange*, which still exists, so none of them pinned the removed turn.
 - v1.5 (2026-08-31): one turn at a time is the engine's rule now, not the picker's, on branch
   playtest-1. The first stranger playtest produced a reply that answered the previous message,
   and the cause is not the model weighting the wrong one: `startReading().say()` had no

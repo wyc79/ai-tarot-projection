@@ -48,6 +48,14 @@ export function toMarkdown(pack, session, { depth = 1 } = {}) {
     lines.push(`**What it was about:** ${session.anchor.theme}`, "");
   }
 
+  // What this was, in the file that outlives the tab. The reading itself opens
+  // on this line and the person read it there; a keepsake that drops it is a
+  // transcript of a conversation with an unnamed someone, and it is the half a
+  // reader coming back to it in a year would most need. From the pack, and not
+  // stored on the session: it is a fact about the app, true of every reading in
+  // the drawer, and a copy per session would only be a copy to keep in step.
+  lines.push(`> ${pack.opening.disclosure}`, "");
+
   // The reader's last turn, when nobody answered it. Every other one is printed
   // as the question above the answer it got; this one has no answer to sit
   // above, so it goes at the end of whichever section the conversation had

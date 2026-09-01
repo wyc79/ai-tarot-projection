@@ -35,6 +35,30 @@ async function finished(seed = "moon-4f2a91") {
   return { pack, session: reading.session };
 }
 
+test("the keepsake says what it was, once, above the reading", async () => {
+  const { pack, session } = await finished();
+  const md = toMarkdown(pack, session);
+  const line = `> ${pack.opening.disclosure}`;
+  assert.equal(md.split("\n").filter((l) => l === line).length, 1,
+               "the disclosure is in the file exactly once");
+  // Above the transcript, with the rest of what this reading was -- not in the
+  // conversation, where it would read as something the reader said.
+  const lines = md.split("\n");
+  assert.ok(lines.indexOf(line) < lines.findIndex((l) => /^## /.test(l)),
+            "before the first section");
+  // Not on the session: it is a fact about the app, the same for every reading.
+  assert.doesNotMatch(toJson(session), /talking to an AI/,
+                      "and it is not copied onto the record to be kept in step");
+});
+
+test("every reading in the archive says what it was", async () => {
+  const { pack, session } = await finished();
+  const md = toArchive(pack, [session, session]);
+  const line = `> ${pack.opening.disclosure}`;
+  assert.equal(md.split("\n").filter((l) => l === line).length, 2,
+               "once per reading, because each one is a reading someone kept");
+});
+
 test("the markdown keepsake carries the cards, the user's words and the step", async () => {
   const { pack, session } = await finished();
   const md = toMarkdown(pack, session);
