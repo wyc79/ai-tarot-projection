@@ -692,6 +692,23 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-09-01): the crossing is said out loud, on branch playtest-1. Prompt D item 4,
+  which the plain-words round left undone. Pack data, plus one engine consequence worth an
+  entry. The **own** move now teaches a first bridge in two parts -- a plain signpost that the
+  question is moving from the picture to them, then the question with a way out -- because
+  "whose wand is that in your world — who's about to do the trick?" was that move done exactly
+  right and it still failed: the whole change of subject rode on three words, and what landed
+  was "whose wand is it?". "Point, don't name" gains the matching sentence: the crossing
+  question carries only their nouns, since "the trick" imports the Magician's traditional
+  reading and asks a second thing on top of the first. The rule that the move must not be
+  nameable stays -- a signpost points where you are going, "if we map this image onto your
+  life" says what you are doing, and that wording is banned. **The engine consequence:** two of
+  the three signposts name the picture in order to point away from it, and `questionType`
+  matched the whole sentence -- so the most life-facing question in the reading selected the
+  PROJECTION rubric, on which describing the card is the answer working. It now drops a lead-in
+  clause before classifying, and only when the question is not inside it ("Which figure is it —
+  the one on the left?" keeps its whole sentence). Every exemplar and few-shot in the pack
+  classifies exactly as it did before.
 - v1.5 (2026-09-01): the meanings turn answers with the pack's meanings, and only while the
   reader still has a turn to take, on branch playtest-1. Two gaps found reviewing the round
   that added it. **First: it had one meaning of three.** `describeCard` puts `meaning_here` in

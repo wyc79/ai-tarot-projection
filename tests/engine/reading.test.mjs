@@ -813,6 +813,13 @@ test("the plain-words rule reaches the reader, since it outranks the voice above
   assert.match(system, /second read/);
 });
 
+test("the crossing is signposted, so the shift from the picture is said rather than implied", async () => {
+  const { client } = await run({ gates: [gate(3)], answers: ["hm"] });
+  const system = systemFor(client, "invite");
+  assert.match(system, /Put yourself in the picture/,
+               "the own move teaches the signpost, not just the question after it");
+});
+
 test("every move the pack weights is a move the persona defines", async () => {
   // The staircase refactor left "explore" weighted on the obstacle position
   // with nothing defining it any more, and the prompt cheerfully told the

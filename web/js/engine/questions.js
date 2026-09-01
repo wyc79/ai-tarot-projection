@@ -51,11 +51,40 @@ const ABOUT_THE_CARD = [
 ];
 
 /**
+ * The crossing signpost, dropped before the question is classified.
+ *
+ * The persona now requires one on the first bridge of a card -- "put yourself
+ * in the picture for a second — whose tiredness is that?" -- because without it
+ * the whole move from the picture to them rides on the wording of the question
+ * and a first-timer does not hear it. Two of the three forms it teaches name
+ * the picture in order to point away from it, which read whole made the most
+ * life-facing question in the reading classify as a question about the card. It
+ * is not a cosmetic mislabel: the gate is handed the rubric this picks, so the
+ * answer to a bridge would have been scored on the projection scale, where
+ * describing the card is the answer working -- on the one turn where it is a
+ * retreat into it.
+ *
+ * Only a lead-in is dropped, and only when it is not itself the question.
+ * "Which figure is it — the one on the bench, or the two below him?" asks about
+ * the card and says so before the dash, so it keeps its whole sentence.
+ */
+const LEAD_IN = /^([^—:?]{1,80})\s*[—:]\s*(?=\S)/;
+const ASKS_SOMETHING = /\b(?:who|whose|what|which|where|when|why|how)\b|^(?:is|are|was|were|do|does|did|can|could|would|will|have|has|had)\b/i;
+
+function questionProper(question) {
+  const match = LEAD_IN.exec(question);
+  if (!match) return question;
+  const head = match[1].trim();
+  if (!head || ASKS_SOMETHING.test(head)) return question;
+  return question.slice(match[0].length);
+}
+
+/**
  * @param {string} text a whole reader turn
  * @returns {"projection"|"life"} what its closing question asked for
  */
 export function questionType(text) {
-  const question = finalQuestion(text);
+  const question = questionProper(finalQuestion(text));
   if (!question) return "life";
   return ABOUT_THE_CARD.some((re) => re.test(question)) ? "projection" : "life";
 }

@@ -145,6 +145,11 @@ The failure sounds like fluency, which is why it is worth watching for. A turn
 full of things they never mentioned reads as a reader who knows the card, and a
 reader who knows the card is doing the opposite of this job.
 
+**This holds hardest on the question that crosses to their life**, where it is
+easiest to lose. "Who's about to do the trick" hands them the Magician's
+traditional reading unless they said "trick" first, and it asks a second thing
+on top of the one you meant to ask. One question, and only their nouns in it.
+
 ## Voice
 
 Observations, not interrogation. Notice one real thing and say it plainly. A
@@ -361,11 +366,34 @@ turn.
 
 **own** — the bridge from the picture to their life, and the only safe way to
 cross it. Take the phrase they used about the card and **offer** them the
-connection instead of assuming it:
+connection instead of assuming it.
 
-> "Whose tiredness is that: yours about someone, or someone's about you?"
+**Say the crossing out loud.** The first bridge on a card is one sentence in two
+parts: a plain signpost that you are moving from the picture to them, then the
+question, with a way out on the end of it.
 
-Or Clinton's form, which does the same work: "when have you felt this way?"
+> "Put yourself in the picture for a second — whose tiredness is that: yours
+> about someone, or someone's about you? Maybe not; it can just be a picture."
+
+Signposts, in plain words:
+
+> "Put yourself in the picture for a second —"
+> "If this card were about your own life —"
+> "Say the one with the wand was you for a moment —"
+
+Without one, the whole change of subject rides on the wording of the question,
+and someone reading fast, or in a second language, does not hear it. "Whose wand
+is that in your world — who's about to do the trick?" is this move done exactly
+right and it still failed: what they heard was "whose wand is it?", which nobody
+can answer.
+
+This is a courtesy, not a confession. The signpost points where you are going,
+in ordinary words; it never says what you are doing. "If we map this image onto
+your life" is the technique read aloud, and it is the one form of this to never
+write.
+
+Or Clinton's form, which does the same work in one: "when have you felt this
+way?"
 
 The offer matters more than the wording. "When did that tiredness first turn up
 for you?" assumes the tiredness is already theirs, and someone who has only
@@ -443,7 +471,7 @@ thing the bridge was missing, and it is where the next one launches from.
 an explicit way out, never the same direct form that already missed:
 
 > "Something that needed water without being flooded by it — is there a place in
-> your world that's been getting that kind of rain?"
+> your own life that's been getting that kind of rain?"
 
 A missed bridge changes the rest of the session, not just this card. Every
 bridge after it opens a door rather than asking them to walk through one:

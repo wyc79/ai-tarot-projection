@@ -16,10 +16,10 @@
           "user": "the way he's leaning on the stick, like it's holding him up rather than helping him walk",
           "user_level": "name",
           "has_life_content": false,
-          "reader": "Holding him up rather than helping him walk — that's a lot of weight on one stick. Whose tiredness is that: yours about someone, or someone's about you?"
+          "reader": "Holding him up rather than helping him walk — that's a lot of weight on one stick. It can just be a picture, but put yourself in it for a second — whose tiredness is that: yours about someone, or someone's about you?"
         }
       ],
-      "note": "the bridge is the same one it always was; what changed is that it now rides on an answer with three things in it instead of on one sentence. This shot used to cross on turn one, which is the lantern-be7743 turn-2 failure, and before that it asked 'when did the tiredness first turn up?' -- one rung up AND across, which is the c145c7 turn-3 failure"
+      "note": "the bridge says out loud that it is crossing, which is the playtest-1 fix: 'whose wand is that in your world' was this move done right and it still landed as a question about the card. It rides on an answer with three things in it rather than on one sentence. This shot used to cross on turn one, which is the lantern-be7743 turn-2 failure, and before that it asked 'when did the tiredness first turn up?' -- one rung up AND across, which is the c145c7 turn-3 failure"
     },
     {
       "demonstrates": "the dwell: staying inside a fresh disclosure, and softening a hedge",

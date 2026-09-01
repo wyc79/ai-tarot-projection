@@ -89,6 +89,28 @@ test("the same predicate labels the exchange and checks the deal turn", () => {
   for (const q of ASKS_ABOUT_THEIR_LIFE) assert.equal(questionType(q), "life", q);
 });
 
+test("a signposted crossing is a life question, however it names the picture", () => {
+  // The persona now requires the signpost on the first bridge of a card, and
+  // two of the three forms it teaches say "picture" or "card" in order to point
+  // away from them. Read whole, that made the most life-facing question in the
+  // reading pick the projection rubric -- the one where describing the card is
+  // the answer working, on the turn where it is a retreat into it.
+  assert.equal(
+    questionType("It can just be a picture, but put yourself in it for a second — "
+                 + "whose tiredness is that: yours about someone, or someone's about you?"),
+    "life");
+  assert.equal(
+    questionType("If this card were about your own life — is there something you are "
+                 + "about to do, or something you are waiting on somebody else for?"),
+    "life");
+  // Only a lead-in is dropped, and only when the question is not in it. This
+  // one asks about the card and says so before the dash.
+  assert.equal(questionType("Which figure is it — the one on the left, or the one behind?"),
+               "projection");
+  assert.equal(questionType("Looking at the two below him — what are they doing?"),
+               "projection");
+});
+
 test("the stall fallback is a projection question even on a follow-up turn", () => {
   // Classifying by turn kind would call this one a life question and score the
   // answer as a dodge. It is the reader doing exactly what it was told to do.
