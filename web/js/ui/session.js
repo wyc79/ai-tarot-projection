@@ -586,6 +586,50 @@ export async function mountSession({
   // alone, where the markup opens it and the Start button is inside it.
   if (!$("api-key").value) $("settings").open = true;
 
+  // The way back out of a header panel.
+  //
+  // Open, one of these takes a full row and pushes the table down, and the only
+  // way to shut it was tapping the pill again -- which is not a thing a stranger
+  // knows. Settings opens itself when there is no key, so it is also the first
+  // thing one meets.
+  //
+  // "Header panel" means a <details> that is a direct child of .top, and that
+  // is the whole of the scoping: the Advanced box nested inside Settings is not
+  // one, and the debug page has no .top at all, so it keeps its markup-opened
+  // panels and none of this behaviour.
+  const headerPanels = [...document.querySelectorAll(".top > details")];
+
+  /** Shut one, and leave the keyboard somewhere it can still be. */
+  function closePanel(panel) {
+    if (!panel.open) return;
+    const held = panel.contains(document.activeElement);
+    panel.open = false;
+    // Whatever had the focus has just gone inside a closed box, so it goes to
+    // the pill that box collapsed into. Only when the focus was in there:
+    // Escape from the reply field must not move the cursor.
+    if (held) panel.querySelector("summary").focus();
+  }
+
+  for (const panel of headerPanels) {
+    // One at a time. Two open panels are two full rows off the top of the
+    // table, and the second is never the one that was asked for.
+    panel.addEventListener("toggle", () => {
+      if (!panel.open) return;
+      // open, not closePanel: they have just pressed the other summary, and
+      // taking the focus off it would be answering a tap with a jump.
+      for (const other of headerPanels) if (other !== panel) other.open = false;
+    });
+    // Walked to rather than named, so a third panel with a Done in it needs no
+    // wiring of its own -- and so the button cannot be wired to the wrong one.
+    for (const done of panel.querySelectorAll(".done")) {
+      done.addEventListener("click", () => closePanel(done.closest("details")));
+    }
+  }
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") headerPanels.forEach(closePanel);
+  });
+
   $("key-persist").addEventListener("change", () => {
     const key = $("api-key").value.trim();
     if ($("key-persist").checked) {

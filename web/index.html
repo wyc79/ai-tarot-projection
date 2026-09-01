@@ -54,6 +54,10 @@
           </label>
         </div>
       </details>
+
+      <!-- Outside the Advanced box on purpose: this closes the panel it is in,
+           found by walking up, and inside there it would close the wrong one. -->
+      <button type="button" class="done">Done</button>
     </div>
   </details>
 
@@ -78,6 +82,8 @@
         <button id="save-all" disabled>Download all</button>
         <span class="note">one file, and it says what it is at the top</span>
       </div>
+
+      <button type="button" class="done">Done</button>
     </div>
   </details>
 </header>

@@ -137,6 +137,12 @@ button.primary:hover:not(:disabled) { filter: brightness(1.08); }
 .journal-grid .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 #history { flex: 1 1 16rem; min-width: 0; }
 
+/* The way out of a header panel. Both panels are grids, so it takes the whole
+   width to land at the foot rather than in a column, and starts rather than
+   stretches -- a full-width Done reads as the panel's primary action, and the
+   primary action of the settings panel is the key. */
+.done { grid-column: 1 / -1; justify-self: start; }
+
 /* --- before the first card ----------------------------------------------- */
 
 #intro { overflow-y: auto; display: grid; place-items: center; padding: clamp(1rem, 4vw, 3rem); }
