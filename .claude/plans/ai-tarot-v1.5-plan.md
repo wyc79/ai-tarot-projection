@@ -692,6 +692,33 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-09-01): plain words, in the persona and in the pack data that teaches it, on
+  branch playtest-1. Playtest finding: the reader's questions need a second read. The voice is
+  literary by design and it was working as designed -- but the exemplars and the few-shots are
+  what actually teach the register, and they taught that one: "Whose tiredness is that, in your
+  world -- yours about something, or someone's about you?", "Was there a week it wasn't running
+  the show?". Good sentences, and slow ones on a phone or in a second language. A **Plain
+  words** section now sits immediately after **Voice** and outranks it: short common words, one
+  idea per sentence, the question names something concrete rather than an idea to unpack, and
+  no metaphors of the reader's own, no clever turns, no question folded around a dash, no "in
+  your world". The observation may carry their images; the question carries none but theirs.
+  Fixing it upstream is the point -- the engine already has a `clarify` turn for "what do you
+  mean?", which is evidence the problem was anticipated downstream, and a turn spent on the
+  reader's phrasing is a turn not spent on them. Six of fifteen exemplars and nine of eleven
+  few-shot reader lines rewritten; the rest were already plain and were left alone rather than
+  churned. Two things checked rather than assumed, because pack data feeds classifiers:
+  questions.js scores what the reader writes, and every rewritten exemplar still classifies to
+  its own rung while every few-shot still classifies to the same (type, level, ownership-offer)
+  triple it did before -- the ownership offer in particular needs "whose" and "yours" inside
+  the one final question, which is what stopped the forced choice being split into two
+  sentences. And the existing turn-shape test caught a real defect in the first pass: the plain
+  rewrite of the exception hunt split one question into two, which breaks "one observation,
+  then one question" -- the rule the few-shots exist to demonstrate. It is one question again,
+  plainer, joined with "and". Measured over the 26 reader-facing questions the pack teaches:
+  17.6 words each before, 15.7 after, and the register change is in the words rather than the
+  length. Not done: the live sanity run against a provider, which needs a key this environment
+  does not have -- the before/after in the commit message is the pack's own text, not a
+  session's, and a real reading is still worth doing before the next playtest.
 - v1.5 (2026-09-01): the opening turn is scripted from pack data, on branch playtest-1. Two
   findings from the first stranger playtest, and they turn out to be one change. The transcript
   never said who was talking or what this is: the intro says both, but `body[data-phase=

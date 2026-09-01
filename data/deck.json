@@ -84,7 +84,7 @@
       "exemplars": [
         "When did that first turn up?",
         "What happened after this?",
-        "Was there a week it wasn't running the show, and what was different about it?"
+        "Was there a week when it wasn't so bad, and what was different about it?"
       ]
     },
     {
@@ -94,7 +94,7 @@
       "exemplars": [
         "What's it like for you, seeing that happen?",
         "Is that alright with you, the way it's been going?",
-        "How has it been, carrying that around?"
+        "How has that been for you?"
       ]
     },
     {
@@ -102,8 +102,8 @@
       "asks": "why it matters to them",
       "gloss": "What their position says about what they want and value. Only reachable once they have said something real to ask it about.",
       "exemplars": [
-        "Do you know why this one gets to you the way it does?",
-        "What does it say about what matters to you, that this is the one you can't put down?",
+        "Do you know why this one gets to you?",
+        "Why does this one stay with you, do you think?",
         "What were you hoping for, before it went this way?"
       ]
     },
@@ -112,8 +112,8 @@
       "asks": "what they will do",
       "gloss": "The closing step lives here, and almost nothing else does. Small, concrete, and theirs.",
       "exemplars": [
-        "What's the one moment this week you could catch it happening?",
-        "What would the smallest first step look like?",
+        "When this week could you catch it happening?",
+        "What's the smallest first step?",
         "What will you do differently the next time it turns up?"
       ]
     }

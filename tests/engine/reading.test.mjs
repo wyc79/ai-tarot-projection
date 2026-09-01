@@ -696,6 +696,15 @@ test("the question policy is present and marked as never-to-be-named", async () 
   assert.match(system, /A menu, not a protocol/);
 });
 
+test("the plain-words rule reaches the reader, since it outranks the voice above it", async () => {
+  const { client } = await run({ gates: [gate(3)], answers: ["hm"] });
+  // Collapsed, like the other golden assertions: "a second read" falls across a
+  // line break in the source, and a rewrap is not a lost rule.
+  const system = systemFor(client, "invite").replace(/\s+/g, " ");
+  assert.match(system, /## Plain words/);
+  assert.match(system, /second read/);
+});
+
 test("every move the pack weights is a move the persona defines", async () => {
   // The staircase refactor left "explore" weighted on the obstacle position
   // with nothing defining it any more, and the prompt cheerfully told the
