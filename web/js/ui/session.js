@@ -20,7 +20,7 @@ import { loadPack } from "../pack.js";
 import { defaultRelayBase } from "../relayBase.js";
 import { makeLlmClient, DEFAULT_CONFIG, PROVIDERS } from "../llmClient.js";
 import { makeStorage, memoryBackend } from "../storage.js";
-import { startReading } from "../engine/reading.js";
+import { MEANINGS_REQUEST, startReading } from "../engine/reading.js";
 import { describeSession, loadHistory, toArchive, toJson, toMarkdown } from "../engine/journal.js";
 import { newSeed } from "../engine/rng.js";
 
@@ -176,6 +176,8 @@ export async function mountSession({
   // The dots. Put up the moment a turn is asked for and taken down by the first
   // token of the answer -- see showPending.
   let pendingLine = null;
+  // Whether the traditional meanings have been asked for. Once, per reading.
+  let meaningsSpent = false;
   // Whether this reading has ever got a word out. A failure before that is a
   // reading that never began, and a page may want to undo whatever it showed.
   let spoke = false;
@@ -375,6 +377,8 @@ export async function mountSession({
         // and the reader gets there on its own now.
         setStatus("reading closed — a little more, then goodbye", "ok");
         $("end-reading").hidden = false;
+        // From here on, and in whichever row is showing.
+        offerMeanings(true);
         // The label is written before close() runs, so it would otherwise keep
         // calling a finished reading unfinished until the next reload.
         refreshHistory();
@@ -530,6 +534,8 @@ export async function mountSession({
     // still be holding it, and showPending() below would leave it at that.
     pendingLine = null;
     spoke = false;
+    meaningsSpent = false;
+    offerMeanings(false);
 
     reading = startReading({
       pack,
@@ -562,6 +568,40 @@ export async function mountSession({
       // In a finally on both of these: a turn that failed still has to give the
       // form back, or the one thing a person can do about an error -- say
       // something else -- is the thing the error took away.
+      lockReply(false);
+    }
+  }
+
+  /**
+   * The traditional meanings, offered once after the close.
+   *
+   * The persona allows them when asked and never offers, which leaves the
+   * reading most people arrived expecting behind a question they do not know
+   * they may ask. The button is the asking. It sits in whichever row is on
+   * screen -- the tail still has the reply form up, and the farewell replaces
+   * it with the ended row -- and it goes away for good once used, because a
+   * standing offer to explain the deck is the deck asking to be the authority
+   * again, which is the one thing this reader is built not to be.
+   */
+  function offerMeanings(on) {
+    for (const button of document.querySelectorAll(".meanings")) {
+      button.hidden = meaningsSpent || !on;
+    }
+  }
+
+  async function askMeanings() {
+    meaningsSpent = true;
+    offerMeanings(false);
+    // On screen as they will read it in the keepsake: the engine records the
+    // same string as their side of the exchange, so the two cannot drift.
+    addLine("user", MEANINGS_REQUEST);
+    showPending();
+    lockReply(true);
+    try {
+      await reading.meanings();
+    } catch (error) {
+      reportError(error);
+    } finally {
       lockReply(false);
     }
   }
@@ -704,6 +744,9 @@ export async function mountSession({
   $("end-reading").addEventListener("click", () => reading?.end());
   $("stay-a-while").addEventListener("click", () => reading?.stayAWhile());
   $("new-reading").addEventListener("click", start);
+  for (const button of document.querySelectorAll(".meanings")) {
+    button.addEventListener("click", askMeanings);
+  }
 
   return {
     pack,

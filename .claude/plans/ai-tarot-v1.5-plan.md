@@ -692,6 +692,29 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-09-01): the traditional meanings, on request, after the close, on branch
+  playtest-1. Playtest finding: the ending "feels a bit general; more suggestions would be
+  good". No suggestions were added and none will be -- advice and prediction are the two things
+  this reader is built to refuse, and the close is deliberately sized to how far the reading
+  got, so someone who gave it little gets something small to notice. **The meanings turn is the
+  answer to the ending feeling thin, not a longer close.** The persona already allows the
+  traditional sense when asked and never offers it, which put the reading most people arrive
+  expecting behind a question they do not know they are allowed to ask. It is offered once,
+  after the close, as a button: one short sentence of tradition per card that turned, in its
+  position, beside one clause of what THEY saw in it. That is the tarot reading, delivered
+  after the projection work rather than instead of it, and only to someone who asked.
+  It costs the tail nothing. The exchange is recorded as an aside at the afterward position --
+  the same flag and the same reasoning as "what did you mean?" on a card: it keeps its place in
+  the transcript and buys nothing, so farewellDue counts what it counted before. Asking what
+  the deck means is a question about the deck, not one of the few turns someone has left.
+  The close was NOT tightened, and the reason is that the check the tightening was conditional
+  on could not be run: none of the three transcripts in checkpoint/ reaches a close. Two stop
+  on the second card and one on the first, all with closing_reflection null. The only close
+  anywhere is harbor-4c81de's, and that fixture is invented content written to record a
+  two-endings defect, so it cannot say whether a real close was specific to a real person's
+  words. There is no evidence of padding, so nothing was changed on suspicion. The next
+  playtest that reaches an ending is what settles it, and it is worth capturing that transcript
+  for exactly this question.
 - v1.5 (2026-09-01): plain words, in the persona and in the pack data that teaches it, on
   branch playtest-1. Playtest finding: the reader's questions need a second read. The voice is
   literary by design and it was working as designed -- but the exemplars and the few-shots are

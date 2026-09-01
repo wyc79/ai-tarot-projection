@@ -817,12 +817,19 @@ export function close(session, reflection) {
  * stakes still land, because a person is still talking and the frame can still
  * need dropping.
  */
-export function recordAfterward(session, { question, answer, gate, position = "afterward" }) {
+export function recordAfterward(session, {
+  question, answer, gate, position = "afterward", aside = false,
+}) {
   session.exchanges.push({
     q: question,
     a: answer,
     disclosure_depth: gate.disclosure_depth ?? 0,
     position,
+    // Same flag, same reason as an aside on a card: it keeps its place in the
+    // transcript and buys nothing. Asking what the deck traditionally means is
+    // a question about the deck, not one of the turns the tail is counting
+    // down -- see turnsOn, which is what farewellDue reads.
+    ...(aside ? { aside: true } : {}),
     question_type: questionType(question),
     question_level: questionLevel(question),
     gate: { ...gate },

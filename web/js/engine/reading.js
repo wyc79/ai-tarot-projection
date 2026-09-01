@@ -28,6 +28,12 @@ import { newSeed } from "./rng.js";
 export const SESSION_KEY = "session";
 
 /**
+ * What goes on the record when they press the button rather than type.
+ * Parenthesised because it is an action, not something they said in words.
+ */
+export const MEANINGS_REQUEST = "(what do these cards traditionally mean)";
+
+/**
  * A reader turn with the quotation marks the model wrapped around it removed.
  *
  * The few-shots no longer teach this, which is the actual fix, but "do not put
@@ -454,6 +460,35 @@ export function startReading({
     return { gate, decision: { flip: false, reason: "the reading is closed; this is after it" } };
   }
 
+  /**
+   * What the cards traditionally mean, because they asked.
+   *
+   * The persona allows the traditional sense when asked and never offers it,
+   * which leaves it behind a question most people do not know they are allowed
+   * to ask. Offered once, after the close, it is the reading people arrived
+   * expecting -- delivered after the projection work is done rather than
+   * instead of it, and only on request.
+   *
+   * It is not a turn of the tail. Recorded as an aside for the same reason a
+   * "what did you mean?" is: it keeps its place in the transcript and it buys
+   * nothing, so farewellDue counts exactly what it counted before. Someone who
+   * asks what the deck means has not spent one of their last few turns on it.
+   */
+  async function meanings() {
+    if (!session.closed) throw new Error("the reading has not closed yet");
+    recordAfterward(session, {
+      // q is the reader's standing turn and a is theirs, the way every exchange
+      // is built. The button press is the thing they said.
+      question: lastQuestion,
+      answer: MEANINGS_REQUEST,
+      gate: {},
+      aside: true,
+    });
+    const text = await readerTurn("meanings", { onCard: false });
+    persist();
+    return { text, decision: { flip: false, reason: "they asked what the cards mean" } };
+  }
+
   /** The answer to the opening question. Deals the first card, or does not. */
   async function openWith(answer) {
     const opening = await judge.opening({ question: lastQuestion, answer });
@@ -487,6 +522,7 @@ export function startReading({
     say: oneAtATime(say),
     afterward: oneAtATime(afterward),
     openWith: oneAtATime(openWith),
+    meanings: oneAtATime(meanings),
 
     /**
      * They walked out. Not the farewell -- that is the reading ending properly,

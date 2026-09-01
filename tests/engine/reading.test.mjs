@@ -323,6 +323,67 @@ test("a second say() while the first is still running is refused, not queued", a
   assert.equal(reading.session.exchanges.filter((e) => e.position !== "opening").length, 2);
 });
 
+test("the meanings are not on offer until the reading has closed", async () => {
+  const { reading } = await run({ gates: [gate(2)], answers: ["it looks tired"] });
+  assert.equal(reading.session.closed, false);
+  await assert.rejects(reading.meanings(), /has not closed yet/,
+                       "the traditional sense is the thing this reading exists instead of, "
+                       + "right up until the projection work is done");
+});
+
+test("asked after the close, the meanings turn names every card that turned and no other", async () => {
+  // A reading nobody gave anything to: it closes on three, and the fourth is
+  // still lying there face down, which is the case the instruction is about.
+  const { reading, client, pack } = await run({
+    gates: Array.from({ length: 16 }, () => gate(1)),
+    answers: Array.from({ length: 16 }, (_, i) => `thin ${i}`),
+  });
+  assert.equal(reading.session.closed, true);
+  assert.equal(reading.session.cards.length, 3, "and one stayed with the deck");
+
+  await reading.meanings();
+
+  const calls = client.calls.chat.filter((c) => c.turn === "meanings");
+  assert.equal(calls.length, 1, "one turn, not a mode the reading is now in");
+  const prompt = calls[0].prompt;
+  for (const entry of reading.session.cards) {
+    assert.ok(prompt.includes(pack.card(entry.card_id).name),
+              `the record names ${entry.position}, so the turn can`);
+  }
+  // The one that never turned is in the prompt as a position with no card. Its
+  // name is the thing the reader has not seen and must not invent.
+  const { tableau } = await import("../../web/js/engine/state.js");
+  const down = tableau(reading.session).filter((t) => !t.face_up);
+  assert.equal(down.length, 1);
+  assert.ok(!prompt.includes(pack.card(down[0].card_id).name),
+            "a face-down card is not named anywhere the turn could read it");
+  assert.match(prompt.replace(/\s+/g, " "), /Do not name a face-down card/);
+});
+
+test("asking what the cards mean does not spend one of the turns before goodbye", async () => {
+  const tail = ["what happens after the noticing though", "fair enough"];
+  const control = await run({
+    gates: [...fullGates(), gate(1), gate(1)], answers: [...FULL_ARC, ...tail],
+  });
+  assert.equal(control.reading.session.ended, true, "the control reached its goodbye");
+
+  const asked = await run({ gates: fullGates(), answers: FULL_ARC });
+  await asked.reading.meanings();
+  asked.client.gates.push(gate(1), gate(1));
+  for (const answer of tail) {
+    if (asked.reading.session.ended) break;
+    await asked.reading.say(answer);
+  }
+
+  assert.equal(asked.reading.session.ended, true, "and so did the one that asked");
+  const spent = (r) => r.session.exchanges.filter((e) => e.position === "afterward" && !e.aside);
+  assert.equal(spent(asked.reading).length, spent(control.reading).length,
+               "the same number of turns of theirs, either way");
+  const turns = (c) => c.calls.chat.map((t) => t.turn).filter((t) => t !== "meanings");
+  assert.deepEqual(turns(asked.client), turns(control.client),
+                   "and the same turns in the same order around it");
+});
+
 test("the tail runs to its cap for someone who keeps saying real things", async () => {
   const { reading, client } = await run({
     gates: [...fullGates(), gate(3), gate(3), gate(3)], answers: FULL_ARC,

@@ -135,6 +135,10 @@
       <input id="reply" placeholder="in your own words…" autocomplete="off">
       <button type="submit" class="primary">Send</button>
       <button type="button" id="end-reading" hidden>End</button>
+      <!-- Offered once the reading has closed. The persona allows the
+           traditional meaning when asked and never offers it, which leaves it
+           behind a question most people do not know they may ask. -->
+      <button type="button" class="meanings" hidden>What do these cards traditionally mean?</button>
     </form>
 
     <!-- After the farewell. The reading is over; staying is a choice, and it
@@ -142,6 +146,7 @@
     <div id="ended-row" class="reply" hidden>
       <button type="button" id="new-reading" class="primary">New reading</button>
       <button type="button" id="stay-a-while">Stay a while</button>
+      <button type="button" class="meanings" hidden>What do these cards traditionally mean?</button>
     </div>
   </section>
 </main>

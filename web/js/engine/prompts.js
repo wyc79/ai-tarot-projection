@@ -737,6 +737,16 @@ tells them you were not listening.
 Do not thank them for sharing. Do not summarise the session. Do not ask
 anything.`,
 
+  meanings: `
+## This turn
+
+They asked what the cards traditionally mean. Answer, plainly, one short
+sentence of the traditional sense per card that turned over, in its position —
+the record above has them — and beside each, one clause of what THEY saw in it,
+in their words. No new question, no step, no closing.
+
+Do not name a face-down card.`,
+
   afterglow: `
 ## This turn
 
