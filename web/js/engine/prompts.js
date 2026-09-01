@@ -434,6 +434,47 @@ choice, or a straight answer if they ask what it means:
 }
 
 /**
+ * Every card that turned, with what this deck says it means where it landed.
+ *
+ * describeCard carries meaning_here for the card in front of them, which is one
+ * card of three by the time anyone asks the question -- so the reader answered
+ * with the curated sense for the advice card and improvised the other two out
+ * of whatever it happens to know about the deck. The per-position meanings in
+ * the pack exist precisely to stop that: they are what THIS deck says a card
+ * means here, and an answer assembled from somewhere else is an answer about a
+ * different deck.
+ */
+function meaningsPlan(pack, session) {
+  const byPosition = new Map(session.cards.map((c) => [c.position, c]));
+  return tableau(session).flatMap((slot) => {
+    const entry = byPosition.get(slot.position);
+    // A face-down card is absent, not listed as unknown. A line saying a card
+    // is unknown is still a line about a card, and there is nothing to say.
+    if (!entry) return [];
+    const card = pack.card(entry.card_id);
+    return [{
+      position: slot.position,
+      label: pack.position(slot.position).label,
+      name: card.name,
+      meaning_here: pack.meaning(card, slot.position),
+      projection: entry.user_projection || null,
+    }];
+  });
+}
+
+function describeMeanings(cards) {
+  return `
+## What they traditionally mean
+
+Every card that turned over, in the order it turned, with what the deck says it
+means in the position it landed in. This is the answer to what they just asked
+and it is the whole of what you have to answer with: say these, in plain words,
+and say nothing about a card that is not on this list.
+${cards.map((entry) => `- ${entry.label} — ${entry.name}: ${entry.meaning_here}${
+  entry.projection ? ` (they saw: "${entry.projection}")` : ""}`).join("\n")}`;
+}
+
+/**
  * Who the reader is. Identical on every turn of a session, and identical across
  * sessions for a given pack.
  *
@@ -510,6 +551,11 @@ export function turnPlan({ pack, session, turn, handback = false }) {
     record: recapPlan(pack, session, standing),
     /** The card in front of them, resolved out of the pack. Null before the deal. */
     card: cardPlan(pack, session, standing),
+    /**
+     * The traditional sense of every card that turned, and only on the turn
+     * that asked for it. Null everywhere else, because it is never volunteered.
+     */
+    meanings: turn === "meanings" ? meaningsPlan(pack, session) : null,
   };
 }
 
@@ -525,7 +571,10 @@ export function turnPlan({ pack, session, turn, handback = false }) {
 function readerTurnBlock(plan) {
   const parts = [
     describeRecap(plan),
-    describeCard(plan.card),
+    // The card in front of them -- except on the meanings turn, where the
+    // section below already covers every card that turned, this one included.
+    // Described twice, it reads as the card the answer is really about.
+    plan.meanings ? describeMeanings(plan.meanings) : describeCard(plan.card),
     describeLadder(plan),
   ];
 

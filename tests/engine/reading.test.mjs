@@ -347,16 +347,27 @@ test("asked after the close, the meanings turn names every card that turned and 
   assert.equal(calls.length, 1, "one turn, not a mode the reading is now in");
   const prompt = calls[0].prompt;
   for (const entry of reading.session.cards) {
-    assert.ok(prompt.includes(pack.card(entry.card_id).name),
+    const card = pack.card(entry.card_id);
+    assert.ok(prompt.includes(card.name),
               `the record names ${entry.position}, so the turn can`);
+    // The whole point of the turn: the answer for every card comes off the
+    // pack, not out of whatever the model knows about the deck. Only the card
+    // in front of them used to arrive with its curated position sense, so two
+    // of the three answers were improvised.
+    assert.ok(prompt.includes(pack.meaning(card, entry.position)),
+              `${entry.position} reaches the turn with the meaning for its position`);
   }
   // The one that never turned is in the prompt as a position with no card. Its
-  // name is the thing the reader has not seen and must not invent.
+  // name is the thing the reader has not seen and must not invent, and its
+  // meaning would name it just as surely.
   const { tableau } = await import("../../web/js/engine/state.js");
   const down = tableau(reading.session).filter((t) => !t.face_up);
   assert.equal(down.length, 1);
-  assert.ok(!prompt.includes(pack.card(down[0].card_id).name),
+  const unseen = pack.card(down[0].card_id);
+  assert.ok(!prompt.includes(unseen.name),
             "a face-down card is not named anywhere the turn could read it");
+  assert.ok(!prompt.includes(pack.meaning(unseen, down[0].position)),
+            "and it is absent rather than listed as unknown");
   assert.match(prompt.replace(/\s+/g, " "), /Do not name a face-down card/);
 });
 
