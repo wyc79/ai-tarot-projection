@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { startReading } from "../../web/js/engine/reading.js";
+import { MEANINGS_REQUEST, startReading } from "../../web/js/engine/reading.js";
+import { toMarkdown } from "../../web/js/engine/journal.js";
 import { makeStorage, memoryBackend } from "../../web/js/storage.js";
 import {
   cardOnly, declines, fakeClient, gate, promptFor, realPack, sessionShowing, wants,
@@ -334,10 +335,13 @@ test("the meanings are not on offer until the reading has closed", async () => {
 test("asked after the close, the meanings turn names every card that turned and no other", async () => {
   // A reading nobody gave anything to: it closes on three, and the fourth is
   // still lying there face down, which is the case the instruction is about.
+  // Twelve answers is the close and not a word past it -- the tail runs out on
+  // the thirteenth, and the goodbye takes the offer with it.
   const { reading, client, pack } = await run({
-    gates: Array.from({ length: 16 }, () => gate(1)),
-    answers: Array.from({ length: 16 }, (_, i) => `thin ${i}`),
+    gates: Array.from({ length: 12 }, () => gate(1)),
+    answers: Array.from({ length: 12 }, (_, i) => `thin ${i}`),
   });
+  assert.equal(reading.session.ended, false, "the goodbye has not been said yet");
   assert.equal(reading.session.closed, true);
   assert.equal(reading.session.cards.length, 3, "and one stayed with the deck");
 
@@ -369,6 +373,38 @@ test("asked after the close, the meanings turn names every card that turned and 
   assert.ok(!prompt.includes(pack.meaning(unseen, down[0].position)),
             "and it is absent rather than listed as unknown");
   assert.match(prompt.replace(/\s+/g, " "), /Do not name a face-down card/);
+});
+
+test("the goodbye is the last thing the reader says; the meanings are not on offer after it", async () => {
+  const { reading } = await run({ gates: fullGates(), answers: FULL_ARC });
+  await reading.say("what happens after the noticing though");
+  await reading.say("makes sense, thanks");
+  assert.equal(reading.session.ended, true, "the farewell landed");
+
+  await assert.rejects(reading.meanings(), /ended/,
+                       "a turn generated after the goodbye takes the goodbye back");
+
+  // The door the farewell already offered is the way to them: staying a while
+  // reopens the reading's own tail, and the offer is standing in it.
+  reading.stayAWhile();
+  await reading.meanings();
+  assert.equal(reading.session.exchanges.at(-1).a, MEANINGS_REQUEST);
+});
+
+test("a reading that asked for the meanings after staying does not say goodbye twice", async () => {
+  const { reading, pack } = await run({ gates: fullGates(), answers: FULL_ARC });
+  await reading.say("what happens after the noticing though");
+  await reading.say("makes sense, thanks");
+  reading.stayAWhile();
+  await reading.meanings();
+
+  // The farewell used to be lastQuestion still, so the meanings exchange was
+  // recorded with the goodbye as its question and the keepsake printed it
+  // twice: once above the button press, once at the end where it belongs.
+  const farewell = reading.session.farewell;
+  const markdown = toMarkdown(pack, reading.session);
+  assert.equal(markdown.split(farewell).length - 1, 1,
+               "the goodbye is said once, and it is the last thing in the file");
 });
 
 test("asking what the cards mean does not spend one of the turns before goodbye", async () => {

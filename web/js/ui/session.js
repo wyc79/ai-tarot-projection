@@ -577,11 +577,13 @@ export async function mountSession({
    *
    * The persona allows them when asked and never offers, which leaves the
    * reading most people arrived expecting behind a question they do not know
-   * they may ask. The button is the asking. It sits in whichever row is on
-   * screen -- the tail still has the reply form up, and the farewell replaces
-   * it with the ended row -- and it goes away for good once used, because a
-   * standing offer to explain the deck is the deck asking to be the authority
-   * again, which is the one thing this reader is built not to be.
+   * they may ask. The button is the asking, and it lives in the reply form --
+   * so it is there through the tail, gone with the form at the farewell, and
+   * back with it if they stay a while. The engine refuses the turn after the
+   * goodbye for the same reason: the farewell is the last thing the reader
+   * says. It goes away for good once used, because a standing offer to explain
+   * the deck is the deck asking to be the authority again, which is the one
+   * thing this reader is built not to be.
    */
   function offerMeanings(on) {
     for (const button of document.querySelectorAll(".meanings")) {

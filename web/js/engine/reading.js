@@ -473,16 +473,28 @@ export function startReading({
    * "what did you mean?" is: it keeps its place in the transcript and it buys
    * nothing, so farewellDue counts exactly what it counted before. Someone who
    * asks what the deck means has not spent one of their last few turns on it.
+   *
+   * Refused after the goodbye, like say(). The farewell is the last thing the
+   * reader says in a session, and a turn generated after it takes that back.
+   * The way to the meanings from there is the door the farewell already
+   * offered: staying a while reopens the reading's own tail, and the offer is
+   * standing in it.
    */
   async function meanings() {
+    if (session.ended) throw new Error("this reading has ended");
     if (!session.closed) throw new Error("the reading has not closed yet");
     recordAfterward(session, {
       // q is the reader's standing turn and a is theirs, the way every exchange
-      // is built. The button press is the thing they said.
-      question: lastQuestion,
+      // is built. The button press is the thing they said. The standing turn
+      // rather than the last one: after a farewell there is none, and lastQuestion
+      // is still holding the goodbye -- which would print the farewell twice in
+      // the keepsake, once above the button press and once at the end.
+      question: session.pending_question,
       answer: MEANINGS_REQUEST,
       gate: {},
       aside: true,
+      // Where it happened, so the transcript reads in the order it was said.
+      position: session.phase === "afterglow" ? "afterglow" : "afterward",
     });
     const text = await readerTurn("meanings", { onCard: false });
     persist();

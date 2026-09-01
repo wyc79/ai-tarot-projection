@@ -692,6 +692,25 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-09-01): the meanings turn answers with the pack's meanings, and only while the
+  reader still has a turn to take, on branch playtest-1. Two gaps found reviewing the round
+  that added it. **First: it had one meaning of three.** `describeCard` puts `meaning_here` in
+  the prompt for the card currently face up, which by the time anyone presses the button is the
+  advice card -- so the turn answered for that one out of the pack and improvised the other two
+  out of whatever the model knows about tarot, which is the exact thing the per-position
+  meanings in `deck.json` exist to replace. `turnPlan` now carries a `meanings` field, null on
+  every turn but that one, where it is one entry per face-up card in table order; the turn block
+  renders it as its own section between the session record and the instruction, and skips the
+  current-card block there, since described twice that card reads as the one the answer is
+  really about. A face-down card is absent from the section rather than listed as unknown.
+  **Second: it was reachable after the goodbye.** `meanings()` now refuses once `session.ended`,
+  the way `say()` does, and the button is gone from the ended row. The farewell is the last
+  thing the reader says in a session and a turn generated after it takes that back; the way to
+  the meanings from there is the door the farewell already offered -- "Stay a while" brings the
+  reply form back with the offer standing in it, which costs nothing and keeps the ending
+  intact. The exchange is recorded against the phase it happened in and with the reader's
+  *standing* question rather than the last one, because after a farewell there is none and the
+  keepsake was printing the goodbye twice: once above the button press, once at the end.
 - v1.5 (2026-09-01): the traditional meanings, on request, after the close, on branch
   playtest-1. Playtest finding: the ending "feels a bit general; more suggestions would be
   good". No suggestions were added and none will be -- advice and prediction are the two things
