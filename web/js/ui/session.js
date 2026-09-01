@@ -64,12 +64,42 @@ export function revealField(id) {
   field.focus();
 }
 
+/** How near the bottom still counts as being at it. About one line. */
+const STUCK_PX = 48;
+
+/**
+ * Whether the transcript is sitting at its bottom, asked BEFORE the thing that
+ * is about to grow it -- afterwards the answer is gone.
+ *
+ * Not exactly the bottom: nobody parks on the last pixel, and a fractional
+ * scrollHeight rounded the wrong way would otherwise strand someone one pixel
+ * off it for the rest of the reading.
+ */
+function stuckToBottom() {
+  const t = $("transcript");
+  return t.scrollHeight - t.scrollTop - t.clientHeight <= STUCK_PX;
+}
+
+/**
+ * The pane, not the page. scrollIntoView asks the browser to bring an element
+ * into view and lets it choose which ancestor to move, which on a phone is the
+ * layout the card table is pinned inside -- and the table holding its place is
+ * the one thing this layout exists to do.
+ */
+function toBottom() {
+  const t = $("transcript");
+  t.scrollTop = t.scrollHeight;
+}
+
 export function addLine(who, text) {
+  const stuck = stuckToBottom();
   const line = document.createElement("p");
   line.className = `line ${who}`;
   line.textContent = text;
   $("transcript").append(line);
-  line.scrollIntoView({ block: "end" });
+  // Unless they had scrolled up, in which case they are rereading something and
+  // being dragged back down is the rudest thing this page could do to them.
+  if (stuck) toBottom();
   return line;
 }
 
@@ -95,6 +125,9 @@ function addPendingLine() {
     dot.className = "dot";
     line.append(dot);
   }
+  // The dots are what gives the bubble its height, and they go in after addLine
+  // has already measured and scrolled.
+  if (stuckToBottom()) toBottom();
   return line;
 }
 
@@ -227,11 +260,6 @@ export async function mountSession({
     }
   }
 
-  /**
-   * Errors go where the user is looking, not only into the status bar. The
-   * first version reported them into the settings panel, which start()
-   * collapses -- so a failed request looked exactly like no request at all.
-   */
   function showPending() {
     if (!pendingLine) pendingLine = addPendingLine();
   }
@@ -258,6 +286,11 @@ export async function mountSession({
     return line;
   }
 
+  /**
+   * Errors go where the user is looking, not only into the status bar. The
+   * first version reported them into the settings panel, which start()
+   * collapses -- so a failed request looked exactly like no request at all.
+   */
   function reportError(error) {
     // Whatever was on screen standing in for the answer that never came: the
     // dots, or the empty bubble left by a turn that produced no token.
@@ -293,10 +326,18 @@ export async function mountSession({
       case "reader_start":
         streamingLine = takePending() ?? addLine("reader", "");
         break;
-      case "reader_delta":
+      // The bubble grows under the fold otherwise: addLine scrolled it into
+      // view once, while it was still empty, and streaming did the rest of the
+      // work below the bottom of the pane. Every reply ended in a drag.
+      case "reader_delta": {
+        const stuck = stuckToBottom();
         if (streamingLine) streamingLine.textContent = event.full;
+        if (stuck) toBottom();
         break;
+      }
       case "reader_done":
+        // Once more at the end: the last delta is measured before it wraps.
+        if (stuckToBottom()) toBottom();
         streamingLine = null;
         spoke = true;
         // Downloadable from the first turn: an abandoned reading is often the
@@ -340,15 +381,6 @@ export async function mountSession({
   }
 
   /**
-   * The identify step, with the reply form switched off around it.
-   *
-   * The picker is a row in the chat column, not a layer over it, so without
-   * this the input underneath stays live while a turn is parked waiting for an
-   * answer -- and a second say() on top of the first one is two turns running
-   * at once over one session. The form belongs to this module, the picker
-   * belongs to the page, and the engine knows about neither.
-   */
-  /**
    * The reply form, while a turn is in flight.
    *
    * The engine refuses a second turn on its own now, so this is not what makes
@@ -373,6 +405,16 @@ export async function mountSession({
     if (!busy && !form.hidden) $("reply").focus();
   }
 
+  /**
+   * The identify step, with the reply form switched off around it.
+   *
+   * The picker is a row in the chat column, not a layer over it, so without
+   * this the input underneath stays live while a turn is parked waiting for an
+   * answer. A second say() over one session is refused by the engine now, but
+   * being refused is not the same as being told not to: the form has to say it
+   * is not the thing to answer. The form belongs to this module, the picker
+   * belongs to the page, and the engine knows about neither.
+   */
   const askForCard = identifyCard && (async (request) => {
     const form = $("reply-form");
     form.inert = true;
