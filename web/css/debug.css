@@ -134,6 +134,11 @@ button:disabled { opacity: 0.4; cursor: default; }
 .line { margin: 0; padding: 0.6rem 0.85rem; border-radius: 8px; white-space: pre-wrap; }
 .line.reader { background: var(--panel); border-left: 2px solid var(--line); }
 .line.user { background: transparent; border: 1px solid var(--line); color: var(--dim); }
+/* The pending line comes from the shared session module, so this page gets it
+   too; without a rule here it is an empty bubble. Static -- the machinery page
+   already says what is in flight, in the panels. */
+.line.reader.pending { display: flex; align-items: center; gap: 0.34rem; min-height: 1.5rem; }
+.line.pending .dot { width: 0.4rem; height: 0.4rem; border-radius: 50%; background: var(--dim); }
 
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 0.7rem 0.85rem; margin-bottom: 1.25rem; font-size: 0.85rem; }
 .panel .quote { color: var(--dim); font-style: italic; margin: 0.35rem 0; }

@@ -279,6 +279,25 @@ body[data-phase="idle"] #stage { display: none; }
 .line.user { align-self: flex-end; border: 1px solid var(--line); color: var(--dim); }
 .line.error { border: 1px solid var(--bad); color: var(--bad); font-size: 0.85rem; }
 
+/* Waiting for the reader. The same bubble the reply arrives in -- it IS the
+   same element -- held at the height of one line so the first token does not
+   push the transcript down as it lands. */
+.line.reader.pending { display: flex; align-items: center; gap: 0.34rem; min-height: 1.63rem; }
+.line.pending .dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: var(--dim);
+  animation: thinking 1.3s ease-in-out infinite;
+}
+.line.pending .dot:nth-child(2) { animation-delay: 0.16s; }
+.line.pending .dot:nth-child(3) { animation-delay: 0.32s; }
+
+@keyframes thinking {
+  0%, 62%, 100% { opacity: 0.28; transform: translateY(0); }
+  31%           { opacity: 1;    transform: translateY(-0.2rem); }
+}
+
 .reply { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 .reply[hidden] { display: none; }
 /* Parked behind the picker: not the thing to answer right now. */
@@ -431,4 +450,7 @@ body:has(.picker:not([hidden])) .transcript { opacity: 0.35; }
      rotation is decoration. */
   .slot.up .card { animation: none; transform: rotateY(180deg); }
   .card-name { transition: none; opacity: 1; }
+  /* Still three dots where the answer is coming, just not moving: what they
+     say is that the turn was sent, and that is not decoration. */
+  .line.pending .dot { animation: none; opacity: 0.55; }
 }

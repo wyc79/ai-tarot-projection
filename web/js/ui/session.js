@@ -73,6 +73,31 @@ export function addLine(who, text) {
   return line;
 }
 
+/**
+ * Three dots where the answer will be.
+ *
+ * `reader_start` is not the moment the turn was asked for: the gate judge runs
+ * first, and on a turn that flips a card the anchor judge runs too, so several
+ * seconds pass with nothing on screen and a live input still showing its
+ * placeholder. That silence is what makes a person send again. This goes up the
+ * instant the UI calls say() -- which needs no engine event, because the UI is
+ * the thing that pressed the button.
+ *
+ * It is the same bubble the reply arrives in, so the first token lands where
+ * the dots were rather than under them.
+ */
+function addPendingLine() {
+  const line = addLine("reader pending", "");
+  line.setAttribute("role", "status");
+  line.setAttribute("aria-label", "the reader is thinking");
+  for (let i = 0; i < 3; i += 1) {
+    const dot = document.createElement("span");
+    dot.className = "dot";
+    line.append(dot);
+  }
+  return line;
+}
+
 /** Hand the file to the browser. Served locally, so a blob link is enough. */
 function download(filename, text, type) {
   const url = URL.createObjectURL(new Blob([text], { type }));
@@ -115,6 +140,9 @@ export async function mountSession({
   let keyStore = makeStorage(memoryBackend());
   let reading = null;
   let streamingLine = null;
+  // The dots. Put up the moment a turn is asked for and taken down by the first
+  // token of the answer -- see showPending.
+  let pendingLine = null;
   // Whether this reading has ever got a word out. A failure before that is a
   // reading that never began, and a page may want to undo whatever it showed.
   let spoke = false;
@@ -204,8 +232,36 @@ export async function mountSession({
    * first version reported them into the settings panel, which start()
    * collapses -- so a failed request looked exactly like no request at all.
    */
+  function showPending() {
+    if (!pendingLine) pendingLine = addPendingLine();
+  }
+
+  /** The dots come down, whether or not anything is going to replace them. */
+  function clearPending() {
+    pendingLine?.remove();
+    pendingLine = null;
+  }
+
+  /**
+   * The pending line, promoted to the streaming one. Same element, emptied and
+   * out of its pending class, so the reply appears where the dots were instead
+   * of below them and nothing on screen jumps.
+   */
+  function takePending() {
+    const line = pendingLine;
+    pendingLine = null;
+    if (!line) return null;
+    line.className = "line reader";
+    line.removeAttribute("role");
+    line.removeAttribute("aria-label");
+    line.textContent = "";
+    return line;
+  }
+
   function reportError(error) {
-    // Drop the empty bubble left by a reader turn that never produced a token.
+    // Whatever was on screen standing in for the answer that never came: the
+    // dots, or the empty bubble left by a turn that produced no token.
+    clearPending();
     if (streamingLine && !streamingLine.textContent) streamingLine.remove();
     streamingLine = null;
     const code = error.code ?? error.name ?? "error";
@@ -235,7 +291,7 @@ export async function mountSession({
   function handleEvent(event) {
     switch (event.type) {
       case "reader_start":
-        streamingLine = addLine("reader", "");
+        streamingLine = takePending() ?? addLine("reader", "");
         break;
       case "reader_delta":
         if (streamingLine) streamingLine.textContent = event.full;
@@ -378,6 +434,9 @@ export async function mountSession({
     // Whatever the last attempt complained about has been dealt with.
     clearStatus();
     $("transcript").innerHTML = "";
+    // The element just went with the transcript; the variable would otherwise
+    // still be holding it, and showPending() below would leave it at that.
+    pendingLine = null;
     spoke = false;
 
     reading = startReading({
@@ -397,6 +456,9 @@ export async function mountSession({
     // The page's own table and panels, with a session to draw: every card is
     // face down on the table before a word is said.
     onStart(reading);
+    // The opening turn waits on nothing but the model, and it is still the
+    // longest anyone stares at an empty column.
+    showPending();
     try {
       await reading.begin();
     } catch (error) {
@@ -406,6 +468,7 @@ export async function mountSession({
 
   async function say(text) {
     addLine("user", text);
+    showPending();
     try {
       await reading.say(text);
     } catch (error) {
