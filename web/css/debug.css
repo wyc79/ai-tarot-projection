@@ -134,6 +134,8 @@ button:disabled, input:disabled { opacity: 0.4; cursor: default; }
 .line { margin: 0; padding: 0.6rem 0.85rem; border-radius: 8px; white-space: pre-wrap; }
 .line.reader { background: var(--panel); border-left: 2px solid var(--line); }
 .line.user { background: transparent; border: 1px solid var(--line); color: var(--dim); }
+/* The app's own line, from the shared session module. */
+.line.note { background: transparent; border-left: 2px solid var(--line); color: var(--dim); font-size: 0.8rem; }
 /* The pending line comes from the shared session module, so this page gets it
    too; without a rule here it is an empty bubble. Static -- the machinery page
    already says what is in flight, in the panels. */

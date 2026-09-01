@@ -323,6 +323,27 @@ export async function mountSession({
    */
   function handleEvent(event) {
     switch (event.type) {
+      // The two lines that open a reading, straight from the pack. No stream to
+      // follow and nothing to wait for, so they are appended whole.
+      case "reader_scripted":
+        if (event.role === "note") {
+          // The app speaking, not the reader in character. It says what this is
+          // and who is talking, which the transcript never did -- the intro says
+          // it, and the intro is gone by the time anyone is reading this.
+          addLine("note", event.text);
+          break;
+        }
+        addLine("reader", event.text);
+        // As reader_done: there is a session on the record now, and a reading
+        // abandoned early is often the one worth keeping.
+        $("save-md").disabled = false;
+        $("save-json").disabled = false;
+        refreshHistory();
+        // Deliberately not `spoke`. That flag asks whether the reading ever got
+        // a word out of the model, and it is what sends a first-turn failure
+        // back to the door where the key is. Scripted lines are the app talking
+        // to itself; they must not make a broken key look like a live reading.
+        break;
       case "reader_start":
         streamingLine = takePending() ?? addLine("reader", "");
         break;
@@ -527,9 +548,11 @@ export async function mountSession({
     // The page's own table and panels, with a session to draw: every card is
     // face down on the table before a word is said.
     onStart(reading);
-    // The opening turn waits on nothing but the model, and it is still the
-    // longest anyone stares at an empty column.
-    showPending();
+    // No dots here. The opening is scripted now, so begin() waits on nothing
+    // and the two lines are on screen before anyone could see an indicator --
+    // dots put up here would never come down, because no reader_start follows.
+    // The lock stays: begin() is a turn entry point like say(), and the engine
+    // refuses a second one either way.
     lockReply(true);
     try {
       await reading.begin();

@@ -289,6 +289,19 @@ body[data-phase="idle"] #stage { display: none; }
 .line.user { align-self: flex-end; border: 1px solid var(--line); color: var(--dim); }
 .line.error { border: 1px solid var(--bad); color: var(--bad); font-size: 0.85rem; }
 
+/* The app speaking, not the reader in character: no serif and no gold rule, and
+   quieter than either voice in the transcript. Set like the intro's own quiet
+   paragraph, because it is very nearly the same sentence -- and the intro is
+   hidden the moment a reading starts, which is why this line exists. */
+.line.note {
+  padding-left: 0.95rem;
+  border-left: 2px solid var(--line);
+  border-radius: 0 12px 12px 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--dim);
+}
+
 /* Waiting for the reader. The same bubble the reply arrives in -- it IS the
    same element -- held at the height of one line so the first token does not
    push the transcript down as it lands. */
