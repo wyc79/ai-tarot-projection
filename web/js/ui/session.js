@@ -393,8 +393,12 @@ export async function mountSession({
    * parks a form behind something else, and this is the thing being looked at
    * straight after Send. So the controls are disabled, which says it to the
    * browser and to a screen reader, and aria-busy says which half of the pair
-   * it is. Disabling takes the focus with it, so the cursor is put back where
-   * it was unless the form has gone.
+   * it is.
+   *
+   * Disabling the box takes the focus with it, so the cursor goes back -- but
+   * only if nothing has claimed it in the meantime. A failed turn sends it into
+   * the settings field that is actually wrong, and that outranks getting back
+   * to a reply which cannot be sent until the setting is fixed.
    */
   function lockReply(busy) {
     const form = $("reply-form");
@@ -402,7 +406,7 @@ export async function mountSession({
     else form.removeAttribute("aria-busy");
     $("reply").disabled = busy;
     form.querySelector("button[type=submit]").disabled = busy;
-    if (!busy && !form.hidden) $("reply").focus();
+    if (!busy && !form.hidden && document.activeElement === document.body) $("reply").focus();
   }
 
   /**
