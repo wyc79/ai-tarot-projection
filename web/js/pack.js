@@ -8,7 +8,7 @@
  * https://wyc79.github.io/ai-tarot-projection/.
  */
 
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 /**
  * @param {string} packDir  pack root, relative to the document
@@ -59,6 +59,12 @@ export async function loadPack(packDir = "data", { fetchImpl = fetch } = {}) {
     level: (id) => deck.levels.find((l) => l.id === id),
     persona,
     fewShots,
+    // The two things said before any model is called: what this is, and the
+    // question that starts it. Pack data rather than an instruction to write
+    // them, because they are fixed content -- and the honesty line in
+    // particular is a statement of fact about the app, not something the
+    // reader should be asked to improvise in character.
+    opening: deck.opening,
     cards: deck.cards,
     cardBackUrl: `${base}/${deck.card_back}`,
     card: (id) => byId.get(id),

@@ -91,27 +91,24 @@ test("only the closing turn counts the cards that never turned", async () => {
   }
 });
 
-test("the ladder is quoted on every turn but only written out once there is a card", async () => {
+test("the ladder is quoted on every turn, and written out on every turn there is", async () => {
   const pack = await realPack();
-  const fresh = createSession({ packId: pack.id, seed: "s", positions: pack.positions });
-  const opening = turnPlan({ pack, session: fresh, turn: "opening" });
-  // Two different questions, and collapsing them into one drops a line out of
-  // the opening turn's session record. `shown` is whether the "how far to
-  // reach" section is written; the record quotes the target either way.
-  assert.equal(opening.ladder.shown, false, "the section would be noise before the deal");
-  assert.ok(opening.ladder.target, "but the record still quotes a target");
-  assert.match(promptFor(pack, fresh, "opening"), /reach no further than: \w+/);
-  assert.doesNotMatch(promptFor(pack, fresh, "opening"), /\n## How far to reach/);
-
+  // There is no undealt reader turn any more -- the opening is scripted, so the
+  // first turn the model writes already has a card in front of it. The section
+  // that used to be suppressed before the deal is now simply always written.
   const dealt = sessionShowing(pack, "major-00-fool");
-  assert.equal(turnPlan({ pack, session: dealt, turn: "invite" }).ladder.shown, true);
+  assert.ok(turnPlan({ pack, session: dealt, turn: "invite" }).ladder.target,
+            "the record quotes a target");
+  assert.match(promptFor(pack, dealt, "invite"), /reach no further than: \w+/);
   assert.match(promptFor(pack, dealt, "invite"), /\n## How far to reach/);
 });
 
 test("the card is resolved out of the pack, or absent before the deal", async () => {
   const pack = await realPack();
   const fresh = createSession({ packId: pack.id, seed: "s", positions: pack.positions });
-  assert.equal(turnPlan({ pack, session: fresh, turn: "opening" }).card, null);
+  // The one turn that still runs with nothing on the table: the reply to an
+  // opening answer that dropped the frame, before anything is dealt.
+  assert.equal(turnPlan({ pack, session: fresh, turn: "respond" }).card, null);
 
   const { card } = turnPlan({ pack, session: sessionShowing(pack, "major-06-lovers"), turn: "invite" });
   assert.equal(card.name, "The Lovers");

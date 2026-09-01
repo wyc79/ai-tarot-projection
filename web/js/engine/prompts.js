@@ -96,7 +96,6 @@ function describeSpread(pack) {
 
 
 function describeTopic(session) {
-  if (session.phase === "opening") return "";
   if (!session.topic) {
     return `
 ## They did not name a topic
@@ -166,14 +165,6 @@ function ladderPlan(pack, session, standing = cardStanding(session)) {
     target,
     targetIfCrossing: targetLevel(pack, { userLevel, ceiling, deflected, crossingRails: true }),
     highest,
-    /**
-     * Whether the "how far to reach" section is written out this turn.
-     *
-     * Not the same question as whether there is a ladder: the session record
-     * quotes the target on every turn including the opening one, where there is
-     * nothing dealt to stand on and the section itself would be noise.
-     */
-    shown: session.phase !== "opening",
     /** The rungs low to high, and which one they are standing on. */
     rungs: pack.levels.map((level) => ({ id: level.id, here: level.id === userLevel })),
     /** The target rung's own words. Only its exemplars are ever shown. */
@@ -194,7 +185,6 @@ function ladderPlan(pack, session, standing = cardStanding(session)) {
  * front of it writes questions that sound chosen.
  */
 function describeLadder(plan) {
-  if (!plan.ladder.shown) return "";
   const { userLevel, target, targetIfCrossing, rail, ceiling, deflected, highest,
           aim, reachedIntentions } = plan.ladder;
   const turn = plan.kind;
@@ -574,19 +564,6 @@ You have not seen it.`;
 }
 
 const TURN_INSTRUCTIONS = {
-  opening: `
-## This turn
-
-Nothing has been dealt yet, and nothing will be dealt this turn.
-
-Ask whether there is something particular they want to look at before you turn
-anything over. Make declining genuinely easy — "not really, just curious" is a
-good answer and a lot of people arrive that way. Do not push, and do not offer
-a menu of topics.
-
-Two sentences at the outside. Do not explain the spread, do not describe the
-deck, and do not promise what the cards will do.`,
-
   invite: `
 ## This turn
 

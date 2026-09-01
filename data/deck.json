@@ -1,10 +1,14 @@
 {
-  "schema_version": 5,
+  "schema_version": 6,
   "pack_id": "smith-waite-1909",
   "name": "Smith-Waite (1909)",
   "card_back": "Cards-jpg/CardBacks.jpg",
   "persona": "persona.md",
   "few_shots": "few-shots.json",
+  "opening": {
+    "disclosure": "You're talking to an AI playing a tarot reader. It doesn't predict anything and it doesn't know you — the cards are something to think out loud at. What you type goes to the model you chose, with your key, and nowhere else. This isn't therapy or crisis support; if things are heavy right now, findahelpline.com lists people who can actually help.",
+    "question": "Before I turn anything over — is there something particular you'd like to look at today? “Not really, just curious” is a perfectly good answer."
+  },
   "positions": [
     {
       "id": "situation",

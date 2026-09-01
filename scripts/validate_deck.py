@@ -12,7 +12,7 @@ import json
 import os
 import sys
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 REQUIRED_POSITIONS = ["situation", "obstacle", "advice"]
 MEANING_KEYS = REQUIRED_POSITIONS + ["general"]
 EXPECTED_CARDS = 78
@@ -42,6 +42,17 @@ def validate(pack_dir):
     for key in ("pack_id", "name", "card_back", "persona", "few_shots"):
         if not nonempty_str(deck.get(key)):
             problems.append("missing or empty top-level %r" % key)
+
+    # The two lines the app says before any model is called. A pack that does
+    # not carry them cannot open a reading at all, so this is a problem rather
+    # than a warning.
+    opening = deck.get("opening")
+    if not isinstance(opening, dict):
+        problems.append("missing top-level 'opening' with 'disclosure' and 'question'")
+    else:
+        for key in ("disclosure", "question"):
+            if not nonempty_str(opening.get(key)):
+                problems.append("missing or empty opening.%s" % key)
 
     for key in ("card_back", "persona", "few_shots"):
         ref = deck.get(key, "")

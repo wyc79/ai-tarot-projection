@@ -303,12 +303,32 @@ export function startReading({
   }
 
   /**
-   * Ask what they came for before anything is dealt. A named topic becomes the
-   * ground the whole reading is bent toward; declining is a normal answer and
-   * costs them nothing.
+   * Say what this is, and ask what they came for. Both scripted, from the pack.
+   *
+   * The transcript never said who was talking. The intro does, but it is hidden
+   * the moment a reading starts and a phone user has skimmed past it to the
+   * button -- so the first thing on screen was a question from nobody.
+   *
+   * Neither line is generated. The disclosure is a statement of fact about the
+   * app, and asking a model to improvise its own honesty line is the wrong
+   * shape of request. The question was already fixed content: its instruction
+   * pinned it to two sentences that ask one thing and make declining easy, so
+   * the call bought a paraphrase and a per-session round trip before the first
+   * card. Scripting it makes the opening instant and removes a failure point
+   * from in front of the whole reading.
+   *
+   * What it costs is persona-voice variation on a two-sentence question. What
+   * the session record keeps is unchanged: openWith still judges the answer,
+   * and recordOpening still writes this question above it.
    */
   async function begin() {
-    await readerTurn("opening");
+    lastQuestion = pack.opening.question;
+    // The half that survives the tab closing, so a reading abandoned here still
+    // exports as a reading that asked something.
+    session.pending_question = pack.opening.question;
+    onEvent({ type: "reader_scripted", role: "note", text: pack.opening.disclosure });
+    onEvent({ type: "reader_scripted", role: "reader", text: pack.opening.question });
+    persist();
     return session;
   }
 

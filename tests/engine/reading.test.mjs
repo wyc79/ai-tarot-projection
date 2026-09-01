@@ -43,7 +43,7 @@ const FULL_ARC = ["it looks like leaving", "the job, I think",
 const fullGates = () => Array.from({ length: 10 }, () => gate(3));
 
 const types = (events, type) => events.filter((e) => e.type === type);
-/** The system prompt for a given turn kind, since index 0 is now the opening. */
+/** The system prompt for a given turn kind, since the order is not fixed. */
 const systemFor = (client, turn) => client.calls.chat.find((c) => c.turn === turn).prompt;
 
 test("a full seeded session runs draw -> projection -> flips -> anchor -> close", async () => {
@@ -91,7 +91,7 @@ test("the turns run in the designed order: invite, bridges, epilogue, close, far
     answers: [...FULL_ARC, "what happens after noticing though", "fair enough"],
   });
   assert.deepEqual(client.calls.chat.map((c) => c.turn),
-                   ["opening", "invite", "respond", "bridge", "respond", "respond",
+                   ["invite", "respond", "bridge", "respond", "respond",
                     "bridge", "respond", "respond", "epilogue", "respond", "close",
                     "after", "farewell"]);
 });
@@ -315,7 +315,7 @@ test("a second say() while the first is still running is refused, not queued", a
   const answered = reading.session.exchanges.filter((e) => e.position !== "opening");
   assert.equal(answered.length, 1, "one answer went in, not two");
   assert.equal(answered[0].a, "a");
-  assert.equal(client.calls.chat.filter((c) => c.turn !== "opening" && c.turn !== "invite").length, 1,
+  assert.equal(client.calls.chat.filter((c) => c.turn !== "invite").length, 1,
                "and one reader turn ran over it");
 
   // And the flag is put down again, so the refusal is not the end of the session.
@@ -463,7 +463,33 @@ test("nothing is dealt until they have been asked what they came for", async () 
   await reading.begin();
   assert.equal(reading.session.cards.length, 0, "no card turns before the question");
   assert.equal(reading.session.phase, "opening");
-  assert.equal(client.calls.chat[0].turn, "opening");
+  assert.equal(client.calls.chat.length, 0, "and the question itself costs no call");
+  assert.equal(client.calls.judge.length, 0, "nor a judgement: nobody has said anything");
+});
+
+test("the opening is spoken from the pack, disclosure first, and recorded as asked", async () => {
+  const pack = await realPack();
+  const events = [];
+  const client = fakeClient({ opening: declines });
+  const reading = startReading({ pack, client, seed: SEED, onEvent: (e) => events.push(e) });
+  await reading.begin();
+
+  const scripted = events.filter((e) => e.type === "reader_scripted");
+  assert.deepEqual(scripted.map((e) => e.role), ["note", "reader"],
+                   "what this is, then the question -- in that order");
+  assert.equal(scripted[0].text, pack.opening.disclosure);
+  assert.equal(scripted[1].text, pack.opening.question);
+  // Held on the session, so a reading abandoned here still exports as one that
+  // asked something.
+  assert.equal(reading.session.pending_question, pack.opening.question);
+
+  await reading.say("no, nothing in particular");
+  const [first] = reading.session.exchanges;
+  assert.equal(first.position, "opening");
+  assert.equal(first.q, pack.opening.question, "the scripted question is the one on the record");
+  assert.equal(first.a, "no, nothing in particular");
+  assert.notEqual(reading.session.pending_question, pack.opening.question,
+                  "and the answer took it off the pending slot, which the invite then had");
 });
 
 test("a named topic becomes the ground the reading is bent toward", async () => {
@@ -545,7 +571,6 @@ test("every turn instruction still carries the rules it is supposed to", async (
   // re-wrapping a paragraph does not read as losing the rule inside it. What is
   // being guarded is that the rule is still there, not how it is set.
   const required = {
-    opening: [/Nothing has been dealt yet/, /Make declining genuinely easy/],
     invite: [/Name the card and the position/, /Do not interpret it first/,
              /the second one is the question/],
     respond: [/No card turns over on this turn/, /One observation, then one question/,
@@ -640,7 +665,10 @@ test("before anything is dealt the recap says so rather than inventing state", a
   const client = fakeClient({ opening: declines });
   const reading = startReading({ pack, client, seed: SEED });
   await reading.begin();
-  const system = client.calls.chat[0].prompt;
+  // Read off the assembly rather than off a call: the opening is scripted now,
+  // so the only turn that runs with nothing dealt is the reply to an opening
+  // answer that dropped the frame. The state it describes is the same one.
+  const system = promptFor(pack, reading.session, "respond");
   assert.match(system, /anchor: not committed yet/);
   // The whole spread is on the table from the first turn, and every one of them
   // is face down: the reader is shown the topology and none of the cards.

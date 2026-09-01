@@ -113,10 +113,10 @@ test("the reader's unanswered last turn is in the keepsake, under the card it wa
     [gate(2)], ["no, nothing in particular", "it looks tired"]);
 
   const md = toMarkdown(pack, session);
-  assert.equal(saidOnce(md, "respond turn 3"), 1,
+  assert.equal(saidOnce(md, "respond turn 2"), 1,
                "the last thing the reader said is in the file, exactly once");
   const lines = md.split("\n");
-  assert.ok(lines.indexOf("respond turn 3") > lines.findIndex((l) => /^## Situation — /.test(l)),
+  assert.ok(lines.indexOf("respond turn 2") > lines.findIndex((l) => /^## Situation — /.test(l)),
             "under the card it was said on");
 });
 
@@ -126,9 +126,9 @@ test("a reader turn that did get answered is not printed a second time", async (
     ["no, nothing in particular", "it looks tired", "nobody is attacking me"]);
 
   const md = toMarkdown(pack, reading.session);
-  assert.equal(saidOnce(md, "respond turn 3"), 1,
+  assert.equal(saidOnce(md, "respond turn 2"), 1,
                "answered, it is the question above their answer and nothing besides");
-  assert.equal(saidOnce(md, "respond turn 4"), 1,
+  assert.equal(saidOnce(md, "respond turn 3"), 1,
                "and the one nobody answered has taken its place at the end");
 });
 
@@ -136,7 +136,9 @@ test("the opening question is in the keepsake even when nobody answered it", asy
   const { pack, session } = await stoppedMidTurn([], []);
   const md = toMarkdown(pack, session);
   assert.match(md, /## Before the cards/, "the reading got that far and no further");
-  assert.equal(saidOnce(md, "opening turn 1"), 1, "and that is the whole of it");
+  // Scripted now, and it reaches the file by the same route a generated one
+  // did: pending_question, held until an answer takes it.
+  assert.equal(saidOnce(md, pack.opening.question), 1, "and that is the whole of it");
 });
 
 test("a reading where nobody has spoken at all prints no empty section", async () => {
@@ -153,7 +155,7 @@ test("the reply after the frame was dropped comes before the line saying so", as
   assert.equal(reading.session.safety_state, "drop_frame", "the frame was dropped");
 
   const lines = toMarkdown(pack, reading.session).split("\n");
-  const reply = lines.indexOf("respond turn 4");
+  const reply = lines.indexOf("respond turn 3");
   assert.ok(reply > -1, "the crisis reply is in the file at all");
   assert.ok(lines.findIndex((l) => /stopped being a reading partway through/.test(l)) > reply,
             "and above the line saying the reading stopped");
