@@ -106,7 +106,7 @@ summary { cursor: pointer; font-size: 0.85rem; }
 
 .save-row { gap: 0.6rem; margin-bottom: 1.5rem; align-items: center; }
 .save-row select { flex: 1 1 18rem; min-width: 0; }
-button:disabled { opacity: 0.4; cursor: default; }
+button:disabled, input:disabled { opacity: 0.4; cursor: default; }
 
 /* The machinery column is `auto`, so a collapsed panel costs a summary's width
    and the transcript takes the rest. Open, it takes a readable fixed width --

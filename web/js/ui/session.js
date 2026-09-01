@@ -348,6 +348,31 @@ export async function mountSession({
    * at once over one session. The form belongs to this module, the picker
    * belongs to the page, and the engine knows about neither.
    */
+  /**
+   * The reply form, while a turn is in flight.
+   *
+   * The engine refuses a second turn on its own now, so this is not what makes
+   * the invariant true -- it is what the person sees. A form that takes a
+   * second message and then throws it away is worse than one that visibly is
+   * not taking anything, and the throwing-away is what a stranger reads as the
+   * reader ignoring them.
+   *
+   * `inert` alone, the way the picker uses it, is not enough here: that one
+   * parks a form behind something else, and this is the thing being looked at
+   * straight after Send. So the controls are disabled, which says it to the
+   * browser and to a screen reader, and aria-busy says which half of the pair
+   * it is. Disabling takes the focus with it, so the cursor is put back where
+   * it was unless the form has gone.
+   */
+  function lockReply(busy) {
+    const form = $("reply-form");
+    if (busy) form.setAttribute("aria-busy", "true");
+    else form.removeAttribute("aria-busy");
+    $("reply").disabled = busy;
+    form.querySelector("button[type=submit]").disabled = busy;
+    if (!busy && !form.hidden) $("reply").focus();
+  }
+
   const askForCard = identifyCard && (async (request) => {
     const form = $("reply-form");
     form.inert = true;
@@ -459,20 +484,29 @@ export async function mountSession({
     // The opening turn waits on nothing but the model, and it is still the
     // longest anyone stares at an empty column.
     showPending();
+    lockReply(true);
     try {
       await reading.begin();
     } catch (error) {
       reportError(error);
+    } finally {
+      // In a finally on both of these: a turn that failed still has to give the
+      // form back, or the one thing a person can do about an error -- say
+      // something else -- is the thing the error took away.
+      lockReply(false);
     }
   }
 
   async function say(text) {
     addLine("user", text);
     showPending();
+    lockReply(true);
     try {
       await reading.say(text);
     } catch (error) {
       reportError(error);
+    } finally {
+      lockReply(false);
     }
   }
 

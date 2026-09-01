@@ -54,6 +54,10 @@ input, select, button {
 button { cursor: pointer; }
 button:hover:not(:disabled) { border-color: var(--dim); }
 button:disabled { opacity: 0.4; cursor: default; }
+/* The one disabled input on either page is the reply box while a turn is in
+   flight, and the browser's own dimming of it is barely visible on this
+   background -- which is the whole of what it has to say. */
+input:disabled { opacity: 0.4; cursor: default; }
 button.primary { background: var(--gold); border-color: var(--gold); color: #17121f; font-weight: 600; }
 button.primary:hover:not(:disabled) { filter: brightness(1.08); }
 :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
