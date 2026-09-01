@@ -276,6 +276,53 @@ test("after the beat: one real answer, then the reader says goodbye", async () =
   await assert.rejects(reading.say("more"), /ended/);
 });
 
+test("a second say() while the first is still running is refused, not queued", async () => {
+  const pack = await realPack();
+  const client = fakeClient({ gates: [gate(3), gate(3)], opening: declines });
+  // A model that has not answered yet. The judge still returns straight away,
+  // so the second say() gets past the gate exactly the way the playtester's did
+  // -- what stops it is the flag, not the arithmetic.
+  const chat = client.chat.bind(client);
+  let release;
+  const held = new Promise((resolve) => { release = resolve; });
+  client.chat = async (call) => {
+    await held;
+    return chat(call);
+  };
+
+  const storage = makeStorage(memoryBackend());
+  const reading = startReading({ pack, client, storage, seed: SEED });
+  release();
+  await reading.begin();
+  await reading.say("nothing in particular");
+
+  // From here the model is parked mid-turn, which is the several seconds of
+  // silence someone sends into twice.
+  const parked = new Promise((resolve) => { release = resolve; });
+  client.chat = async (call) => {
+    await parked;
+    return chat(call);
+  };
+
+  const first = reading.say("a");
+  const second = reading.say("b");
+  // Both calls are made before the model is let go, so an engine with no guard
+  // fails this on the count rather than deadlocking on a turn nobody released.
+  release();
+  await assert.rejects(second, /a turn is already in flight/);
+  await first;
+
+  const answered = reading.session.exchanges.filter((e) => e.position !== "opening");
+  assert.equal(answered.length, 1, "one answer went in, not two");
+  assert.equal(answered[0].a, "a");
+  assert.equal(client.calls.chat.filter((c) => c.turn !== "opening" && c.turn !== "invite").length, 1,
+               "and one reader turn ran over it");
+
+  // And the flag is put down again, so the refusal is not the end of the session.
+  await reading.say("b");
+  assert.equal(reading.session.exchanges.filter((e) => e.position !== "opening").length, 2);
+});
+
 test("the tail runs to its cap for someone who keeps saying real things", async () => {
   const { reading, client } = await run({
     gates: [...fullGates(), gate(3), gate(3), gate(3)], answers: FULL_ARC,

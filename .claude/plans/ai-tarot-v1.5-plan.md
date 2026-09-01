@@ -692,6 +692,29 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-08-31): one turn at a time is the engine's rule now, not the picker's, on branch
+  playtest-1. The first stranger playtest produced a reply that answered the previous message,
+  and the cause is not the model weighting the wrong one: `startReading().say()` had no
+  re-entry guard, so a second Send while the first turn was still running started a second
+  say() over one session -- the new answer gated against the question the first turn had not
+  replaced yet, two reader turns interleaved into one transcript, and the first reply landed
+  under the second answer. That is exactly what was seen. The plan already named this failure
+  in M4 ("the reply form is inert while [the picker] is open, or a second say() runs on top of
+  the turn that is parked waiting"), and named it as something the UI arranges; it is a
+  property of the session, so it belongs where the session is. A private `busy` flag now spans
+  the whole of begin(), say(), openWith() and afterward(), and a second call throws "a turn is
+  already in flight" -- which the debug page and the tests get for free. end() and stayAWhile()
+  are deliberately outside it: a way out that is unavailable while the thing you are leaving is
+  still talking is not a way out. say() reaches openWith() and afterward() as plain functions
+  rather than through the returned object, so delegating to one is not re-entering it. The UI
+  locks its form as well, and both layers are wanted: the lock is what the person sees, the
+  guard is what makes the invariant true.
+  What made the race reachable at all was silence. reader_start does not fire until the gate
+  judge has answered -- and on a flip turn the anchor judge too -- so Send was followed by
+  several seconds of an empty column with a live input still showing its placeholder, which is
+  what makes a person send again. The UI puts three dots up the moment it calls say(), and
+  reuses that element for the streaming line. No engine event for it: the UI is the thing that
+  pressed the button, and pacing is not the engine's to decide.
 - v1.5 (2026-08-31): OpenCode Go as its own provider, found by a live failure. A Go subscriber
   selecting "OpenCode Zen" gets billed nowhere, because Go and Zen are separate subscriptions
   behind one login on separate bases -- so the key is valid, has never had a Zen balance, and

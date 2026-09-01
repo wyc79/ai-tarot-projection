@@ -276,23 +276,205 @@ export function startReading({
     return entry;
   }
 
+
+  // One turn at a time, over one session.
+  //
+  // Two say() calls running at once is not a slower version of one. The second
+  // answer is gated against the question the first turn has not replaced yet,
+  // two reader turns interleave into one transcript, and the first turn's reply
+  // lands underneath the second answer -- which is what the first playtester
+  // saw, after sending twice into several seconds of silence. The UI locks its
+  // form too, but the rule belongs here: the debug page and the tests drive this
+  // object directly, and the picker already has a comment saying out loud that
+  // nothing may start a second turn over one session.
+  let busy = false;
+
+  /** An entry point that runs a turn, made the only one running. */
+  function oneAtATime(turn) {
+    return async (...args) => {
+      if (busy) throw new Error("a turn is already in flight");
+      busy = true;
+      try {
+        return await turn(...args);
+      } finally {
+        busy = false;
+      }
+    };
+  }
+
+  /**
+   * Ask what they came for before anything is dealt. A named topic becomes the
+   * ground the whole reading is bent toward; declining is a normal answer and
+   * costs them nothing.
+   */
+  async function begin() {
+    await readerTurn("opening");
+    return session;
+  }
+
+  /** One user turn. Everything that follows from it happens here. */
+  async function say(answer) {
+    if (session.ended) throw new Error("this reading has ended");
+
+    if (session.phase === "opening") return openWith(answer);
+
+    // The frame was dropped before a card was ever dealt. There is no reading
+    // to continue, only a conversation -- and it must not crash looking for a
+    // card that was deliberately never turned.
+    if (session.safety_state === "drop_frame" && !currentCard(session)) {
+      recordOffFrame(session, { question: lastQuestion, answer });
+      await readerTurn("respond");
+      persist();
+      return { dealt: false, offFrame: true };
+    }
+
+    const gate = await judge.gate({
+      card: currentCard(session), question: lastQuestion, answer,
+    });
+
+    // They asked what the question meant instead of answering it. Nothing
+    // moves: not the card, not the count, not the ladder. A question that did
+    // not land costs the reader a turn, not them one of theirs -- charging
+    // them for it is charging someone for the reader's own bad phrasing, and
+    // it lands as a depth-1 deflection on a card they were engaged with.
+    //
+    // Before the closed branch, because it is just as true afterwards: an
+    // epilogue card has a budget of its own, and this must not spend it.
+    if (gate.asked_back && currentCard(session)) {
+      recordAside(session, { question: lastQuestion, answer, gate });
+      onEvent({ type: "gate", gate });
+      if (session.safety_state === "drop_frame") onEvent({ type: "frame_dropped" });
+      await readerTurn("clarify", { onCard: false });
+      persist();
+      return { gate, decision: { flip: false, reason: "they asked what the question meant" } };
+    }
+
+    // The reading is over and they are still talking. That is allowed, and it
+    // is not a reason to hang up on them or to start a second reading: the
+    // beat has been given, the ledger is sealed, and the three cards are
+    // still on the table to route through. They end it, not the spread.
+    //
+    // The gate still runs, because stakes still do. Someone can say the thing
+    // they came in not planning to say after the closing beat as easily as
+    // before it, and the frame has to be droppable here too.
+    if (session.closed) return afterward(answer, gate);
+
+    recordExchange(session, { question: lastQuestion, answer, gate });
+    onEvent({ type: "gate", gate });
+
+    // Safety outranks the rhythm. Once the frame is dropped there are no more
+    // cards, so the decision below is never even consulted.
+    if (session.safety_state === "drop_frame") {
+      onEvent({ type: "frame_dropped" });
+      await readerTurn("respond");
+      persist();
+      return { gate, decision: { flip: false, reason: "frame dropped" } };
+    }
+
+    // A committed anchor is revised while the reading is still collecting:
+    // the material that decides what a session is about now usually arrives
+    // after the first card, because a disclosure buys a turn inside itself.
+    // Started here, settled after the reader has spoken -- see above.
+    const revision = beginAnchorRevision(gate);
+    const turn = await advance(gate);
+    await settleAnchorRevision(revision);
+    return turn;
+  }
+
+  /**
+   * A turn after the closing beat.
+   *
+   * Two shapes and the phase says which. The default tail is short by
+   * construction: it exists so a last question gets a real answer, and then
+   * the reader says goodbye. The afterglow is the other one -- entered only
+   * by someone choosing it, and it stays until they leave or until it stops
+   * going anywhere.
+   *
+   * No card turns over in either. The fourth card was decided before the
+   * close, which is what stopped this being the place a second reading grew.
+   */
+  async function afterward(answer, gate) {
+    const afterglow = session.phase === "afterglow";
+    recordAfterward(session, {
+      question: lastQuestion, answer, gate,
+      position: afterglow ? "afterglow" : "afterward",
+    });
+    onEvent({ type: "gate", gate });
+
+    if (session.safety_state === "drop_frame") {
+      onEvent({ type: "frame_dropped" });
+      await readerTurn("respond", { onCard: false });
+      persist();
+      return { gate, decision: { flip: false, reason: "frame dropped" } };
+    }
+
+    if (afterglow) {
+      // Two answers running with nothing of theirs in them. There is no card
+      // left to move on to, so the reader goes back to what the reading was
+      // about or offers the door again -- rather than carrying on asking
+      // after whatever it wandered into.
+      const drifted = afterglowDrift(session);
+      await readerTurn(drifted ? "regroup" : "afterglow", { onCard: false });
+      persist();
+      return { gate, decision: { flip: false, reason: drifted
+        ? "the afterglow drifted off the anchor; back to it, or out"
+        : "afterglow" } };
+    }
+
+    if (farewellDue(session, gate)) {
+      const text = await readerTurn("farewell", { onCard: false });
+      end(session, text);
+      persist();
+      onEvent({ type: "ended", farewell: text });
+      return { gate, decision: { flip: false, reason: "the reading is over; that was goodbye" } };
+    }
+
+    await readerTurn("after", { onCard: false });
+    persist();
+    return { gate, decision: { flip: false, reason: "the reading is closed; this is after it" } };
+  }
+
+  /** The answer to the opening question. Deals the first card, or does not. */
+  async function openWith(answer) {
+    const opening = await judge.opening({ question: lastQuestion, answer });
+    recordOpening(session, { question: lastQuestion, answer, opening });
+    onEvent({ type: "opening", opening, topic: session.topic });
+
+    // Safety before the first card, not after it: if a tarot frame is the
+    // wrong thing here, nothing should be dealt at all.
+    if (session.safety_state === "drop_frame") {
+      onEvent({ type: "frame_dropped" });
+      await readerTurn("respond");
+      persist();
+      return { opening, dealt: false };
+    }
+
+    // The first card is not earned, it is dealt: the gate has nothing to
+    // judge yet. Saying so is better than leaving the one blank flip reason
+    // in the ledger to be read as a missing value.
+    await flipNext("the opening question was answered; the reading begins");
+    await readerTurn("invite", { stageDirection: flipDirection(pack, session) });
+    return { opening, dealt: true };
+  }
+
   return {
     session,
 
-    /**
-     * Ask what they came for before anything is dealt. A named topic becomes
-     * the ground the whole reading is bent toward; declining is a normal answer
-     * and costs them nothing.
-     */
-    async begin() {
-      await readerTurn("opening");
-      return session;
-    },
+    // The turns, each of them the only one that can be running. say() reaches
+    // openWith() and afterward() through the plain functions above rather than
+    // through these, so delegating to one is not re-entering it.
+    begin: oneAtATime(begin),
+    say: oneAtATime(say),
+    afterward: oneAtATime(afterward),
+    openWith: oneAtATime(openWith),
 
     /**
      * They walked out. Not the farewell -- that is the reading ending properly,
      * and it says goodbye first. This is the button, available the whole way
      * through, and it stops wherever they were.
+     *
+     * Unguarded on purpose: a way out that is unavailable for as long as the
+     * thing you are trying to leave is still talking is not a way out.
      */
     end() {
       end(session);
@@ -313,151 +495,6 @@ export function startReading({
       persist();
       onEvent({ type: "afterglow" });
       return session;
-    },
-
-    /** One user turn. Everything that follows from it happens here. */
-    async say(answer) {
-      if (session.ended) throw new Error("this reading has ended");
-
-      if (session.phase === "opening") return this.openWith(answer);
-
-      // The frame was dropped before a card was ever dealt. There is no reading
-      // to continue, only a conversation -- and it must not crash looking for a
-      // card that was deliberately never turned.
-      if (session.safety_state === "drop_frame" && !currentCard(session)) {
-        recordOffFrame(session, { question: lastQuestion, answer });
-        await readerTurn("respond");
-        persist();
-        return { dealt: false, offFrame: true };
-      }
-
-      const gate = await judge.gate({
-        card: currentCard(session), question: lastQuestion, answer,
-      });
-
-      // They asked what the question meant instead of answering it. Nothing
-      // moves: not the card, not the count, not the ladder. A question that did
-      // not land costs the reader a turn, not them one of theirs -- charging
-      // them for it is charging someone for the reader's own bad phrasing, and
-      // it lands as a depth-1 deflection on a card they were engaged with.
-      //
-      // Before the closed branch, because it is just as true afterwards: an
-      // epilogue card has a budget of its own, and this must not spend it.
-      if (gate.asked_back && currentCard(session)) {
-        recordAside(session, { question: lastQuestion, answer, gate });
-        onEvent({ type: "gate", gate });
-        if (session.safety_state === "drop_frame") onEvent({ type: "frame_dropped" });
-        await readerTurn("clarify", { onCard: false });
-        persist();
-        return { gate, decision: { flip: false, reason: "they asked what the question meant" } };
-      }
-
-      // The reading is over and they are still talking. That is allowed, and it
-      // is not a reason to hang up on them or to start a second reading: the
-      // beat has been given, the ledger is sealed, and the three cards are
-      // still on the table to route through. They end it, not the spread.
-      //
-      // The gate still runs, because stakes still do. Someone can say the thing
-      // they came in not planning to say after the closing beat as easily as
-      // before it, and the frame has to be droppable here too.
-      if (session.closed) return this.afterward(answer, gate);
-
-      recordExchange(session, { question: lastQuestion, answer, gate });
-      onEvent({ type: "gate", gate });
-
-      // Safety outranks the rhythm. Once the frame is dropped there are no more
-      // cards, so the decision below is never even consulted.
-      if (session.safety_state === "drop_frame") {
-        onEvent({ type: "frame_dropped" });
-        await readerTurn("respond");
-        persist();
-        return { gate, decision: { flip: false, reason: "frame dropped" } };
-      }
-
-      // A committed anchor is revised while the reading is still collecting:
-      // the material that decides what a session is about now usually arrives
-      // after the first card, because a disclosure buys a turn inside itself.
-      // Started here, settled after the reader has spoken -- see above.
-      const revision = beginAnchorRevision(gate);
-      const turn = await advance(gate);
-      await settleAnchorRevision(revision);
-      return turn;
-    },
-
-    /**
-     * A turn after the closing beat.
-     *
-     * Two shapes and the phase says which. The default tail is short by
-     * construction: it exists so a last question gets a real answer, and then
-     * the reader says goodbye. The afterglow is the other one -- entered only
-     * by someone choosing it, and it stays until they leave or until it stops
-     * going anywhere.
-     *
-     * No card turns over in either. The fourth card was decided before the
-     * close, which is what stopped this being the place a second reading grew.
-     */
-    async afterward(answer, gate) {
-      const afterglow = session.phase === "afterglow";
-      recordAfterward(session, {
-        question: lastQuestion, answer, gate,
-        position: afterglow ? "afterglow" : "afterward",
-      });
-      onEvent({ type: "gate", gate });
-
-      if (session.safety_state === "drop_frame") {
-        onEvent({ type: "frame_dropped" });
-        await readerTurn("respond", { onCard: false });
-        persist();
-        return { gate, decision: { flip: false, reason: "frame dropped" } };
-      }
-
-      if (afterglow) {
-        // Two answers running with nothing of theirs in them. There is no card
-        // left to move on to, so the reader goes back to what the reading was
-        // about or offers the door again -- rather than carrying on asking
-        // after whatever it wandered into.
-        const drifted = afterglowDrift(session);
-        await readerTurn(drifted ? "regroup" : "afterglow", { onCard: false });
-        persist();
-        return { gate, decision: { flip: false, reason: drifted
-          ? "the afterglow drifted off the anchor; back to it, or out"
-          : "afterglow" } };
-      }
-
-      if (farewellDue(session, gate)) {
-        const text = await readerTurn("farewell", { onCard: false });
-        end(session, text);
-        persist();
-        onEvent({ type: "ended", farewell: text });
-        return { gate, decision: { flip: false, reason: "the reading is over; that was goodbye" } };
-      }
-
-      await readerTurn("after", { onCard: false });
-      persist();
-      return { gate, decision: { flip: false, reason: "the reading is closed; this is after it" } };
-    },
-
-    /** The answer to the opening question. Deals the first card, or does not. */
-    async openWith(answer) {
-      const opening = await judge.opening({ question: lastQuestion, answer });
-      recordOpening(session, { question: lastQuestion, answer, opening });
-      onEvent({ type: "opening", opening, topic: session.topic });
-
-      // Safety before the first card, not after it: if a tarot frame is the
-      // wrong thing here, nothing should be dealt at all.
-      if (session.safety_state === "drop_frame") {
-        onEvent({ type: "frame_dropped" });
-        await readerTurn("respond");
-        persist();
-        return { opening, dealt: false };
-      }
-
-      // The first card is not earned, it is dealt: the gate has nothing to
-      // judge yet. Saying so is better than leaving the one blank flip reason
-      // in the ledger to be read as a missing value.
-      await flipNext("the opening question was answered; the reading begins");
-      await readerTurn("invite", { stageDirection: flipDirection(pack, session) });
-      return { opening, dealt: true };
     },
   };
 }
