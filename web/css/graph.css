@@ -1,19 +1,29 @@
-/* The graph page. debug.css does the frame; this is the picture, the side
-   column and the tooltip. */
+/* The graph page. debug.css does the frame; this is the lead, the picture
+   viewport, the side column and the tooltip. */
 
 /* The drawing is wider than the site's column; .explain keeps its own
    max-width below. */
 main.wide { max-width: none; }
 
-.explain { max-width: 60rem; margin-bottom: 1.5rem; font-size: 0.92rem; }
+/* The picture box and the scenario column are the same height: most of the
+   window, so the drawing is browsed in place rather than scrolled past. */
+:root { --picture-height: calc(100vh - 6rem); }
+
+/* Explanation left, legend in the space beside it. */
+.lead { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: 1rem 3rem; align-items: start; margin-bottom: 1.5rem; }
+.explain { max-width: 60rem; font-size: 0.92rem; }
 .explain p { margin: 0 0 0.75rem; }
 
 .graph-layout { display: grid; grid-template-columns: 18rem minmax(0, 1fr); gap: 1.5rem; align-items: start; }
-@media (max-width: 64rem) { .graph-layout { grid-template-columns: 1fr; } }
 
-.side h2 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); margin: 1.5rem 0 0.5rem; font-weight: 600; }
-.side h2:first-child { margin-top: 0; }
+.side h2, .legend-box h2 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); margin: 0 0 0.5rem; font-weight: 600; }
 .side-note { margin: 0 0 0.75rem; color: var(--dim); font-size: 0.82rem; }
+
+/* Heading and note at the top; the list takes the rest of the column and
+   scrolls, because seventeen buttons are taller than any window. min-height: 0
+   is what lets a flex child shrink below its content. */
+.side { height: var(--picture-height); display: flex; flex-direction: column; }
+#scenarios { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 0.25rem; }
 
 .scenario {
   display: block; width: 100%; text-align: left; margin: 0 0 0.35rem; padding: 0.45rem 0.65rem;
@@ -26,17 +36,28 @@ main.wide { max-width: none; }
 
 .legend { margin: 0; font-size: 0.85rem; }
 .legend dt { color: var(--text); margin-top: 0.6rem; }
+.legend dt:first-child { margin-top: 0; }
 .legend dd { margin: 0; color: var(--dim); }
 .legend .sample { display: inline-block; width: 2.5rem; border-top: 2px solid #333; vertical-align: middle; margin-right: 0.5rem; background: #fff; box-shadow: 0 0 0 3px #fff; }
 .legend .sample.dashed { border-top-style: dashed; }
 .legend .sample.lit { border-top: 3px solid #e0891b; }
 
 /* The picture keeps Mermaid's light theme on a light panel: it is a diagram,
-   and LangGraph's own colours are part of what it shows. */
-.picture { background: #fff; border-radius: 8px; padding: 1rem; overflow: auto; color: #222; }
-/* Natural size, scrolled, rather than shrunk to fit: the labels are the point.
-   !important because Mermaid puts its max-width inline on the element. */
-.picture svg { width: auto; height: auto; max-width: none !important; }
+   and LangGraph's own colours are part of what it shows. The box is a
+   viewport: the svg fills it and its viewBox decides what is seen, which
+   pan-zoom.js moves. */
+.viewport { position: relative; }
+.picture {
+  height: var(--picture-height); padding: 0.5rem; overflow: hidden;
+  background: #fff; border-radius: 8px; color: #222;
+  cursor: grab; user-select: none; touch-action: none;
+}
+.picture.dragging { cursor: grabbing; }
+/* !important because Mermaid puts its max-width inline on the element. */
+.picture svg { display: block; width: 100%; height: 100%; max-width: none !important; }
+.zoom { position: absolute; top: 0.75rem; right: 0.75rem; display: flex; gap: 0.25rem; }
+.zoom button { padding: 0.15rem 0.6rem; font-size: 0.9rem; }
+.hint { margin: 0.5rem 0 0; color: var(--dim); font-size: 0.82rem; }
 
 /* !important: Mermaid's own stylesheet is id-scoped (#reading …), which outranks any class rule. */
 .picture g.node.lit rect, .picture g.node.lit path { stroke: #e0891b !important; stroke-width: 3px !important; }
@@ -59,3 +80,12 @@ svg .label { text-transform: none; font-size: inherit; letter-spacing: normal; }
   font-size: 0.85rem; line-height: 1.4;
 }
 .tip[hidden] { display: none; }
+
+@media (max-width: 64rem) {
+  :root { --picture-height: 60vh; }
+  .lead, .graph-layout { grid-template-columns: 1fr; }
+  /* Stacked, the list sits above the drawing; a short box keeps the drawing
+     within reach. */
+  .side { height: auto; }
+  #scenarios { max-height: 16rem; }
+}

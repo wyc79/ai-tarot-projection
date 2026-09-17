@@ -17,26 +17,22 @@
   <p>The reading's control flow, drawn by the engine from itself when this page loaded.
      <a href="index.html">Run a reading &rarr;</a> &middot; <a href="pack.html">Browse the pack &rarr;</a></p>
 
-  <section class="explain">
-    <p>The engine that runs a reading is a <strong>LangGraph <code>StateGraph</code></strong>, and it runs in
-       your browser. One turn of the conversation is one run of this graph. Every kind of turn the reader
-       can take is a node with that name; the dashed edges are the decisions, and the word on each one is
-       the reason that branch is taken. The picture is not maintained by hand: this page compiles the same
-       graph the reading runs on and asks it to draw itself. Source:
-       <code>web/js/engine/graph.js</code>.</p>
-    <p>The model in this engine judges; it does not decide. It returns a verdict on each answer &mdash;
-       how deep, whether it was about their life, hedged, the stakes &mdash; and every decision after that
-       is a rule. The scenarios on the left were each run once through the real engine with a scripted
-       judge and recorded; nothing runs here, and nothing leaves this page.
-       <a href="https://github.com/wyc79/ai-tarot-projection#the-engine-is-a-graph">Read more &rarr;</a></p>
-  </section>
+  <div class="lead">
+    <section class="explain">
+      <p>The engine that runs a reading is a <strong>LangGraph <code>StateGraph</code></strong>, and it runs in
+         your browser. One turn of the conversation is one run of this graph. Every kind of turn the reader
+         can take is a node with that name; the dashed edges are the decisions, and the word on each one is
+         the reason that branch is taken. The picture is not maintained by hand: this page compiles the same
+         graph the reading runs on and asks it to draw itself. Source:
+         <code>web/js/engine/graph.js</code>.</p>
+      <p>The model in this engine judges; it does not decide. It returns a verdict on each answer &mdash;
+         how deep, whether it was about their life, hedged, the stakes &mdash; and every decision after that
+         is a rule. The scenarios on the left were each run once through the real engine with a scripted
+         judge and recorded; nothing runs here, and nothing leaves this page.
+         <a href="https://github.com/wyc79/ai-tarot-projection#the-engine-is-a-graph">Read more &rarr;</a></p>
+    </section>
 
-  <div class="graph-layout">
-    <aside class="side">
-      <h2>Scenarios</h2>
-      <p class="side-note">A moment in a reading. Click one to light the path that turn took.</p>
-      <div id="scenarios"></div>
-
+    <aside class="legend-box">
       <h2>Legend</h2>
       <dl class="legend">
         <dt><span class="sample dashed"></span>dashed edge</dt>
@@ -51,9 +47,27 @@
         <dd>any node or edge label, for what it means</dd>
       </dl>
     </aside>
+  </div>
+
+  <div class="graph-layout">
+    <aside class="side">
+      <h2>Scenarios</h2>
+      <p class="side-note">A moment in a reading. Click one to light the path that turn took.</p>
+      <div id="scenarios"></div>
+    </aside>
 
     <div class="picture-column">
-      <div id="picture" class="picture">rendering…</div>
+      <div class="viewport">
+        <div id="picture" class="picture">rendering…</div>
+        <!-- Beside #picture rather than inside it: the render replaces its
+             contents. -->
+        <div class="zoom">
+          <button type="button" id="zoom-out" title="zoom out">&minus;</button>
+          <button type="button" id="zoom-in" title="zoom in">+</button>
+          <button type="button" id="zoom-fit" title="the whole graph">fit</button>
+        </div>
+      </div>
+      <p class="hint">Scroll to zoom, drag to move.</p>
       <div id="trace" class="trace" hidden>
         <p><span class="label">they said</span> <span id="trace-answer"></span></p>
         <p><span class="label">the judge returned</span> <code id="trace-verdict"></code></p>

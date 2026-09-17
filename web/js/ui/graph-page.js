@@ -1,16 +1,18 @@
 /**
  * The graph page: the reading's control flow, drawn from the compiled graph.
  *
- * Three things happen here and none of them is a reading. The graph is
+ * Four things happen here and none of them is a reading. The graph is
  * compiled with no context and asked to draw itself; Mermaid renders the
- * text; then the notes from graph.js are bound to the rendered nodes and edge
- * labels as tooltips, and the recorded scenarios are bound to buttons that
- * colour the path each one took. The scenarios were recorded by
- * scripts/draw_graph.mjs running the real engine; this page runs nothing and
- * fetches nothing from anywhere but its own origin.
+ * text; the picture becomes a viewport that pan-zoom.js moves; then the notes
+ * from graph.js are bound to the rendered nodes and edge labels as tooltips,
+ * and the recorded scenarios are bound to buttons that colour the path each
+ * one took. The scenarios were recorded by scripts/draw_graph.mjs running the
+ * real engine; this page runs nothing and fetches nothing from anywhere but
+ * its own origin.
  */
 
 import { buildGraph } from "../engine/graph.js";
+import { attachPanZoom } from "./pan-zoom.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -96,14 +98,7 @@ async function main() {
   const { svg } = await window.mermaid.render(PREFIX, text);
   $("picture").innerHTML = svg;
   const drawing = $("picture").querySelector("svg");
-  // Mermaid gives the svg width="100%" and no height attribute, so it has no
-  // intrinsic size of its own — CSS "width: auto" then fills the container
-  // (per the replaced-element sizing rules) instead of using the viewBox's
-  // pixel size. Setting the attributes from the viewBox gives it a real
-  // intrinsic size, which is what lets graph.css render it at natural size.
-  const box = drawing.viewBox.baseVal;
-  drawing.setAttribute("width", box.width);
-  drawing.setAttribute("height", box.height);
+  attachPanZoom(drawing, $("picture"), { zoomIn: $("zoom-in"), zoomOut: $("zoom-out"), fitButton: $("zoom-fit") });
   bindTooltips(drawing, notes);
 
   // A scenarios failure is not a drawing failure: the graph is already on
