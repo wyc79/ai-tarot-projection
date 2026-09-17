@@ -843,6 +843,9 @@ name it — "I notice we've moved away from" is you narrating the machinery at
 someone. Just turn back, or open the door.`,
 };
 
+/** The turn kinds, in the order they are documented above. graph.js names a node after each one. */
+export const TURN_KINDS = Object.keys(TURN_INSTRUCTIONS);
+
 /**
  * One reader turn, assembled: what to send, and what it was decided to be.
  *

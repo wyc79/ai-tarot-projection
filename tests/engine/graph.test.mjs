@@ -25,3 +25,40 @@ test("the vendored LangGraph runs a two-node graph without touching fetch", asyn
     globalThis.fetch = realFetch;
   }
 });
+
+import { readFile } from "node:fs/promises";
+import { buildGraph } from "../../web/js/engine/graph.js";
+import { TURN_KINDS } from "../../web/js/engine/prompts.js";
+
+const EXPECTED_MMD = new URL("../../.claude/plans/2026-09-16-langgraph-engine-expected.mmd", import.meta.url);
+const sortedLines = (text) => text.split("\n").map((l) => l.trimEnd()).filter(Boolean).sort();
+const REAL = (name) => name !== "__start__" && name !== "__end__";
+
+test("the compiled graph draws exactly the picture the design expected", async () => {
+  const { graph } = buildGraph();
+  const drawn = (await graph.getGraphAsync()).drawMermaid();
+  assert.deepEqual(sortedLines(drawn), sortedLines(await readFile(EXPECTED_MMD, "utf8")));
+});
+
+test("every reader turn kind is a node of that name, and no node pretends to be one it is not", async () => {
+  const { graph } = buildGraph();
+  const names = Object.keys((await graph.getGraphAsync()).nodes).filter(REAL);
+  for (const kind of TURN_KINDS) assert.ok(names.includes(kind), `no node for the ${kind} turn`);
+  // The nodes that are not turns are the judgements, the ledger writes, the
+  // flips and the anchor: a closed list, so a stray one is caught.
+  const machinery = ["judge_opening", "judge_gate", "off_frame", "aside", "exchange", "tail",
+                     "decide", "commit_anchor", "flip", "flip_epilogue", "revise_anchor"];
+  assert.deepEqual(names.filter((n) => !TURN_KINDS.includes(n)).sort(), machinery.sort());
+});
+
+test("every node and every edge label carries a note, and nothing else does", async () => {
+  const { graph, notes } = buildGraph();
+  const shape = (await graph.getGraphAsync()).toJSON();
+  const nodeNames = shape.nodes.map((n) => n.id).filter(REAL).sort();
+  assert.deepEqual(Object.keys(notes.nodes).sort(), nodeNames);
+  const labels = [...new Set(shape.edges.filter((e) => e.conditional).map((e) => e.data))].sort();
+  assert.deepEqual(Object.keys(notes.keys).sort(), labels);
+  for (const [name, note] of [...Object.entries(notes.nodes), ...Object.entries(notes.keys)]) {
+    assert.ok(typeof note === "string" && note.length > 20, `the note on ${name} is not a sentence`);
+  }
+});
