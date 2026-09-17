@@ -252,6 +252,7 @@ The whole control flow, as nodes and edges, with notes. Nodes call into `ctx`, s
 Append to `tests/engine/graph.test.mjs`:
 
 ```js
+// (these three imports go in the import block at the top of the file)
 import { readFile } from "node:fs/promises";
 import { buildGraph } from "../../web/js/engine/graph.js";
 import { TURN_KINDS } from "../../web/js/engine/prompts.js";
@@ -442,9 +443,14 @@ export function buildGraph(ctx = {}) {
 
   node("judge_gate",
     "The flip gate: the answer is judged for depth, life content, hedging, stakes, and whether it was a question back. The verdict is what every decision after this is made from.",
-    async (state) => ({
-      gate: await ctx.judge.gate({ card: currentCard(s()), question: ctx.question(), answer: state.answer }),
-    }));
+    async (state) => {
+      // A turn that failed after decide may have left a revision in flight. It
+      // belonged to that turn, and reading.js dropped it the same way.
+      pending = null;
+      return {
+        gate: await ctx.judge.gate({ card: currentCard(s()), question: ctx.question(), answer: state.answer }),
+      };
+    });
 
   node("off_frame",
     "The frame was dropped before a card was ever dealt. There is no reading to continue, only a conversation, and it must not crash looking for a card that was deliberately never turned.",
@@ -520,7 +526,11 @@ export function buildGraph(ctx = {}) {
   node("flip_epilogue",
     "The fourth card, decided at the advice-to-close boundary and before anything is closed: earned by something of their own, it turns and the reading closes once, over four.",
     async (state) => {
-      await flipInto(s().epilogue_position, EPILOGUE_FLIP_REASON);
+      // flipEpilogue, not flipCard: the spread is full here by construction,
+      // and flipCard would compute the next position itself and throw.
+      flipEpilogue(s(), await ctx.cardFor(s().epilogue_position), { reason: EPILOGUE_FLIP_REASON });
+      const entry = currentCard(s());
+      ctx.onEvent({ type: "flip", card: ctx.pack.card(entry.card_id), position: entry.position, reason: entry.flip_reason });
       return { result: { gate: state.gate, decision: state.decision, flipped: true } };
     });
 
