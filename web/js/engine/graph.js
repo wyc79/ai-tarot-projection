@@ -63,8 +63,6 @@ const Turn = Annotation.Root({
  */
 export function buildGraph(ctx = {}) {
   const notes = { nodes: {}, keys: {} };
-  /** Destination node ids whose path-map key is their own name; see branches() below. */
-  const selfLabelled = new Set();
   const s = () => ctx.session;
   const dropped = () => s().safety_state === "drop_frame";
 
@@ -115,12 +113,6 @@ export function buildGraph(ctx = {}) {
       }
       notes.keys[key] = note;
       map[key] = to;
-      // LangGraph elides a conditional edge's drawn label whenever the
-      // path-map key is the same string as its destination -- true here
-      // whenever the key is the node's own name (flip, exchange, after,
-      // afterglow, meanings). Routing does not care; the picture does, so
-      // getGraphAsync() is patched below to put these five labels back.
-      if (key === to) selfLabelled.add(to);
     }
     return map;
   }
@@ -334,10 +326,12 @@ export function buildGraph(ctx = {}) {
   // -- routers ----------------------------------------------------------------
   //
   // Pure over (state, session), and they return a key, never a node name. The
-  // key is the label LangGraph draws on the dashed edge.
+  // key is the label LangGraph draws on the dashed edge -- and it must not be
+  // a node's name, because LangGraph drops the label when key and destination
+  // are the same string.
 
   const entry = (state) => {
-    if (state.kind === "meanings") return "meanings";
+    if (state.kind === "meanings") return "asked for the meanings";
     if (s().phase === "opening") return "opening";
     if (dropped() && !currentCard(s())) return "frame dropped";
     return "answer";
@@ -349,19 +343,19 @@ export function buildGraph(ctx = {}) {
     // epilogue card has a budget of its own, and an aside must not spend it.
     if (state.gate.asked_back && currentCard(s())) return "asked back";
     if (s().closed) return "closed";
-    return "exchange";
+    return "on a card";
   };
   const afterExchange = () => (dropped() ? "frame dropped" : "judged");
   const advance = (state) => {
     if (!state.decision.flip) return "hold";
     if (!s().anchor) return "no anchor yet";
     if (spreadComplete(s())) return epilogueEarned(s()) ? "epilogue earned" : "spread complete";
-    return "flip";
+    return "earned";
   };
   const afterTail = (state) => {
     if (dropped()) return "frame dropped";
-    if (s().phase === "afterglow") return afterglowDrift(s()) ? "drifted" : "afterglow";
-    return farewellDue(s(), state.gate) ? "farewell due" : "after";
+    if (s().phase === "afterglow") return afterglowDrift(s()) ? "drifted" : "stayed";
+    return farewellDue(s(), state.gate) ? "farewell due" : "still talking";
   };
 
   // -- edges ------------------------------------------------------------------
@@ -369,7 +363,7 @@ export function buildGraph(ctx = {}) {
   const FRAME_DROPPED = "Safety outranks the rhythm: the stakes were judged as crisis, the tarot frame is dropped, and the reader responds plainly with no card in play.";
 
   g.addConditionalEdges(START, entry, branches({
-    meanings: { to: "meanings", note: "They pressed the button that asks what the cards traditionally mean. Only after the close." },
+    "asked for the meanings": { to: "meanings", note: "They pressed the button that asks what the cards traditionally mean. Only after the close." },
     opening: { to: "judge_opening", note: "The reading has not started: this is the answer to the opening question." },
     "frame dropped": { to: "off_frame", note: FRAME_DROPPED },
     answer: { to: "judge_gate", note: "An ordinary answer, on a card or after the close. It goes to the gate." },
@@ -382,15 +376,15 @@ export function buildGraph(ctx = {}) {
   g.addConditionalEdges("judge_gate", afterGate, branches({
     "asked back": { to: "aside", note: "A question back is not an answer. It costs the reader a turn, not them one of theirs." },
     closed: { to: "tail", note: "The reading has closed and they are still talking. That is allowed, and it is not a second reading." },
-    exchange: { to: "exchange", note: "An answer on the current card. It goes on the ledger, then to the decision." },
+    "on a card": { to: "exchange", note: "An answer on the current card. It goes on the ledger, then to the decision." },
   }));
   g.addEdge("aside", "clarify");
   g.addConditionalEdges("tail", afterTail, branches({
     "frame dropped": { to: "respond", note: FRAME_DROPPED },
-    afterglow: { to: "afterglow", note: "They chose to stay after the goodbye, and this answer had something in it." },
+    stayed: { to: "afterglow", note: "They chose to stay after the goodbye, and this answer had something in it." },
     drifted: { to: "regroup", note: "Two consecutive afterglow answers with no life content: the reader stops following the wandering." },
     "farewell due": { to: "farewell", note: "The tail's budget is spent, or they said nothing real past its target. Time to say goodbye." },
-    after: { to: "after", note: "The first turns after the close get real replies; that is what the tail's budget is for." },
+    "still talking": { to: "after", note: "The first turns after the close get real replies; that is what the tail's budget is for." },
   }));
   g.addConditionalEdges("exchange", afterExchange, branches({
     "frame dropped": { to: "respond", note: FRAME_DROPPED },
@@ -399,7 +393,7 @@ export function buildGraph(ctx = {}) {
   g.addConditionalEdges("decide", advance, branches({
     hold: { to: "respond", note: "No card turns: the answer was thin, or a fresh disclosure gets one exchange inside it first (the dwell rule), or the card has not settled yet." },
     "no anchor yet": { to: "commit_anchor", note: "The first flip of the reading. The anchor is committed off the first card before the second exists." },
-    flip: { to: "flip", note: "The card is earned: enough depth, the position's budget spent, the dwell honoured." },
+    earned: { to: "flip", note: "The card is earned: enough depth, the position's budget spent, the dwell honoured." },
     "epilogue earned": { to: "flip_epilogue", note: "The spread is complete and something of their own landed: the fourth card turns and the close covers four." },
     "spread complete": { to: "close", note: "The spread is complete and the fourth card was not earned: it stays face down and the close names it in a line." },
   }));
@@ -418,23 +412,6 @@ export function buildGraph(ctx = {}) {
   }
 
   const graph = g.compile();
-
-  // The patch selfLabelled exists for: getGraphAsync() draws every other
-  // conditional edge's key as its label, but drops it on these five because
-  // the key and the destination are the same string, and the vendored
-  // library treats that as nothing worth labelling. Routing already went
-  // through correctly above; only the picture is short a word, so it is put
-  // back on the object every caller (the tests, graph.html) draws from.
-  const getGraphAsync = graph.getGraphAsync.bind(graph);
-  graph.getGraphAsync = async (...args) => {
-    const drawable = await getGraphAsync(...args);
-    for (const edge of drawable.edges) {
-      if (edge.conditional && edge.data === undefined && selfLabelled.has(edge.target)) {
-        edge.data = edge.target;
-      }
-    }
-    return drawable;
-  };
 
   return { graph, notes };
 }
