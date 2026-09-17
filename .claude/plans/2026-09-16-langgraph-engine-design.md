@@ -114,21 +114,48 @@ START ─entry─┬─ meanings ───────────────�
 respond | bridge | epilogue | close → revise_anchor ► END
 ```
 
-Routers, pure over `(state, session)`:
+Routers are pure over `(state, session)` and return a path-map key, never a
+node name. The key is the label LangGraph draws on the dashed edge, so the
+picture says why each branch is taken. The keys, and where they go:
 
-- `entry`: `kind === "meanings"` → meanings; `phase === "opening"` →
-  judge_opening; frame dropped and no current card → off_frame; else judge_gate.
-- `after_opening`: frame dropped → respond; else flip.
-- `after_flip`: `state.opening` set → invite; else bridge.
-- `after_gate`: `gate.asked_back` and a current card → aside; `session.closed`
-  → tail; else exchange.
-- `after_exchange`: frame dropped → respond; else decide.
+- `entry` (from START): `meanings` → meanings; `opening` → judge_opening;
+  `frame dropped` → off_frame (frame dropped and no current card); `answer`
+  → judge_gate.
+- `after_opening`: `frame dropped` → respond; `dealt` → flip.
+- `after_flip`: `first card` → invite (`state.opening` set); `next card` →
+  bridge.
+- `after_gate`: `asked back` → aside (`gate.asked_back` and a current card);
+  `closed` → tail; `exchange` → exchange.
+- `after_exchange`: `frame dropped` → respond; `judged` → decide.
 - `advance`, one function used as the conditional edge out of both `decide`
-  and `commit_anchor`: `!decision.flip` → respond; flips and no anchor yet →
-  commit_anchor (which cannot recur, since commit_anchor leaves an anchor
-  behind); spreadComplete → epilogueEarned ? flip_epilogue : close; else flip.
-- `after_tail`: frame dropped → respond; phase afterglow → afterglowDrift ?
-  regroup : afterglow; farewellDue → farewell; else after.
+  and `commit_anchor`: `hold` → respond (`!decision.flip`); `no anchor yet`
+  → commit_anchor (in decide's map only — commit_anchor leaves an anchor
+  behind, so the key cannot recur and is not in its map); `epilogue earned`
+  → flip_epilogue; `spread complete` → close; `flip` → flip.
+- `after_tail`: `frame dropped` → respond; `afterglow` → afterglow;
+  `drifted` → regroup (afterglowDrift); `farewell due` → farewell; `after` →
+  after.
+
+### The expected picture
+
+Three files beside this spec are the acceptance reference for the first
+implementation, drawn from the node and edge lists above before any code
+existed:
+
+- `2026-09-16-langgraph-engine-expected.mmd` — the `drawMermaid()` text the
+  compiled graph is expected to produce: 24 nodes, 41 edges, 26 of them
+  conditional and labelled. The check is mechanical: a sorted line diff
+  between it and the real output must be empty. Edge order in LangGraph's
+  output depends on insertion order, which is why the diff is sorted.
+- `2026-09-16-langgraph-engine-expected.svg` — the same graph hand-laid-out
+  for reading: orthogonal routing, one row per layer. Compare nodes, edges,
+  dashes and labels against it; not positions.
+- `2026-09-16-langgraph-engine-expected-mermaid.svg` — the `.mmd` rendered
+  through the real Mermaid build in headless Chrome. This is what
+  `graph.html` will look like, dagre's layout and all.
+
+Once the implementation matches, the README block and the page are the
+living render and these three stay as the record of what was designed.
 
 ### The anchor revision
 
@@ -212,8 +239,8 @@ Mermaid, for the graph page only:
   works for a visitor who has none of them.
 - The page says, in a paragraph above the picture, what it is: the reading's
   control flow as LangGraph compiled it a moment ago, dashed edges are
-  conditional, every reader turn kind is a node, and the source is
-  `web/js/engine/graph.js`. It links back to `index.html` and to the README
+  conditional and their label is the reason the branch is taken, every
+  reader turn kind is a node, and the source is `web/js/engine/graph.js`. It links back to `index.html` and to the README
   section, the way `pack.html` and `debug.html` cross-link today.
 - `index.html` gains one link to it in the same place it links nothing else
   today: a line in the footer, "how the reading decides →". The styled page
@@ -249,6 +276,9 @@ New, in `tests/engine/graph.test.mjs`:
 3. Every key of `TURN_INSTRUCTIONS` is a node name in the compiled graph, and
    every node name that is a turn kind is a key. Adding a turn kind without a
    node, or a node the reader cannot speak, fails.
+4. Once, at the end of the implementation and recorded in the plan changelog:
+   the sorted-line diff between `drawMermaid()` and the expected `.mmd` is
+   empty.
 
 New leg in `scripts/test.sh`: `node scripts/draw_graph.mjs --check`.
 
