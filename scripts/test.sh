@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Everything that can be checked without a key or a network.
 #
-#   scripts/test.sh           all four suites
+#   scripts/test.sh           all five suites
 #   scripts/test.sh --fast    skip the relay contract leg, which is the slow one
 #
 # Runs all of them rather than stopping at the first failure: when a change to
@@ -44,6 +44,11 @@ run "pack schema" python3 scripts/validate_deck.py
 # defect it sat on unnoticed for a milestone.
 run "seeded fixture closes" bash -c \
   'node scripts/seeded_session.mjs --json | grep -q "\"closed\": true"'
+
+# The README diagram and the graph page's scenarios are generated from the
+# compiled graph and the engine. Stale is a failure: a node added without
+# redrawing, or a pacing change that moved a path, must show up here.
+run "graph drawn and recorded" node scripts/draw_graph.mjs --check
 
 if [ "$FAST" = "1" ]; then
   skipped+=("relay contract (--fast)")

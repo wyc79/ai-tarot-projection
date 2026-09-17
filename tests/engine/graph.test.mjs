@@ -123,3 +123,20 @@ test("a whole seeded reading runs with the network unreachable", async () => {
     globalThis.fetch = realFetch;
   }
 });
+
+const SCENARIOS_FILE = new URL("../../web/graph-scenarios.json", import.meta.url);
+const edgeKey = ([from, to]) => `${from} -> ${to}`;
+
+test("the recorded scenarios cross every edge of the compiled graph, and no other", async () => {
+  const { graph } = buildGraph();
+  const drawn = (await graph.getGraphAsync()).toJSON().edges.map((e) => edgeKey([e.source, e.target]));
+  const { scenarios } = JSON.parse(await readFile(SCENARIOS_FILE, "utf8"));
+  const crossed = new Set(scenarios.flatMap((s) => s.edges.map(edgeKey)));
+  assert.deepEqual([...crossed].sort(), [...new Set(drawn)].sort());
+  for (const s of scenarios) {
+    assert.equal(s.nodes[0], "__start__", `${s.id} does not start at START`);
+    assert.equal(s.nodes.at(-1), "__end__", `${s.id} does not reach END`);
+    assert.ok(typeof s.reason === "string" && s.reason.length > 0, `${s.id} has no reason`);
+    assert.ok(typeof s.answer === "string" && s.answer.length > 0, `${s.id} has no answer`);
+  }
+});

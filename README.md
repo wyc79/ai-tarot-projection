@@ -63,6 +63,81 @@ relay contract. `scripts/test.sh --fast` skips the contract leg, which is the
 slow one; the Worker half of it needs `wrangler` or `npx` on PATH and says so
 loudly rather than passing one relay and reporting two.
 
+## The engine is a graph
+
+<!-- graph:begin -->
+```mermaid
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	judge_opening(judge_opening)
+	judge_gate(judge_gate)
+	off_frame(off_frame)
+	aside(aside)
+	exchange(exchange)
+	tail(tail)
+	decide(decide)
+	commit_anchor(commit_anchor)
+	flip(flip)
+	flip_epilogue(flip_epilogue)
+	invite(invite)
+	respond(respond)
+	clarify(clarify)
+	bridge(bridge)
+	epilogue(epilogue)
+	close(close)
+	after(after)
+	farewell(farewell)
+	afterglow(afterglow)
+	regroup(regroup)
+	meanings(meanings)
+	revise_anchor(revise_anchor)
+	__end__([<p>__end__</p>]):::last
+	after --> __end__;
+	afterglow --> __end__;
+	aside --> clarify;
+	bridge --> revise_anchor;
+	clarify --> __end__;
+	close --> revise_anchor;
+	commit_anchor --> flip;
+	epilogue --> revise_anchor;
+	farewell --> __end__;
+	flip_epilogue --> epilogue;
+	invite --> __end__;
+	meanings --> __end__;
+	off_frame --> respond;
+	regroup --> __end__;
+	respond --> revise_anchor;
+	revise_anchor --> __end__;
+	__start__ -. &nbsp;asked for the meanings&nbsp; .-> meanings;
+	__start__ -. &nbsp;opening&nbsp; .-> judge_opening;
+	__start__ -. &nbsp;frame dropped&nbsp; .-> off_frame;
+	__start__ -. &nbsp;answer&nbsp; .-> judge_gate;
+	judge_opening -. &nbsp;frame dropped&nbsp; .-> respond;
+	judge_opening -. &nbsp;dealt&nbsp; .-> flip;
+	judge_gate -. &nbsp;asked back&nbsp; .-> aside;
+	judge_gate -. &nbsp;closed&nbsp; .-> tail;
+	judge_gate -. &nbsp;on a card&nbsp; .-> exchange;
+	tail -. &nbsp;frame dropped&nbsp; .-> respond;
+	tail -. &nbsp;stayed&nbsp; .-> afterglow;
+	tail -. &nbsp;drifted&nbsp; .-> regroup;
+	tail -. &nbsp;farewell due&nbsp; .-> farewell;
+	tail -. &nbsp;still talking&nbsp; .-> after;
+	exchange -. &nbsp;frame dropped&nbsp; .-> respond;
+	exchange -. &nbsp;judged&nbsp; .-> decide;
+	decide -. &nbsp;hold&nbsp; .-> respond;
+	decide -. &nbsp;no anchor yet&nbsp; .-> commit_anchor;
+	decide -. &nbsp;earned&nbsp; .-> flip;
+	decide -. &nbsp;epilogue earned&nbsp; .-> flip_epilogue;
+	decide -. &nbsp;spread complete&nbsp; .-> close;
+	flip -. &nbsp;first card&nbsp; .-> invite;
+	flip -. &nbsp;next card&nbsp; .-> bridge;
+	classDef default fill:#f2f0ff,line-height:1.2;
+	classDef first fill-opacity:0;
+	classDef last fill:#bfb6fc;
+```
+<!-- graph:end -->
+
 ## Bring your own deck
 
 If you own a tarot deck, the app would rather you used it. Choose "my own deck"

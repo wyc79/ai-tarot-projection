@@ -1,0 +1,737 @@
+{
+  "generated_by": "scripts/draw_graph.mjs",
+  "scenarios": [
+    {
+      "id": "opening",
+      "title": "The opening answer",
+      "blurb": "They said what they came to look at. The first card is dealt, not earned, and the reader asks them to read it before saying anything about it.",
+      "answer": "yeah - whether I keep bracing for a fight nobody's having",
+      "verdict": {
+        "has_topic": true,
+        "topic": "bracing for a fight nobody's having",
+        "stakes": "low"
+      },
+      "nodes": [
+        "__start__",
+        "judge_opening",
+        "flip",
+        "invite",
+        "__end__"
+      ],
+      "edges": [
+        [
+          "__start__",
+          "judge_opening"
+        ],
+        [
+          "judge_opening",
+          "flip"
+        ],
+        [
+          "flip",
+          "invite"
+        ],
+        [
+          "invite",
+          "__end__"
+        ]
+      ],
+      "reason": "the opening question was answered; the reading begins"
+    },
+    {
+      "id": "opening-crisis",
+      "title": "A crisis in the opening answer",
+      "blurb": "Safety before the first card: the stakes are judged as crisis, the frame is dropped, and nothing is dealt.",
+      "answer": "my mother died last week",
+      "verdict": {
+        "has_topic": true,
+        "topic": "my mother died",
+        "stakes": "crisis"
+      },
+      "nodes": [
+        "__start__",
+        "judge_opening",
+        "respond",
+        "revise_anchor",
+        "__end__"
+      ],
+      "edges": [
+        [
+          "__start__",
+          "judge_opening"
+        ],
+        [
+          "judge_opening",
+          "respond"
+        ],
+        [
+          "respond",
+          "revise_anchor"
+        ],
+        [
+          "revise_anchor",
+          "__end__"
+        ]
+      ],
+      "reason": "the frame was dropped: safety outranks the rhythm, and no card is dealt"
+    },
+    {
+      "id": "off-frame",
+      "title": "Talking on, with no card dealt",
+      "blurb": "After the frame was dropped on the opening answer. There is no reading to continue, only a conversation, and the gate is not even consulted.",
+      "answer": "yes, I think so",
+      "verdict": null,
+      "nodes": [
+        "__start__",
+        "off_frame",
+        "respond",
+        "revise_anchor",
+        "__end__"
+      ],
+      "edges": [
+        [
+          "__start__",
+          "off_frame"
+        ],
+        [
+          "off_frame",
+          "respond"
+        ],
+        [
+          "respond",
+          "revise_anchor"
+        ],
+        [
+          "revise_anchor",
+          "__end__"
+        ]
+      ],
+      "reason": "the frame was dropped: safety outranks the rhythm, and no card is dealt"
+    },
+    {
+      "id": "thin",
+      "title": "A thin answer",
+      "blurb": "\"dunno\". Depth 1, nothing of theirs on the card yet. The card holds and the reader asks something softer.",
+      "answer": "dunno",
+      "verdict": {
+        "disclosure_depth": 1,
+        "user_level": "name",
+        "has_life_content": false,
+        "stakes": "low"
+      },
+      "nodes": [
+        "__start__",
+        "judge_gate",
+        "exchange",
+        "decide",
+        "respond",
+        "revise_anchor",
+        "__end__"
+      ],
+      "edges": [
+        [
+          "__start__",
+          "judge_gate"
+        ],
+        [
+          "judge_gate",
+          "exchange"
+        ],
+        [
+          "exchange",
+          "decide"
+        ],
+        [
+          "decide",
+          "respond"
+        ],
+        [
+          "respond",
+          "revise_anchor"
+        ],
+        [
+          "revise_anchor",
+          "__end__"
+        ]
+      ],
+      "reason": "depth 1 after 1; one softer follow-up — ungrounded, nothing of theirs landed on this card"
+    },
+    {
+      "id": "dwell",
+      "title": "A disclosure lands, and the card dwells",
+      "blurb": "Depth 4, their own life. The same path as a thin answer, for the opposite reason: a fresh disclosure blocks the flip on the turn it arrives, so the reading spends one exchange inside it first.",
+      "answer": "my brother, and I haven't called him since March",
+      "verdict": {
+        "disclosure_depth": 4,
+        "user_level": "consequences",
+        "has_life_content": true,
+        "stakes": "low"
+      },
+      "nodes": [
+        "__start__",
+        "judge_gate",
+        "exchange",
+        "decide",
+        "respond",
+        "revise_anchor",
+        "__end__"
+      ],
+      "edges": [
+        [
+          "__start__",
+          "judge_gate"
+        ],
+        [
+          "judge_gate",
+          "exchange"
+        ],
+        [
+          "exchange",
+          "decide"
+        ],
+        [
+          "decide",
+          "respond"
+        ],
+        [
+          "respond",
+          "revise_anchor"
+        ],
+        [
+          "revise_anchor",
+          "__end__"
+        ]
+      ],
+      "reason": "they just told you something of their own; one exchange inside it before the reading moves on"
+    },
+    {
+      "id": "earn",
+      "title": "The turn that earns the next card",
+      "blurb": "The first flip of the reading. The anchor is committed off the first card before the second exists, then the card turns and the reader bridges.",
+      "answer": "there wasn't a row, it just got later and later",
+      "verdict": {
+        "disclosure_depth": 4,
+        "user_level": "consequences",
+        "has_life_content": true,
+        "stakes": "low"
+      },
+      "nodes": [
+        "__start__",
+        "judge_gate",
+        "exchange",
+        "decide",
+        "commit_anchor",
+        "flip",
+        "bridge",
+        "revise_anchor",
+        "__end__"
+      ],
+      "edges": [
+        [
+          "__start__",
+          "judge_gate"
+        ],
+        [
+          "judge_gate",
+          "exchange"
+        ],
+        [
+          "exchange",
+          "decide"
+        ],
+        [
+          "decide",
+          "commit_anchor"
+        ],
+        [
+          "commit_anchor",
+          "flip"
+        ],
+        [
+          "flip",
+          "bridge"
+        ],
+        [
+          "bridge",
+          "revise_anchor"
+        ],
+        [
+          "revise_anchor",
+          "__end__"
+        ]
+      ],
+      "reason": "rich depth 4 after 4 exchanges, dwelt on first"
+    },
+    {
+      "id": "later-flip",
+      "title": "A later card flips",
+      "blurb": "The anchor already exists, so the decision goes straight to the flip.",
+      "answer": "walking off, leaving the full ones",
+      "verdict": {
+        "disclosure_depth": 3,
+        "user_level": "name",
+        "has_life_content": false,
+        "stakes": "low"
+      },
+      "nodes": [
+        "__start__",
+        "judge_gate",
+        "exchange",
+        "decide",
+        "flip",
+        "bridge",
+        "revise_anchor",
+        "__end__"
+      ],
+      "edges": [
+        [
+          "__start__",
+          "judge_gate"
+        ],
+        [
+          "judge_gate",
+          "exchange"
+        ],
+        [
+          "exchange",
+          "decide"
+        ],
+        [
+          "decide",
+          "flip"
+        ],
+        [
+          "flip",
+          "bridge"
+        ],
+        [
+          "bridge",
+          "revise_anchor"
+        ],
+        [
+          "revise_anchor",
+          "__end__"
+        ]
+      ],
+      "reason": "depth 3 after 3 exchanges, dwelt on first"
+    },
+    {
+      "id": "epilogue",
+      "title": "The fourth card is earned",
+      "blurb": "The spread is complete and something of their own landed during the reading, so the fourth card turns and the close will cover four.",
+      "answer": "before Sunday, probably. he never starts these",
+      "verdict": {
+        "disclosure_depth": 4,
+        "user_level": "plans",
+        "has_life_content": true,
+        "stakes": "low"
+      },
+      "nodes": [
+        "__start__",
+        "judge_gate",
+        "exchange",
+        "decide",
+        "flip_epilogue",
+        "epilogue",
+        "revise_anchor",
+        "__end__"
+      ],
+      "edges": [
+        [
+          "__start__",
+          "judge_gate"
+        ],
+        [
+          "judge_gate",
+          "exchange"
+        ],
+        [
+          "exchange",
+          "decide"
+        ],
+        [
+          "decide",
+          "flip_epilogue"
+        ],
+        [
+          "flip_epilogue",
+          "epilogue"
+        ],
+        [
+          "epilogue",
+          "revise_anchor"
+        ],
+        [
+          "revise_anchor",
+          "__end__"
+        ]
+      ],
+      "reason": "last card and 4 exchanges; closing regardless of depth"
+    },
+    {
+      "id": "close-unearned",
+      "title": "The close, fourth card unearned",
+      "blurb": "A reading of pure card description. The spread completes on budget alone, nothing earned the fourth card, and the closing beat names it in one line as an invitation.",
+      "answer": "a picture, 11",
+      "verdict": {
+        "disclosure_depth": 1,
+        "has_life_content": false,
+        "user_level": "name",
+        "hedged": false,
+        "asked_back": false,
+        "stakes": "low",
+        "reading_of_them": "noted"
+      },
+      "nodes": [
+        "__start__",
+        "judge_gate",
+        "exchange",
+        "decide",
+        "close",
+        "revise_anchor",
+        "__end__"
+      ],
+      "edges": [
+        [
+          "__start__",
+          "judge_gate"
+        ],
+        [
+          "judge_gate",
+          "exchange"
+        ],
+        [
+          "exchange",
+          "decide"
+        ],
+        [
+          "decide",
+          "close"
+        ],
+        [
+          "close",
+          "revise_anchor"
+        ],
+        [
+          "revise_anchor",
+          "__end__"
+        ]
+      ],
+      "reason": "last card and 3 exchanges; closing regardless of depth — ungrounded, nothing of theirs landed on this card"
+    },
+    {
+      "id": "after",
+      "title": "A turn after the close",
+      "blurb": "The short tail: a last question gets a real answer.",
+      "answer": "what happens after the noticing though",
+      "verdict": {
+        "disclosure_depth": 2,
+        "user_level": "name",
+        "has_life_content": false,
+        "stakes": "low"
+      },
+      "nodes": [
+        "__start__",
+        "judge_gate",
+        "tail",
+        "after",
+        "__end__"
+      ],
+      "edges": [
+        [
+          "__start__",
+          "judge_gate"
+        ],
+        [
+          "judge_gate",
+          "tail"
+        ],
+        [
+          "tail",
+          "after"
+        ],
+        [
+          "after",
+          "__end__"
+        ]
+      ],
+      "reason": "the reading is closed; this is after it"
+    },
+    {
+      "id": "farewell",
+      "title": "The goodbye",
+      "blurb": "The tail's budget is spent. The reader echoes the noticing, leaves the door open, asks nothing, and the session ends.",
+      "answer": "fair enough. thanks",
+      "verdict": {
+        "disclosure_depth": 1,
+        "user_level": "name",
+        "has_life_content": false,
+        "stakes": "low"
+      },
+      "nodes": [
+        "__start__",
+        "judge_gate",
+        "tail",
+        "farewell",
+        "__end__"
+      ],
+      "edges": [
+        [
+          "__start__",
+          "judge_gate"
+        ],
+        [
+          "judge_gate",
+          "tail"
+        ],
+        [
+          "tail",
+          "farewell"
+        ],
+        [
+          "farewell",
+          "__end__"
+        ]
+      ],
+      "reason": "the reading is over; that was goodbye"
+    },
+    {
+      "id": "afterglow",
+      "title": "Staying a while",
+      "blurb": "They took the door back after the farewell. Questions stay inside what the reading found.",
+      "answer": "I keep thinking about the brother thing",
+      "verdict": {
+        "disclosure_depth": 3,
+        "has_life_content": true,
+        "user_level": "evaluate",
+        "hedged": false,
+        "asked_back": false,
+        "stakes": "low",
+        "reading_of_them": "noted"
+      },
+      "nodes": [
+        "__start__",
+        "judge_gate",
+        "tail",
+        "afterglow",
+        "__end__"
+      ],
+      "edges": [
+        [
+          "__start__",
+          "judge_gate"
+        ],
+        [
+          "judge_gate",
+          "tail"
+        ],
+        [
+          "tail",
+          "afterglow"
+        ],
+        [
+          "afterglow",
+          "__end__"
+        ]
+      ],
+      "reason": "afterglow"
+    },
+    {
+      "id": "regroup",
+      "title": "The afterglow drifts",
+      "blurb": "Two answers in a row with nothing of theirs in them. The reader goes back to what the reading was about, or offers the door again.",
+      "answer": "python, and a text file",
+      "verdict": {
+        "disclosure_depth": 2,
+        "has_life_content": false,
+        "user_level": "name",
+        "hedged": false,
+        "asked_back": false,
+        "stakes": "low",
+        "reading_of_them": "noted"
+      },
+      "nodes": [
+        "__start__",
+        "judge_gate",
+        "tail",
+        "regroup",
+        "__end__"
+      ],
+      "edges": [
+        [
+          "__start__",
+          "judge_gate"
+        ],
+        [
+          "judge_gate",
+          "tail"
+        ],
+        [
+          "tail",
+          "regroup"
+        ],
+        [
+          "regroup",
+          "__end__"
+        ]
+      ],
+      "reason": "the afterglow drifted off the anchor; back to it, or out"
+    },
+    {
+      "id": "aside",
+      "title": "“What do you mean?”",
+      "blurb": "A question back is not an answer. It is recorded as an aside that spends none of their turns, and the reader asks again, smaller.",
+      "answer": "wait, what do you mean by that?",
+      "verdict": {
+        "disclosure_depth": 1,
+        "has_life_content": false,
+        "user_level": "name",
+        "hedged": false,
+        "asked_back": true,
+        "stakes": "low",
+        "reading_of_them": "noted"
+      },
+      "nodes": [
+        "__start__",
+        "judge_gate",
+        "aside",
+        "clarify",
+        "__end__"
+      ],
+      "edges": [
+        [
+          "__start__",
+          "judge_gate"
+        ],
+        [
+          "judge_gate",
+          "aside"
+        ],
+        [
+          "aside",
+          "clarify"
+        ],
+        [
+          "clarify",
+          "__end__"
+        ]
+      ],
+      "reason": "they asked what the question meant"
+    },
+    {
+      "id": "drop-mid",
+      "title": "The frame is dropped mid-reading",
+      "blurb": "Crisis stakes on a card. Safety outranks the rhythm: the answer is recorded, the decision is never consulted, and the reader responds plainly.",
+      "answer": "my mother died last week, actually",
+      "verdict": {
+        "disclosure_depth": 3,
+        "has_life_content": true,
+        "user_level": "name",
+        "hedged": false,
+        "asked_back": false,
+        "stakes": "crisis",
+        "reading_of_them": "noted"
+      },
+      "nodes": [
+        "__start__",
+        "judge_gate",
+        "exchange",
+        "respond",
+        "revise_anchor",
+        "__end__"
+      ],
+      "edges": [
+        [
+          "__start__",
+          "judge_gate"
+        ],
+        [
+          "judge_gate",
+          "exchange"
+        ],
+        [
+          "exchange",
+          "respond"
+        ],
+        [
+          "respond",
+          "revise_anchor"
+        ],
+        [
+          "revise_anchor",
+          "__end__"
+        ]
+      ],
+      "reason": "frame dropped"
+    },
+    {
+      "id": "drop-after-close",
+      "title": "The frame is dropped after the close",
+      "blurb": "Stakes do not stop mattering because a reading finished. The frame can still be dropped in the tail.",
+      "answer": "actually something happened this week",
+      "verdict": {
+        "disclosure_depth": 3,
+        "has_life_content": true,
+        "user_level": "name",
+        "hedged": false,
+        "asked_back": false,
+        "stakes": "crisis",
+        "reading_of_them": "noted"
+      },
+      "nodes": [
+        "__start__",
+        "judge_gate",
+        "tail",
+        "respond",
+        "revise_anchor",
+        "__end__"
+      ],
+      "edges": [
+        [
+          "__start__",
+          "judge_gate"
+        ],
+        [
+          "judge_gate",
+          "tail"
+        ],
+        [
+          "tail",
+          "respond"
+        ],
+        [
+          "respond",
+          "revise_anchor"
+        ],
+        [
+          "revise_anchor",
+          "__end__"
+        ]
+      ],
+      "reason": "frame dropped"
+    },
+    {
+      "id": "meanings",
+      "title": "“What do the cards mean?”",
+      "blurb": "The button, after the close. The traditional meanings, from the pack, on request and never offered.",
+      "answer": "(what do these cards traditionally mean)",
+      "verdict": null,
+      "nodes": [
+        "__start__",
+        "meanings",
+        "__end__"
+      ],
+      "edges": [
+        [
+          "__start__",
+          "meanings"
+        ],
+        [
+          "meanings",
+          "__end__"
+        ]
+      ],
+      "reason": "they asked what the cards mean"
+    }
+  ]
+}
