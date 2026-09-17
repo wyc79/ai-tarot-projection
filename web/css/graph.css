@@ -1,20 +1,23 @@
 /* The graph page. debug.css does the frame; this is the lead, the picture
    viewport, the side column and the tooltip. */
 
-/* The drawing is wider than the site's column; .explain keeps its own
-   max-width below. */
-main.wide { max-width: none; }
-
-/* The picture box and the scenario column are the same height: most of the
-   window, so the drawing is browsed in place rather than scrolled past. */
-:root { --picture-height: calc(100vh - 6rem); }
+/* The page is the window, like the reading page: the head and the lead take
+   what they need, the graph row takes the rest, and on a wide screen there is
+   nothing to scroll -- which matters, because the wheel over the picture zooms
+   and would otherwise fight the page for it. Below 64rem it stacks and scrolls
+   like any page. 3.5rem is the body's padding, top and bottom; the drawing is
+   wider than the site's column, and .explain keeps its own max-width below. */
+body { padding-bottom: 1.5rem; }
+main.wide { max-width: none; display: flex; flex-direction: column; height: calc(100vh - 3.5rem); min-height: 34rem; }
 
 /* Explanation left, legend in the space beside it. */
-.lead { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: 1rem 3rem; align-items: start; margin-bottom: 1.5rem; }
+.lead { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) 26rem; gap: 1rem 3rem; align-items: start; margin-bottom: 1.5rem; }
 .explain { max-width: 60rem; font-size: 0.92rem; }
 .explain p { margin: 0 0 0.75rem; }
 
-.graph-layout { display: grid; grid-template-columns: 18rem minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+/* The row is exactly the height left over -- minmax(0, 1fr) rather than auto,
+   so neither column's content can push it taller than the window. */
+.graph-layout { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 18rem minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 1.5rem; }
 
 .side h2, .legend-box h2 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); margin: 0 0 0.5rem; font-weight: 600; }
 .side-note { margin: 0 0 0.75rem; color: var(--dim); font-size: 0.82rem; }
@@ -22,7 +25,7 @@ main.wide { max-width: none; }
 /* Heading and note at the top; the list takes the rest of the column and
    scrolls, because seventeen buttons are taller than any window. min-height: 0
    is what lets a flex child shrink below its content. */
-.side { height: var(--picture-height); display: flex; flex-direction: column; }
+.side { display: flex; flex-direction: column; min-height: 0; }
 #scenarios { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 0.25rem; }
 
 .scenario {
@@ -34,9 +37,10 @@ main.wide { max-width: none; }
 .scenario.active { border-color: #e0891b; }
 .scenario small { display: block; color: var(--dim); font-size: 0.78rem; line-height: 1.35; margin-top: 0.15rem; }
 
-.legend { margin: 0; font-size: 0.85rem; }
-.legend dt { color: var(--text); margin-top: 0.6rem; }
-.legend dt:first-child { margin-top: 0; }
+/* Term beside meaning, not above it: the legend's height is the lead's, and
+   every line of it comes out of the picture below. */
+.legend { margin: 0; font-size: 0.85rem; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0.4rem 0.75rem; }
+.legend dt { color: var(--text); }
 .legend dd { margin: 0; color: var(--dim); }
 .legend .sample { display: inline-block; width: 2.5rem; border-top: 2px solid #333; vertical-align: middle; margin-right: 0.5rem; background: #fff; box-shadow: 0 0 0 3px #fff; }
 .legend .sample.dashed { border-top-style: dashed; }
@@ -46,18 +50,20 @@ main.wide { max-width: none; }
    and LangGraph's own colours are part of what it shows. The box is a
    viewport: the svg fills it and its viewBox decides what is seen, which
    pan-zoom.js moves. */
-.viewport { position: relative; }
+.picture-column { display: flex; flex-direction: column; min-height: 0; }
+.viewport { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
 .picture {
-  height: var(--picture-height); padding: 0.5rem; overflow: hidden;
+  flex: 1 1 auto; min-height: 0; padding: 0.5rem; overflow: hidden;
   background: #fff; border-radius: 8px; color: #222;
   cursor: grab; user-select: none; touch-action: none;
 }
 .picture.dragging { cursor: grabbing; }
 /* !important because Mermaid puts its max-width inline on the element. */
 .picture svg { display: block; width: 100%; height: 100%; max-width: none !important; }
-.zoom { position: absolute; top: 0.75rem; right: 0.75rem; display: flex; gap: 0.25rem; }
+/* Backed, because zoomed in the drawing runs under it. */
+.zoom { position: absolute; top: 0.75rem; right: 0.75rem; display: flex; gap: 0.25rem; align-items: center; padding: 0.25rem 0.4rem; background: rgb(255 255 255 / 0.88); border-radius: 8px; }
 .zoom button { padding: 0.15rem 0.6rem; font-size: 0.9rem; }
-.hint { margin: 0.5rem 0 0; color: var(--dim); font-size: 0.82rem; }
+.zoom .hint { margin: 0 0.5rem 0 0; color: #666; font-size: 0.78rem; }
 
 /* !important: Mermaid's own stylesheet is id-scoped (#reading …), which outranks any class rule. */
 .picture g.node.lit rect, .picture g.node.lit path { stroke: #e0891b !important; stroke-width: 3px !important; }
@@ -69,7 +75,10 @@ main.wide { max-width: none; }
    it, and a box measured at one size clips the text at another. */
 svg .label { text-transform: none; font-size: inherit; letter-spacing: normal; }
 
-.trace { margin-top: 1rem; font-size: 0.92rem; }
+/* Its space is reserved before a scenario is chosen -- invisible rather than
+   absent -- so choosing one does not shrink the picture above it. */
+.trace { flex: none; margin-top: 0.75rem; min-height: 5.25rem; font-size: 0.92rem; }
+.trace[hidden] { display: block; visibility: hidden; }
 .trace p { margin: 0.3rem 0; }
 .trace .label { margin-right: 0.5rem; }
 .trace code { font-size: 0.85rem; }
@@ -82,10 +91,11 @@ svg .label { text-transform: none; font-size: inherit; letter-spacing: normal; }
 .tip[hidden] { display: none; }
 
 @media (max-width: 64rem) {
-  :root { --picture-height: 60vh; }
+  main.wide { height: auto; min-height: 0; }
   .lead, .graph-layout { grid-template-columns: 1fr; }
+  .graph-layout { grid-template-rows: none; }
   /* Stacked, the list sits above the drawing; a short box keeps the drawing
-     within reach. */
-  .side { height: auto; }
+     within reach, and the drawing gets a fixed share of the screen. */
   #scenarios { max-height: 16rem; }
+  .viewport { flex: none; height: 60vh; }
 }

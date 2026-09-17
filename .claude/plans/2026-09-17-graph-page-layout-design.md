@@ -1,7 +1,7 @@
 # The graph page: a viewport, a scrolling list, and the legend up top
 
 2026-09-17. Branch `graph-page-layout`, off `main` after `langgraph-engine`
-merged. Follows 2026-09-16-langgraph-engine-design.md, which describes the
+merged. Status: implemented 2026-09-17; one deviation, noted inline under Layout. Follows 2026-09-16-langgraph-engine-design.md, which describes the
 page; this changes only how it is laid out.
 
 ## Goal
@@ -50,15 +50,30 @@ h1 / intro line
 
 - `.lead` is a two-column grid, explanation left and legend right; it
   stacks below 64rem, legend under the text.
-- `--picture-height: calc(100vh - 6rem)`, `60vh` below 64rem. The picture
-  box and the side column are both that tall. The side column is a flex
-  column: heading, note, then `#scenarios` taking the rest with
-  `overflow-y: auto`. Below 64rem the layout stacks and the list gets
-  `max-height: 16rem` so a phone is not two screens of buttons before the
-  drawing.
+- The page is the window, like the reading page. `main` is a flex column
+  `calc(100vh - 3.5rem)` tall (the body's padding); the head and the lead
+  take what they need and `.graph-layout` takes the rest, its one grid row
+  `minmax(0, 1fr)` so neither column's content can push it taller. On a
+  wide screen there is nothing to scroll. *Deviation, found by the hand
+  check:* the first cut gave the box a fixed `calc(100vh - 6rem)`, which
+  put its bottom off the first screen — and because the wheel over the
+  picture zooms, the gesture that would have scrolled to it zoomed instead.
+  `min-height: 34rem` on `main` lets a very short window scroll rather
+  than crush the picture.
+- The side column is a flex column: heading, note, then `#scenarios` taking
+  the rest with `overflow-y: auto`. Below 64rem the layout stacks and
+  scrolls like any page, the list gets `max-height: 16rem` so a phone is not
+  two screens of buttons before the drawing, and the viewport is `60vh`.
+- The legend is a two-column grid, term beside meaning: its height is the
+  lead's, and every line of it comes out of the picture below.
 - The zoom controls sit in the top-right corner of the picture box, in a
   wrapper beside `#picture` rather than inside it, because the render
-  replaces `#picture`'s contents.
+  replaces `#picture`'s contents. The hint ("scroll to zoom, drag to move")
+  sits in the same bar, on a white backing so it reads when the drawing
+  runs under it.
+- The trace under the picture keeps its space before a scenario is chosen
+  (`[hidden]` is `visibility: hidden`, not `display: none`), so choosing one
+  does not shrink the picture.
 
 ## Pan and zoom
 
@@ -90,7 +105,7 @@ New module `web/js/ui/pan-zoom.js`:
 - `graph-page.js` no longer sets `width`/`height` from the viewBox (that
   was for natural size); it calls `attachPanZoom` after the render, before
   the tooltips.
-- CSS: `.picture { height: var(--picture-height); overflow: hidden;
+- CSS: `.picture { flex: 1 1 auto; min-height: 0; overflow: hidden;
   cursor: grab; user-select: none; touch-action: none }`, `.dragging`
   swaps the cursor. The `svg .label` rule stays: Mermaid still measures
   labels outside the box.
@@ -107,9 +122,10 @@ New module `web/js/ui/pan-zoom.js`:
 - `tests/engine/graph-page.test.mjs` unchanged and still green: the
   import closure grows by `pan-zoom.js`, which imports nothing.
 - Hand check in headless Chrome, as before: fit on load with the whole
-  graph visible, wheel zooms about the cursor, drag pans, buttons work,
-  scenarios scroll in their column, legend top right, tooltips and
-  highlighting still bind, own-origin requests only, no console errors.
+  graph visible and the page not scrolling, wheel zooms about the cursor,
+  drag pans, buttons work, scenarios scroll in their column, legend top
+  right, tooltips and highlighting still bind, own-origin requests only, no
+  console errors; at 1600×1300, 1440×900 and 800×1300.
 
 ## Docs and plan
 

@@ -14,7 +14,7 @@
 - `pan-zoom.js` imports nothing and touches no DOM at module scope (it must import under Node for the tests and for the import-closure walker).
 - What is drawn, the tooltips (`bindTooltips`), the highlighting (`light`) and `web/graph-scenarios.json` do not change; `node scripts/draw_graph.mjs --check` must stay current without being re-run.
 - Scale clamp relative to fit: `MIN_SCALE = 0.5`, `MAX_SCALE = 8`. Wheel factor `Math.exp(-delta * 0.002)`, line-mode deltas ×40. Buttons zoom ×1.5 / ÷1.5 about the centre of the current view.
-- `--picture-height: calc(100vh - 6rem)`; `60vh` below `64rem`. Stacked, `#scenarios` has `max-height: 16rem`.
+- The page is the window: `main` a flex column `calc(100vh - 3.5rem)` tall, `.graph-layout` taking the rest with its row `minmax(0, 1fr)`; below `64rem` it stacks and scrolls, the viewport `60vh` and `#scenarios` `max-height: 16rem`. (Task 2 was written and reviewed against a fixed `--picture-height: calc(100vh - 6rem)`; Task 3's hand check replaced it — see the spec's Layout deviation and the changelog. `graph.css` as committed is the truth, not Task 2's block.)
 - AGENTS.md: any commit touching `.claude/plans/ai-tarot-v1.5-plan.md` updates its Plan changelog in the same commit; small commits; the human merges. Commit messages are plain sentences, like the log.
 - Run the tests with `node --test tests/engine/pan-zoom.test.mjs tests/engine/graph-page.test.mjs` from the repo root; the whole suite is `scripts/test.sh`.
 
