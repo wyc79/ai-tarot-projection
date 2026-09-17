@@ -13,10 +13,13 @@ judges, or ends changes.
 
 ## Non-goals
 
-- No real-time trace. The graph page is a static render of the compiled
-  graph, drawn at load from the same `buildGraph()` the reading runs on. There
-  is no hand-maintained picture anywhere: not a layout file, not a node list,
-  not an SVG. If it is on the page, it came out of the compiled object.
+- No real-time trace, and the page runs no engine. It is a static render of
+  the compiled graph, drawn at load from the same `buildGraph()` the reading
+  runs on, plus scenario highlights that were recorded by running the real
+  engine once at generation time and are checked against it by the test
+  suite. There is no hand-maintained picture anywhere: not a layout file,
+  not a node list, not a path list, not an SVG. If it is on the page, it came
+  out of the compiled object or out of the engine running.
 - No LangSmith. Not wired, and not mimicked. The tracer ships inside the
   bundle, is never enabled, and a test proves the graph makes no network
   calls. The README says so: that is the demonstration of knowing the
@@ -37,7 +40,10 @@ judges, or ends changes.
 `end`, `stayAWhile`, `onEvent`, the same return shapes, the same events in
 the same order. The tests, the scripts, and both pages do not change.
 
-Inside, `say(answer)` and `meanings()` call `graph.invoke({ kind, answer })`.
+Inside, `say(answer)` and `meanings()` run `graph.stream({ kind, answer },
+{ streamMode: "updates" })`, emit `onEvent({ type: "node", node })` for each
+chunk as it arrives, and return the final state's `result`. That is the one
+new event, and it is the whole of what the scenario traces are recorded from.
 The graph state is turn-local scratch and nothing else:
 
 ```
@@ -181,13 +187,24 @@ turn does not start one, as today.
   the graph is entered, so they throw as they do now.
 - The default recursion limit (25) is far above the longest path (7 nodes).
 
+### Notes: what each node and each key means
+
+Every node and every path-map key carries a one- or two-sentence note,
+written beside its definition in graph.js — a `node(name, note, fn)` helper
+and a `branch(key, note, target)` helper register both — so the explanation
+cannot be added or removed separately from the thing it explains.
+`buildGraph()` returns `{ graph, notes }`, where `notes.nodes[name]` and
+`notes.keys[key]` are plain strings. The page shows them as hover tooltips;
+a test asserts the two maps cover exactly the compiled graph's nodes and
+labels, no more and no fewer.
+
 ### Where the code lives
 
 - `web/js/engine/graph.js` — new. `buildGraph(ctx)` declares the nodes,
-  routers and edges and returns the compiled graph. `ctx` carries `session`,
-  `pack`, `judge`, `readerTurn`, `cardFor`, `persist`, `onEvent`, and the
-  revision slot. Called with no `ctx`, it compiles a graph whose nodes are
-  never run — that is what the drawing script uses.
+  routers, edges and notes and returns `{ graph, notes }`. `ctx` carries
+  `session`, `pack`, `judge`, `readerTurn`, `cardFor`, `persist`, `onEvent`,
+  and the revision slot. Called with no `ctx`, it compiles a graph whose
+  nodes are never run — that is what the drawing script and the page use.
 - `web/js/engine/reading.js` — keeps `startReading`: the deal, `readerTurn`,
   `cardFor`, `persist`, the public methods. `say`, `openWith`, `afterward`,
   `advance`, `flipNext` and the two anchor helpers move into graph.js as nodes.
@@ -234,26 +251,82 @@ Mermaid, for the graph page only:
 ### The graph page
 
 - `web/graph.html` + `web/js/ui/graph-page.js`. On load: `buildGraph()` with
-  no context, `getGraphAsync().drawMermaid()`, and `mermaid.render()` of that
-  text into the page. Nothing else. No pack, no key, no session — the page
-  works for a visitor who has none of them.
+  no context, `getGraphAsync().drawMermaid()`, `mermaid.render()` of that
+  text into the page, then two bindings onto the rendered SVG: the notes as
+  tooltips, and the recorded scenarios as highlights. No pack, no key, no
+  session, no engine run — the page works for a visitor who has none of them.
+- **Tooltips.** Hovering a node shows `notes.nodes[name]`; hovering an edge
+  label shows `notes.keys[label]`. Bound after render by matching Mermaid's
+  `g.node` and `g.edgeLabel` elements to their text. Nothing is appended to
+  the Mermaid text to do this.
+- **Scenarios.** A list of buttons beside the picture, each a moment in a
+  reading. Clicking one colours the nodes and edges that turn visited and
+  prints the engine's own reason line under the picture. The paths come from
+  `web/graph-scenarios.json`, which is written by the drawing script (below)
+  and never by hand. Highlighting is a CSS class on the matched `g.node` and
+  edge path elements; edges are matched by Mermaid's `L_<src>_<tgt>_<n>` ids,
+  to be confirmed against the vendored build during implementation.
+- **Legend.** Static HTML: a dashed edge is conditional and its label is the
+  router's key; a solid edge is always taken; the rounded-end shapes are
+  `__start__` and `__end__`; the highlight colour is the path the selected
+  scenario took. It explains LangGraph's drawing conventions, not this graph,
+  so there is nothing in it to drift.
 - The page says, in a paragraph above the picture, what it is: the reading's
-  control flow as LangGraph compiled it a moment ago, dashed edges are
-  conditional and their label is the reason the branch is taken, every
-  reader turn kind is a node, and the source is `web/js/engine/graph.js`. It links back to `index.html` and to the README
-  section, the way `pack.html` and `debug.html` cross-link today.
+  control flow as LangGraph compiled it a moment ago, every reader turn kind
+  is a node, and the source is `web/js/engine/graph.js`. It links back to
+  `index.html` and to the README section, the way `pack.html` and
+  `debug.html` cross-link today.
 - `index.html` gains one link to it in the same place it links nothing else
   today: a line in the footer, "how the reading decides →". The styled page
   otherwise does not change, and the debug machinery still never reaches it.
 
+### The scenarios
+
+Each scenario is an *input*: a title, a sentence on what it shows, and a
+short scripted conversation with scripted judge verdicts, in the shape the
+seeded session already uses. The trace is what the engine did with it. The
+set, each ending on the turn it is named for:
+
+| scenario                          | expected path, last turn                                   |
+|-----------------------------------|------------------------------------------------------------|
+| the opening answer                | judge_opening → flip → invite                              |
+| a thin answer ("dunno")           | judge_gate → exchange → decide → respond → revise_anchor (`hold`) |
+| a disclosure lands, the card dwells | same path as the thin answer; the reason line says why    |
+| the turn that earns the next card | … decide → commit_anchor → flip → bridge → revise_anchor   |
+| a later card flips                | … decide → flip → bridge → revise_anchor                   |
+| the fourth card is earned         | … decide → flip_epilogue → epilogue → revise_anchor        |
+| the close                         | … decide → close → revise_anchor                           |
+| a turn after the close            | judge_gate → tail → after                                  |
+| the goodbye                       | judge_gate → tail → farewell                               |
+| "what do you mean?"               | judge_gate → aside → clarify                               |
+| the frame is dropped              | judge_gate → exchange → respond → revise_anchor (`frame dropped`) |
+| "what do the cards mean"          | meanings                                                   |
+
+The expected-path column is what the design predicts; the recorded file is
+what the engine did. The first implementation checks them against each
+other once, and after that the recording is the truth and the table is
+history. Scenarios that cannot be reached from the seeded script (the aside,
+the frame drop, the meanings request) get a script of their own, three or
+four turns long.
+
+The seeded script and its scripted client move out of
+`scripts/seeded_session.mjs` into `scripts/lib/seeded.mjs` so the trace
+recorder and the seeded-session printer import one copy. Node-only; nothing
+moves under `web/`.
+
 ### The README
 
-- `scripts/draw_graph.mjs`: the same two calls as the page, written
-  into `README.md` between `<!-- graph:begin -->` and `<!-- graph:end -->`
-  inside a ```` ```mermaid ```` fence. GitHub renders it. `--check`
-  regenerates and diffs, and is a leg of `scripts/test.sh`, so a node added
-  without redrawing fails the suite. It is a cached render of the page's
-  source, not a second definition.
+- `scripts/draw_graph.mjs` produces the two generated files. (1) The same
+  two calls as the page, written into `README.md` between
+  `<!-- graph:begin -->` and `<!-- graph:end -->` inside a
+  ```` ```mermaid ```` fence; GitHub renders it. (2) `web/graph-scenarios.json`:
+  every scenario run through `startReading()` with the scripted client, the
+  `node` events of its last turn collected into `nodes`, the consecutive
+  pairs into `edges`, and the `flip_decision` (or the branch's synthetic
+  decision) reason into `reason`. `--check` regenerates both to a temporary
+  path and diffs, and is a leg of `scripts/test.sh`, so a node added without
+  redrawing, or an engine change that moves a path, fails the suite. Both
+  files are cached output of the code, not a second definition of anything.
 - The README gains a section on the engine as a graph, placed after "Your
   key, and where it goes": what the nodes are, that conditional edges are
   dashed because that is how LangGraph draws them, a link to the live page,
@@ -276,16 +349,19 @@ New, in `tests/engine/graph.test.mjs`:
 3. Every key of `TURN_INSTRUCTIONS` is a node name in the compiled graph, and
    every node name that is a turn kind is a key. Adding a turn kind without a
    node, or a node the reader cannot speak, fails.
-4. Once, at the end of the implementation and recorded in the plan changelog:
+4. `notes.nodes` covers exactly the compiled graph's node names and
+   `notes.keys` exactly its conditional-edge labels — no missing, no extra.
+5. Once, at the end of the implementation and recorded in the plan changelog:
    the sorted-line diff between `drawMermaid()` and the expected `.mmd` is
-   empty.
+   empty, and each recorded scenario path matches the expected-path column.
 
-New leg in `scripts/test.sh`: `node scripts/draw_graph.mjs --check`.
+New leg in `scripts/test.sh`: `node scripts/draw_graph.mjs --check`, which
+covers both the README block and `web/graph-scenarios.json`.
 
 The graph page has no automated test, because the suite has no browser. It
 is checked by hand through `python3 server/relay.py` → `/graph.html` before
-the branch is offered for merge, and the check is recorded in the plan
-changelog entry.
+the branch is offered for merge — render, every tooltip, every scenario
+button, the legend — and the check is recorded in the plan changelog entry.
 
 One-time verification, recorded in the plan changelog rather than kept as a
 golden: `node scripts/seeded_session.mjs --json` captured on `main` before the
@@ -311,6 +387,8 @@ new      web/vendor/langgraph.js
 new      web/vendor/mermaid.min.js
 new      web/graph.html
 new      web/js/ui/graph-page.js
+new      web/graph-scenarios.json        (generated)
+new      scripts/lib/seeded.mjs
 new      scripts/langgraph_entry.js
 new      scripts/vendor_langgraph.sh
 new      scripts/draw_graph.mjs
@@ -318,6 +396,7 @@ new      tests/engine/graph.test.mjs
 new      package.json, package-lock.json
 changed  web/js/engine/reading.js
 changed  web/index.html
+changed  scripts/seeded_session.mjs
 changed  scripts/test.sh
 changed  README.md
 changed  .gitignore
