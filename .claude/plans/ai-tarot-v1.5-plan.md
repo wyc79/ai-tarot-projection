@@ -707,6 +707,27 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-09-17): the graph page is laid out to be browsed, on branch graph-page-layout.
+  Spec in 2026-09-17-graph-page-layout-design.md. The drawing had been shown at natural size in
+  a scrolling panel, ~2100px wide, so the whole graph was never in view and the seventeen
+  scenario buttons ran below it. Now the picture is a viewport with the graph fitted into it,
+  zoomed by wheel or buttons and dragged about, done through the svg's viewBox in
+  web/js/ui/pan-zoom.js (svg-pan-zoom considered; ~50 lines of viewBox arithmetic are simpler
+  than a third vendored script); the scenario list scrolls inside a column of the same height;
+  the legend sits top right beside the explanation. What is drawn, the tooltips and the
+  recorded traces are untouched, and draw_graph.mjs --check stays current without a re-run.
+  Hand check in headless Chrome at 1600x1300, 1440x900 and 800x1300: fit on load with
+  Mermaid's own viewBox; five wheel notches over `decide` zoomed 2.7x with the drawing point
+  under the cursor unchanged; a 200x100px drag moved the view by the same distance in drawing
+  units; the buttons and fit worked; scenarios lit as before, the last one reachable by
+  scrolling its column; tooltips bound; every request to the page's own origin; no console
+  errors. The check found one thing the numbers had passed: the first cut gave the box a fixed
+  height of 100vh - 6rem, which ended below the first screen, and the wheel over it zoomed
+  instead of scrolling to it. The page is now the window, like the reading page -- head and
+  lead take what they need, the graph row takes the rest, nothing to scroll on a wide screen
+  -- with the legend term-beside-meaning so it costs the picture less. At 1440x900 the fitted
+  graph is a thumbnail (437px tall); that is what "the whole graph in the window" costs, and
+  the zoom is one notch away.
 - v1.5 (2026-09-17): the engine is a LangGraph graph, on branch langgraph-engine. Spec in
   2026-09-16-langgraph-engine-design.md. The control flow of one turn moved from reading.js
   into graph.js as a StateGraph -- every reader turn kind a node, every branch a labelled
