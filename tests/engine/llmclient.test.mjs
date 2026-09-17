@@ -32,6 +32,8 @@ function sseResponse(chunks) {
 
 const delta = (t) => `data: ${JSON.stringify({ type: "content_block_delta", delta: { type: "text_delta", text: t } })}\n`;
 const STOP = `data: ${JSON.stringify({ type: "message_stop" })}\n`;
+/** A reply with a word in it: the payload tests care what was sent, and an empty turn is an error now. */
+const A_TURN = [delta("a turn"), STOP];
 
 function harness({ config = {}, respond }) {
   const calls = [];
@@ -65,7 +67,7 @@ test("a delta split across chunk boundaries is not lost", async () => {
 });
 
 test("relay mode posts the RELAY.md shape with a bearer token", async () => {
-  const { client, calls } = harness({ respond: () => sseResponse([STOP]) });
+  const { client, calls } = harness({ respond: () => sseResponse(A_TURN) });
   await client.chat({ system: "s", messages: [{ role: "user", content: "hi" }] });
   assert.equal(calls[0].url, "http://relay.test/v1/chat");
   assert.deepEqual(Object.keys(calls[0].body).sort(), ["payload", "provider"]);
@@ -75,7 +77,7 @@ test("relay mode posts the RELAY.md shape with a bearer token", async () => {
 
 test("direct mode goes to the provider with its own auth header", async () => {
   const { client, calls } = harness({
-    config: { mode: "direct", provider: "anthropic" }, respond: () => sseResponse([STOP]),
+    config: { mode: "direct", provider: "anthropic" }, respond: () => sseResponse(A_TURN),
   });
   await client.chat({ system: "s", messages: [] });
   assert.equal(calls[0].url, "https://api.anthropic.com/v1/messages");
@@ -86,7 +88,7 @@ test("direct mode goes to the provider with its own auth header", async () => {
 });
 
 test("the assembled payload reaches the debug panel before it is sent", async () => {
-  const { client, debug } = harness({ respond: () => sseResponse([STOP]) });
+  const { client, debug } = harness({ respond: () => sseResponse(A_TURN) });
   await client.chat({ system: "the persona prompt", messages: [{ role: "user", content: "hi" }] });
   assert.equal(debug.length, 1);
   assert.equal(debug[0].payload.system, "the persona prompt");
@@ -185,7 +187,7 @@ test("judge returns the parsed object and is not streamed", async () => {
 
 test("a gateway gets the plain Messages shape and nothing newer", async () => {
   const { client, calls } = harness({
-    config: { provider: "deepseek" }, respond: () => sseResponse([STOP]),
+    config: { provider: "deepseek" }, respond: () => sseResponse(A_TURN),
   });
   await client.chat({ system: "s", messages: [] });
   const payload = calls[0].body.payload;
@@ -290,7 +292,7 @@ test("a missing key fails before any request is made", async () => {
 });
 
 test("the client object does not hold the key anywhere", async () => {
-  const { client } = harness({ respond: () => sseResponse([STOP]) });
+  const { client } = harness({ respond: () => sseResponse([delta("a turn"), STOP]) });
   await client.chat({ system: "s", messages: [] });
   assert.equal(JSON.stringify(Object.values(client).map(String)).includes(KEY), false);
 });
@@ -312,6 +314,38 @@ test("a stream that ends without message_stop still yields what it sent", async 
   assert.equal(await client.chat({ system: "s", messages: [] }), "cut short");
 });
 
+test("a turn the model finished without writing is an error, not an empty bubble", async () => {
+  // deepseek-v4-flash, 2026-09-17: the reader turn streamed thinking (which
+  // the parser rightly ignores), then ended with no text and no max_tokens.
+  // chat() resolved with "" and the engine recorded an empty reader turn --
+  // dots, then an empty bubble, and nothing in any log. An empty turn is
+  // never a reader turn: every turn ends on a question or the closing step.
+  const thinking = `data: ${JSON.stringify({ type: "content_block_delta", index: 0, delta: { type: "thinking_delta", thinking: "Name the card." } })}\n`;
+  const ended = `data: ${JSON.stringify({ type: "message_delta", delta: { stop_reason: "end_turn" }, usage: { output_tokens: 412 } })}\n`;
+  const { client } = harness({ respond: () => sseResponse([thinking, ended, STOP]) });
+  await assert.rejects(client.chat({ system: "s", messages: [] }), (e) => {
+    assert.equal(e.code, "empty_reply");
+    // 412 tokens and no words: it thought, and the report should say so.
+    assert.match(e.message, /finished .* without writing/);
+    assert.match(e.message, /412 generated tokens/);
+    return true;
+  });
+});
+
+test("a stream that ends before the turn finished, with nothing written, is an error", async () => {
+  // The relay turns a provider hanging up mid-response into a clean end of
+  // stream and leaves it to the client to notice. With words in hand the
+  // short turn is kept (above); with none there is nothing to keep, and the
+  // two cases are told apart because they want different fixes.
+  const started = `data: ${JSON.stringify({ type: "message_start", message: { usage: { output_tokens: 0 } } })}\n`;
+  const { client } = harness({ respond: () => sseResponse([started]) });
+  await assert.rejects(client.chat({ system: "s", messages: [] }), (e) => {
+    assert.equal(e.code, "empty_reply");
+    assert.match(e.message, /ended before the reply finished/);
+    return true;
+  });
+});
+
 test("hitting the token ceiling is reported, not silently returned as a short turn", async () => {
   const truncated = `data: ${JSON.stringify({ type: "message_delta", delta: { stop_reason: "max_tokens" }, usage: { output_tokens: 2048 } })}\n`;
   const { client } = harness({ respond: () => sseResponse([delta("this trails off"), truncated]) });
@@ -330,7 +364,7 @@ test("the token ceiling has exactly one owner", async () => {
   // adapter's did nothing, which is the sort of fix that looks applied.
   const { client, calls } = harness({
     config: { provider: "deepseek" },
-    respond: (i) => (i === 0 ? sseResponse([STOP]) : judgeReply(JSON.stringify(GATE))),
+    respond: (i) => (i === 0 ? sseResponse(A_TURN) : judgeReply(JSON.stringify(GATE))),
   });
   await client.chat({ system: "s", messages: [] });
   await client.judge({ system: "s", messages: [], schema: GATE_SCHEMA });
@@ -358,7 +392,7 @@ test("temperature is not sent to models that answer 400 for it", async () => {
 
 test("the reader's voice is never pinned, only the judge", async () => {
   const { client, calls } = harness({
-    config: { provider: "deepseek" }, respond: () => sseResponse([STOP]),
+    config: { provider: "deepseek" }, respond: () => sseResponse(A_TURN),
   });
   await client.chat({ system: "s", messages: [] });
   assert.equal(calls[0].body.payload.temperature, undefined);
@@ -366,7 +400,7 @@ test("the reader's voice is never pinned, only the judge", async () => {
 
 test("the persona is marked cacheable where the provider understands the marker", async () => {
   const { client, calls } = harness({
-    config: { provider: "anthropic" }, respond: () => sseResponse([STOP]),
+    config: { provider: "anthropic" }, respond: () => sseResponse(A_TURN),
   });
   await client.chat({ system: "the persona prompt", messages: [{ role: "user", content: "hi" }] });
   assert.deepEqual(calls[0].body.payload.system,
@@ -379,7 +413,7 @@ test("and left as a plain string for a gateway that may not know it", async () =
   // way, and a provider that caches prefixes on its own still benefits. It is
   // only about not sending a parameter that might come back as a 400.
   const { client, calls } = harness({
-    config: { provider: "deepseek" }, respond: () => sseResponse([STOP]),
+    config: { provider: "deepseek" }, respond: () => sseResponse(A_TURN),
   });
   await client.chat({ system: "the persona prompt", messages: [] });
   assert.equal(calls[0].body.payload.system, "the persona prompt");

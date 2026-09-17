@@ -175,12 +175,14 @@ export function makeLlmClient({ getKey, getConfig, onDebug = () => {} }) {
       let buffer = "";
       let full = "";
       let truncated = false;
+      let finished = false;
       let spent = 0;
 
       const consume = (chunk) => {
         buffer = chunk.rest;
         if (chunk.error) throw new RelayError(chunk.error.code, chunk.error.message);
         if (chunk.truncated) truncated = true;
+        if (chunk.done) finished = true;
         if (chunk.spent) spent = chunk.spent;
         if (chunk.text) {
           full += chunk.text;
@@ -205,6 +207,26 @@ export function makeLlmClient({ getKey, getConfig, onDebug = () => {} }) {
           `the reply hit the token ceiling after ${full.length} characters` +
           (spent ? ` and ${spent} generated tokens` : ""),
           { hint: "raise maxTokens, or the model is spending the budget on thinking" });
+      }
+      // An empty turn is never a reader turn: every turn ends on a question or
+      // the closing step, so "" is a failure whatever the stream said. Told
+      // apart because they want different fixes. The model finishing with no
+      // text is a thinking model that thought and then stopped -- deepseek-v4-
+      // flash thinks before every reader turn, and on 2026-09-17 one of them
+      // ended like this: dots, then an empty bubble on the record. The stream
+      // ending first is the provider hanging up, which the relay passes on as
+      // a clean end of stream and leaves to the client to notice (relay.py,
+      // forward()). A short turn with words in it is kept, above; with none
+      // there is nothing to keep.
+      if (!full.trim()) {
+        throw finished
+          ? new RelayError("empty_reply",
+            "the model finished the turn without writing anything"
+              + (spent ? ` (${spent} generated tokens)` : ""),
+            { hint: "it spent the turn thinking and stopped; send again" })
+          : new RelayError("empty_reply",
+            "the stream ended before the reply finished, with nothing written",
+            { hint: "the provider or the relay dropped the stream; send again" });
       }
       return full;
     },

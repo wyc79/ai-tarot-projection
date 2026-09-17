@@ -292,11 +292,11 @@ DECIDED: frontend is plain HTML/CSS/JS (no framework, no build step). Prompt ass
 - A provider can hang up mid-response: chunked transfer with no terminating chunk, which arrives
   as IncompleteRead. By then the status and headers are already sent, so there is no error shape
   left - the relay ends the stream where it stopped and the client's own truncation handling
-  takes it. What is NOT acceptable is the default traceback, which prints the request being
+  takes it: a short turn with words in it is kept, one with none is empty_reply. What is NOT acceptable is the default traceback, which prints the request being
   served into the log of a relay whose whole promise is that it keeps nothing. Contract-tested
 - Failures are classified, because they need different fixes: invalid_key, unknown_model,
   endpoint_not_found, provider_rate_limited, provider_unavailable, bad_payload, connection_failed,
-  bad_provider_response, response_truncated
+  bad_provider_response, response_truncated, empty_reply
 - Symbol pack = self-contained data dir; data/ is the pack root for smith-waite-1909 (deck.json + Cards-jpg/ images + persona prompt + few-shots). "Fork it, drop in your own deck" = point the loader at another pack dir.
 - Card art: existing JPEGs in data/Cards-jpg/ (78 cards + CardBacks.jpg, 300x527, ~52KB each, 3.4MB total) - within budget, keep as-is, no webp pipeline
 - GitHub Pages: project site (username.github.io/ai-tarot/), asset paths must be subpath-safe (relative paths, no leading /)
@@ -707,6 +707,27 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-09-17): an empty reader turn is an error, on branch empty-reply. Reported as
+  "no longer returns after several turns, since the LangGraph change": pending dots, then an
+  empty reader bubble, relay mode, deepseek-v4-flash. The export showed where it stopped: the
+  gate had judged the answer and the ledger had it, the decision was hold, and the respond turn
+  had *completed* -- pending_question "" and the card's ai_reading "" are what readerTurn
+  writes when the model's reply is empty. Two replays ruled the engine out: the seeded script
+  through the pre-graph reading.js (9cc54f3) and through main sends byte-identical requests,
+  all 17 reader and 25 judge calls; and the reported session itself -- same seed, same two
+  answers, the verdicts its judge returned -- sends identical requests through both engines and
+  lands in identical state, the empty respond request included. DEV_LOG on the relay then
+  showed what the dots are: deepseek-v4-flash thinks before every reader turn (nothing in the
+  payload tells it not to; the judge probe of 2026-08-25 found the same on judge calls) and
+  the thinking streams as thinking_delta events the parser rightly ignores. What the client
+  did with a stream that carried no text was resolve with "" and no error, so the engine
+  recorded an empty turn and nothing said so anywhere. Now chat() throws empty_reply, told
+  apart by whether message_stop arrived: the model finished without writing (with the token
+  count, which says it thought) or the stream ended first (the hang-up the relay passes on as
+  a clean end of stream, which the relay note above had assumed the client would notice).
+  The UI already removes the empty bubble on an error and prints the code and hint. Still
+  open: which of the two it was on the reported turn -- the log tail was not captured -- and
+  whether reader turns on the gateways should send thinking disabled, as judge calls do.
 - v1.5 (2026-09-17): the graph page is laid out to be browsed, on branch graph-page-layout.
   Spec in 2026-09-17-graph-page-layout-design.md. The drawing had been shown at natural size in
   a scrolling panel, ~2100px wide, so the whole graph was never in view and the seventeen
