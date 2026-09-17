@@ -165,11 +165,14 @@ nobody reads. The same script vendors Mermaid for the graph page alone. No
 page here loads a script from another origin, because a script on one page
 of this origin could read the `tarot:` keys on every page.
 
-The LangSmith tracer ships inside that bundle and is never enabled. Nothing
-in the graph is configured to trace, there is no key for it to trace with,
-and a test runs a whole seeded reading with `fetch` replaced by a function
-that throws. A reading's words go to the model you chose and nowhere else,
-and that is still tested rather than asserted.
+The LangSmith tracer ships inside that bundle and is never enabled. The
+bundle is built with `process.env` defined away, so the `LANGSMITH_*`
+variables that switch tracing on in any other LangGraph program do nothing
+here, in the browser or under Node. Nothing in the graph is configured to
+trace, there is no key for it to trace with, and a test runs a whole seeded
+reading with `fetch` replaced by a function that throws. A reading's words
+go to the model you chose and nowhere else, and that is still tested rather
+than asserted.
 
 ## Bring your own deck
 

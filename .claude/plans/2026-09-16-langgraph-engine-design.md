@@ -23,11 +23,15 @@ judges, or ends changes.
 - No LangSmith. Not wired, and not mimicked. The tracer ships inside the
   bundle, is never enabled, and a test proves the graph makes no network
   calls. The README says so: that is the demonstration of knowing the
-  ecosystem, not a fake trace viewer.
+  ecosystem, not a fake trace viewer. The bundle is built with `process.env`
+  defined away (`scripts/vendor_langgraph.sh`): the tracer reads its switch
+  from the environment, and under Node the tests and the recorder would
+  otherwise inherit whatever a shell had set.
 - No checkpointer, no `interrupt()`. The session already persists under
   `tarot:` keys client-side; a second persisted truth is not wanted.
-- No change to state.js, judgements.js, prompts.js, or any pack file. The
-  engine's rules are not touched, only the control flow that sequences them.
+- No change to state.js, judgements.js, prompts.js (beyond one exported
+  constant, `TURN_KINDS`), or any pack file. The engine's rules are not
+  touched, only the control flow that sequences them.
 - No third-party script tag on any page of the site. A CDN script on one page
   of the origin can read `tarot:` localStorage on every page. Both libraries
   are vendored, pinned, and served from the repo.

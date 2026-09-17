@@ -12,6 +12,8 @@ import { readFile } from "node:fs/promises";
 import { Annotation, END, START, StateGraph } from "../../web/vendor/langgraph.js";
 import { buildGraph } from "../../web/js/engine/graph.js";
 import { TURN_KINDS } from "../../web/js/engine/prompts.js";
+import { startReading } from "../../web/js/engine/reading.js";
+import { declines, fakeClient, gate, realPack, wants } from "./helpers.mjs";
 
 test("the vendored LangGraph runs a two-node graph without touching fetch", async () => {
   const realFetch = globalThis.fetch;
@@ -62,9 +64,6 @@ test("every node and every edge label carries a note, and nothing else does", as
   }
 });
 
-import { startReading } from "../../web/js/engine/reading.js";
-import { declines, fakeClient, gate, realPack, wants } from "./helpers.mjs";
-
 const SEED = "moon-4f2a91";
 const nodesVisited = (events) => events.filter((e) => e.type === "node").map((e) => e.node);
 
@@ -109,7 +108,8 @@ test("a reader that throws rejects say() with that same error, unwrapped", async
 
 test("a whole seeded reading runs with the network unreachable", async () => {
   const realFetch = globalThis.fetch;
-  globalThis.fetch = () => { throw new Error("the graph runtime reached for the network"); };
+  let calls = 0;
+  globalThis.fetch = () => { calls += 1; throw new Error("the graph runtime reached for the network"); };
   try {
     const { r } = await reading({
       gates: Array.from({ length: 16 }, () => gate(3)),
@@ -119,8 +119,35 @@ test("a whole seeded reading runs with the network unreachable", async () => {
     for (let i = 0; i < 16 && !r.session.ended; i += 1) await r.say(`answer ${i}`);
     assert.equal(r.session.closed, true);
     assert.equal(r.session.ended, true);
+    assert.equal(calls, 0, "something in the graph runtime called fetch");
   } finally {
     globalThis.fetch = realFetch;
+  }
+});
+
+test("and it stays unreachable when a shell has LangSmith switched on", async () => {
+  // The tracer inside the vendored bundle reads process.env in Node. The
+  // bundle is built with process.env defined away, so these do nothing; if
+  // a re-vendor ever loses that flag, this is the test that says so.
+  const saved = { ...process.env };
+  Object.assign(process.env, {
+    LANGSMITH_TRACING: "true", LANGCHAIN_TRACING_V2: "true",
+    LANGSMITH_API_KEY: "lsv2_canary_not_a_real_key", LANGCHAIN_API_KEY: "lsv2_canary_not_a_real_key",
+  });
+  const realFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = () => { calls += 1; throw new Error("the graph runtime reached for the network"); };
+  try {
+    const { r } = await reading({ gates: Array.from({ length: 16 }, () => gate(3)),
+                                  opening: wants("whether I keep bracing for a fight nobody's having") });
+    await r.say("yeah, that");
+    for (let i = 0; i < 16 && !r.session.ended; i += 1) await r.say(`answer ${i}`);
+    assert.equal(r.session.ended, true);
+    assert.equal(calls, 0, "the tracer switched itself on from the environment");
+  } finally {
+    globalThis.fetch = realFetch;
+    for (const key of Object.keys(process.env)) if (!(key in saved)) delete process.env[key];
+    Object.assign(process.env, saved);
   }
 });
 

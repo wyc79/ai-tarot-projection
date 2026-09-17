@@ -741,12 +741,16 @@ Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider
   clipped descenders once resized), the drawing was shrunk to fit the column and is now natural
   size in a scrolling panel, and a verdict placeholder mis-described an unconsulted gate as a
   button press. vendor --check clean. LangSmith is neither wired nor mimicked, and a seeded
-  reading runs with fetch unplugged. Two deviations from the design, both noted inline in the
-  spec: the reading-page link to the graph lives in the intro, not a footer (the reading page's
-  body is a fixed-height grid with overflow hidden, so a footer would be clipped); and the
-  sorted-line diff between drawMermaid() and the expected .mmd stays a permanent test rather
-  than the one-time check first planned, since it costs nothing and keeps a deliberate graph
-  change honest against the design record beside it.
+  reading runs with fetch unplugged. The whole-branch review then found that "unplugged" was
+  not yet true under Node: the tracer reads `process.env`, and a shell with
+  `LANGSMITH_TRACING` set would have switched it on for the tests, the recorder and
+  model_checkpoint.mjs. The bundle is now built with `process.env` defined away and a test
+  sets those variables and counts fetch calls: zero. Two deviations from the design, both
+  noted inline in the spec: the reading-page link to the graph lives in the intro, not a
+  footer (the reading page's body is a fixed-height grid with overflow hidden, so a footer
+  would be clipped); and the sorted-line diff between drawMermaid() and the expected .mmd
+  stays a permanent test rather than the one-time check first planned, since it costs nothing
+  and keeps a deliberate graph change honest against the design record beside it.
 - v1.5 (2026-09-01): the crossing is said out loud, on branch playtest-1. Prompt D item 4,
   which the plain-words round left undone. Pack data, plus one engine consequence worth an
   entry. The **own** move now teaches a first bridge in two parts -- a plain signpost that the
