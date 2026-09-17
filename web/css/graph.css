@@ -1,0 +1,48 @@
+/* The graph page. debug.css does the frame; this is the picture, the side
+   column and the tooltip. */
+
+.explain { max-width: 60rem; margin-bottom: 1.5rem; font-size: 0.92rem; }
+.explain p { margin: 0 0 0.75rem; }
+
+.graph-layout { display: grid; grid-template-columns: 18rem minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+@media (max-width: 64rem) { .graph-layout { grid-template-columns: 1fr; } }
+
+.side h2 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); margin: 1.5rem 0 0.5rem; font-weight: 600; }
+.side h2:first-child { margin-top: 0; }
+.side-note { margin: 0 0 0.75rem; color: var(--dim); font-size: 0.82rem; }
+
+.scenario {
+  display: block; width: 100%; text-align: left; margin: 0 0 0.35rem; padding: 0.45rem 0.65rem;
+  background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px;
+  cursor: pointer; font: inherit; font-size: 0.9rem;
+}
+.scenario:hover { border-color: var(--dim); }
+.scenario.active { border-color: #e0891b; }
+.scenario small { display: block; color: var(--dim); font-size: 0.78rem; line-height: 1.35; margin-top: 0.15rem; }
+
+.legend { margin: 0; font-size: 0.85rem; }
+.legend dt { color: var(--text); margin-top: 0.6rem; }
+.legend dd { margin: 0; color: var(--dim); }
+.legend .sample { display: inline-block; width: 2.5rem; border-top: 2px solid #333; vertical-align: middle; margin-right: 0.5rem; background: #fff; box-shadow: 0 0 0 3px #fff; }
+.legend .sample.dashed { border-top-style: dashed; }
+.legend .sample.lit { border-top: 3px solid #e0891b; }
+
+/* The picture keeps Mermaid's light theme on a light panel: it is a diagram,
+   and LangGraph's own colours are part of what it shows. */
+.picture { background: #fff; border-radius: 8px; padding: 1rem; overflow: auto; color: #222; }
+.picture svg { max-width: none; height: auto; }
+
+.picture g.node.lit rect, .picture g.node.lit path { stroke: #e0891b !important; stroke-width: 3px !important; }
+.picture path.lit { stroke: #e0891b !important; stroke-width: 3.5px !important; }
+
+.trace { margin-top: 1rem; font-size: 0.92rem; }
+.trace p { margin: 0.3rem 0; }
+.trace .label { margin-right: 0.5rem; }
+.trace code { font-size: 0.85rem; }
+
+.tip {
+  position: fixed; max-width: 24rem; padding: 0.5rem 0.7rem; z-index: 10; pointer-events: none;
+  background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px;
+  font-size: 0.85rem; line-height: 1.4;
+}
+.tip[hidden] { display: none; }
