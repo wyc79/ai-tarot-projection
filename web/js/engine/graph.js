@@ -45,7 +45,6 @@ const Turn = Annotation.Root({
   opening: Annotation(),   // judge.opening's verdict, on the opening turn only
   gate: Annotation(),      // judge.gate's verdict
   decision: Annotation(),  // flipDecision's result
-  text: Annotation(),      // the reader's turn
   result: Annotation(),    // what say() / meanings() return, in the shapes they always had
 });
 
@@ -164,6 +163,7 @@ export function buildGraph(ctx = {}) {
       // Safety outranks the rhythm. Once the frame is dropped there are no
       // more cards, so the decision is never even consulted.
       if (dropped()) ctx.onEvent({ type: "frame_dropped" });
+      // The result for the dropped-frame branch; every other branch overwrites it.
       return { result: { gate: state.gate, decision: held("frame dropped") } };
     });
 
@@ -176,6 +176,7 @@ export function buildGraph(ctx = {}) {
       });
       ctx.onEvent({ type: "gate", gate: state.gate });
       if (dropped()) ctx.onEvent({ type: "frame_dropped" });
+      // The result for the dropped-frame branch; every other branch overwrites it.
       return { result: { gate: state.gate, decision: held("frame dropped") } };
     });
 
@@ -214,6 +215,8 @@ export function buildGraph(ctx = {}) {
   node("flip_epilogue",
     "The fourth card, decided at the advice-to-close boundary and before anything is closed: earned by something of their own, it turns and the reading closes once, over four.",
     async (state) => {
+      // flipEpilogue, not flipCard: the spread is full here by construction, and
+      // flipCard would compute the next position itself and throw.
       flipEpilogue(s(), await ctx.cardFor(s().epilogue_position), { reason: EPILOGUE_FLIP_REASON });
       const entry = currentCard(s());
       ctx.onEvent({ type: "flip", card: ctx.pack.card(entry.card_id), position: entry.position, reason: entry.flip_reason });
@@ -222,31 +225,27 @@ export function buildGraph(ctx = {}) {
 
   node("invite",
     "The first card is up. The reader names it and asks them to read it first -- what does it feel like it is pointing at? -- and nothing else.",
-    async () => ({ text: await ctx.readerTurn("invite", stage()) }));
+    async () => { await ctx.readerTurn("invite", stage()); return {}; });
 
   node("respond",
     "No card turns over on this turn. One observation, then one question, inside what they said. The most common turn in a reading.",
     async () => {
-      const text = await ctx.readerTurn("respond", { onCard: !s().closed });
+      await ctx.readerTurn("respond", { onCard: !s().closed });
       ctx.persist();
-      return { text };
+      return {};
     });
 
   node("clarify",
     "Their question back is answered plainly, and the reader asks again, smaller. Never the same question that just failed.",
-    async () => {
-      const text = await ctx.readerTurn("clarify", { onCard: false });
-      ctx.persist();
-      return { text };
-    });
+    async () => { await ctx.readerTurn("clarify", { onCard: false }); ctx.persist(); return {}; });
 
   node("bridge",
     "A card has just turned. The reader answers the card behind it while the new one is already up, then asks them to read the new one.",
-    async () => ({ text: await ctx.readerTurn("bridge", { ...stage(), readingOffset: 1 }) }));
+    async () => { await ctx.readerTurn("bridge", { ...stage(), readingOffset: 1 }); return {}; });
 
   node("epilogue",
     "The fourth card's turn: the reader hands the reading back over four cards, in their own words, and closes once.",
-    async () => ({ text: await ctx.readerTurn("epilogue", { ...stage(), readingOffset: 1 }) }));
+    async () => { await ctx.readerTurn("epilogue", { ...stage(), readingOffset: 1 }); return {}; });
 
   node("close",
     "The closing beat over three cards, unconditional once the advice card's budget is spent. If the fourth card stayed face down, one line names it as an invitation, never a grade.",
@@ -257,15 +256,15 @@ export function buildGraph(ctx = {}) {
       s().phase = "afterward";
       ctx.persist();
       ctx.onEvent({ type: "closed", reflection: text });
-      return { text, result: { gate: state.gate, decision: state.decision, closed: true } };
+      return { result: { gate: state.gate, decision: state.decision, closed: true } };
     });
 
   node("after",
     "The short tail after the close. A last question gets a real answer; the budget is one, at most three.",
     async (state) => {
-      const text = await ctx.readerTurn("after", { onCard: false });
+      await ctx.readerTurn("after", { onCard: false });
       ctx.persist();
-      return { text, result: { gate: state.gate, decision: held("the reading is closed; this is after it") } };
+      return { result: { gate: state.gate, decision: held("the reading is closed; this is after it") } };
     });
 
   node("farewell",
@@ -275,23 +274,23 @@ export function buildGraph(ctx = {}) {
       end(s(), text);
       ctx.persist();
       ctx.onEvent({ type: "ended", farewell: text });
-      return { text, result: { gate: state.gate, decision: held("the reading is over; that was goodbye") } };
+      return { result: { gate: state.gate, decision: held("the reading is over; that was goodbye") } };
     });
 
   node("afterglow",
     "They chose to stay. Questions stay inside the anchor's territory and move up into what was found, never sideways; a reflective turn with no question is legal here and only here.",
     async (state) => {
-      const text = await ctx.readerTurn("afterglow", { onCard: false });
+      await ctx.readerTurn("afterglow", { onCard: false });
       ctx.persist();
-      return { text, result: { gate: state.gate, decision: held("afterglow") } };
+      return { result: { gate: state.gate, decision: held("afterglow") } };
     });
 
   node("regroup",
     "Two afterglow answers in a row with nothing of theirs in them. The reader goes back to what the reading was about, or offers the door again.",
     async (state) => {
-      const text = await ctx.readerTurn("regroup", { onCard: false });
+      await ctx.readerTurn("regroup", { onCard: false });
       ctx.persist();
-      return { text, result: { gate: state.gate, decision: held("the afterglow drifted off the anchor; back to it, or out") } };
+      return { result: { gate: state.gate, decision: held("the afterglow drifted off the anchor; back to it, or out") } };
     });
 
   node("meanings",
@@ -309,7 +308,7 @@ export function buildGraph(ctx = {}) {
       });
       const text = await ctx.readerTurn("meanings", { onCard: false });
       ctx.persist();
-      return { text, result: { text, decision: held("they asked what the cards mean") } };
+      return { result: { text, decision: held("they asked what the cards mean") } };
     });
 
   node("revise_anchor",

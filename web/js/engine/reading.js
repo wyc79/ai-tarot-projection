@@ -12,10 +12,10 @@
  * That shape is a graph, and it lives in graph.js as one: every reader turn
  * kind is a node, every branch a labelled edge, and one user turn is one run
  * of it. What is here is what the graph's nodes need from outside -- the
- * deal, the reader call, the card identifier, persistence -- and the public
- * methods. The judge decides how deep the answer was; the graph decides what
- * that means. Keeping those apart is what makes the flip rhythm testable
- * without a model.
+ * deal, the reader call, the card identifier, persistence, the judge -- and
+ * the public methods. The judge decides how deep the answer was; the graph
+ * decides what that means. Keeping those apart is what makes the flip rhythm
+ * testable without a model.
  */
 
 import { saveToHistory } from "./journal.js";
@@ -55,7 +55,7 @@ export function unwrapQuotes(text) {
   if (trimmed.length < 2) return trimmed;
   const wrapped = (trimmed.startsWith('"') && trimmed.endsWith('"')
                    && trimmed.match(/"/g).length % 2 === 0)
-    || (trimmed.startsWith("“") && trimmed.endsWith("”"));
+    || (trimmed.startsWith("\u201c") && trimmed.endsWith("\u201d"));
   if (!wrapped) return trimmed;
   const inner = trimmed.slice(1, -1).trim();
   // A turn ends on its question, or on the closing step. Anything else and the
@@ -127,9 +127,10 @@ export function startReading({
    * while somebody turns a real card over and says what it is -- and the only
    * asynchronous thing between the flip decision and the flip.
    *
-   * It is called from inside the earned branch and nowhere else, which is what
-   * keeps the mode's best moment intact: a fourth card that is not earned is
-   * never asked about, so it stays face down on their table and unnamed here.
+   * It is called from graph.js's flip and flip_epilogue nodes and nowhere else,
+   * which is what keeps the mode's best moment intact: a fourth card that is
+   * not earned is never asked about, so it stays face down on their table and
+   * unnamed here.
    */
   async function cardFor(position) {
     if (!physical) return dealtCardFor(session, position);

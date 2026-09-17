@@ -88,8 +88,9 @@ async function record(pack, scenario) {
 
   const nodes = ["__start__", ...trace, "__end__"];
   const edges = nodes.slice(1).map((to, i) => [nodes[i], to]);
-  // The engine's own reason where it gives one. The two branches that do not
-  // -- the opening turn, dealt or dropped -- are described in its words.
+  // The engine's own reason where it gives one. The three branches that do not
+  // -- the opening turn, dealt or dropped, and talking on with no card -- are
+  // described in its words.
   const reason = result?.decision?.reason
     ?? (result?.dealt ? events.find((e) => e.type === "flip").reason
                       : "the frame was dropped: safety outranks the rhythm, and no card is dealt");

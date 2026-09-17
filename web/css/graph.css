@@ -38,6 +38,7 @@ main.wide { max-width: none; }
    !important because Mermaid puts its max-width inline on the element. */
 .picture svg { width: auto; height: auto; max-width: none !important; }
 
+/* !important: Mermaid's own stylesheet is id-scoped (#reading …), which outranks any class rule. */
 .picture g.node.lit rect, .picture g.node.lit path { stroke: #e0891b !important; stroke-width: 3px !important; }
 .picture path.lit { stroke: #e0891b !important; stroke-width: 3.5px !important; }
 

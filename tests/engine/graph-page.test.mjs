@@ -43,7 +43,7 @@ test("the graph page's imports never reach the relay side", async () => {
 
 test("the graph page loads nothing from another origin", async () => {
   const html = await readFile(PAGE, "utf8");
-  for (const match of html.matchAll(/<(?:script|link|img)\b[^>]*?\b(?:src|href)="([^"]+)"/g)) {
+  for (const match of html.matchAll(/<(?:script|link|img|iframe|source|video|audio|object|embed)\b[^>]*?\b(?:src|href)="([^"]+)"/g)) {
     assert.ok(!/^[a-z][a-z0-9+.-]*:|^\/\//i.test(match[1]), `${match[1]} is not same-origin`);
   }
   const js = await readFile(ENTRY, "utf8");

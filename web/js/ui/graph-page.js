@@ -56,7 +56,14 @@ function light(svg, scenario) {
   for (const lit of svg.querySelectorAll(".lit")) lit.classList.remove("lit");
   const names = new Set(scenario.nodes);
   for (const group of nodeGroups(svg)) if (names.has(nodeName(group))) group.classList.add("lit");
-  for (const [from, to] of scenario.edges) edgePath(from, to)?.classList.add("lit");
+  for (const [from, to] of scenario.edges) {
+    const path = edgePath(from, to);
+    // The one console.* allowed on this page, and a diagnostic rather than
+    // silence: a Mermaid re-vendor that changed the id scheme would otherwise
+    // make every highlight vanish with no signal for the hand check to catch.
+    if (path) path.classList.add("lit");
+    else console.warn(`no drawn edge for ${from} -> ${to}`);
+  }
   $("trace-answer").textContent = scenario.answer;
   $("trace-verdict").textContent = describe(scenario.verdict);
   $("trace-reason").textContent = scenario.reason;
@@ -69,8 +76,10 @@ function renderScenarios(svg, scenarios) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "scenario";
-    button.innerHTML = `${scenario.title}<small></small>`;
-    button.querySelector("small").textContent = scenario.blurb;
+    button.append(document.createTextNode(scenario.title));
+    const small = document.createElement("small");
+    small.textContent = scenario.blurb;
+    button.append(small);
     button.addEventListener("click", () => {
       for (const other of list.querySelectorAll(".scenario.active")) other.classList.remove("active");
       button.classList.add("active");
@@ -97,10 +106,18 @@ async function main() {
   drawing.setAttribute("height", box.height);
   bindTooltips(drawing, notes);
 
-  const response = await fetch("graph-scenarios.json");
-  if (!response.ok) throw new Error(`graph-scenarios.json: ${response.status}`);
-  const { scenarios } = await response.json();
-  renderScenarios(drawing, scenarios);
+  // A scenarios failure is not a drawing failure: the graph is already on
+  // screen, and losing it to a fetch error that has nothing to do with it
+  // would be worse than showing the picture with no scenario list beside it.
+  try {
+    const response = await fetch("graph-scenarios.json");
+    if (!response.ok) throw new Error(`graph-scenarios.json: ${response.status}`);
+    const { scenarios } = await response.json();
+    renderScenarios(drawing, scenarios);
+  } catch (error) {
+    $("scenarios").textContent = `the scenarios failed to load: ${error.message}`;
+    $("scenarios").className = "bad";
+  }
 }
 
 main().catch((error) => {
