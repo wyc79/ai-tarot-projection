@@ -725,7 +725,9 @@ Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider
   height of 100vh - 6rem, which ended below the first screen, and the wheel over it zoomed
   instead of scrolling to it. The page is now the window, like the reading page -- head and
   lead take what they need, the graph row takes the rest, nothing to scroll on a wide screen
-  -- with the legend term-beside-meaning so it costs the picture less. At 1440x900 the fitted
+  -- with the legend term-beside-meaning so it costs the picture less. Re-run after the fix:
+  the document is exactly the window's height at 1600x1300 and 1440x900, and everything above
+  still holds. At 1440x900 the fitted
   graph is a thumbnail (437px tall); that is what "the whole graph in the window" costs, and
   the zoom is one notch away.
 - v1.5 (2026-09-17): the engine is a LangGraph graph, on branch langgraph-engine. Spec in

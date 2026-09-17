@@ -57,15 +57,15 @@
     </aside>
 
     <div class="picture-column">
-      <div class="viewport">
+      <div class="frame">
         <div id="picture" class="picture">rendering…</div>
         <!-- Beside #picture rather than inside it: the render replaces its
              contents. -->
         <div class="zoom">
           <span class="hint">scroll to zoom, drag to move</span>
-          <button type="button" id="zoom-out" title="zoom out">&minus;</button>
-          <button type="button" id="zoom-in" title="zoom in">+</button>
-          <button type="button" id="zoom-fit" title="the whole graph">fit</button>
+          <button type="button" id="zoom-out" title="zoom out" aria-label="zoom out">&minus;</button>
+          <button type="button" id="zoom-in" title="zoom in" aria-label="zoom in">+</button>
+          <button type="button" id="zoom-fit" title="the whole graph" aria-label="fit the whole graph">fit</button>
         </div>
       </div>
       <div id="trace" class="trace" hidden>
