@@ -87,7 +87,7 @@ the ledger writes, and the flips.
 | `exchange`      | recordExchange; `gate` event; `frame_dropped` if so               |
 | `tail`          | recordAfterward at `afterward` or `afterglow`; `gate` event; `frame_dropped` if so |
 | `decide`        | starts the anchor revision (see below); flipDecision → `decision`; `flip_decision` event |
-| `commit_anchor` | commitAnchor(judge.anchor); persist; `anchor` event                |
+| `commit_anchor` | commitAnchor(judge.anchor); persist; `anchor` event. Its only way out is `flip`: the anchor is committed on the first flip, and the spread cannot be complete on the first flip, so no other continuation is reachable and none is drawn |
 | `flip`          | flipCard(cardFor(nextPosition)); `flip` event. Reason is `decision.reason`, or the fixed opening reason when `opening` is set |
 | `flip_epilogue` | flipEpilogue(cardFor(epilogue_position)); `flip` event            |
 | `invite`, `respond`, `clarify`, `bridge`, `epilogue`, `close`, `after`, `farewell`, `afterglow`, `regroup`, `meanings` | readerTurn(kind) with the options each has today; `close` also closes the session and sets phase; `farewell` also ends it; `meanings` also records its aside first |
@@ -112,11 +112,10 @@ START ─entry─┬─ meanings ───────────────�
                             │                   └─ after ────────────────► END
                             └─ exchange ─┬─ (frame dropped) → respond
                                          └─ decide ─┬─ (hold) → respond
-                                                    ├─ (no anchor yet) → commit_anchor ─┐
-                                                    ├─ flip → bridge                     │
-                                                    ├─ flip_epilogue → epilogue          │
-                                                    └─ close                             │
-                                                    ◄─ same router, from commit_anchor ──┘
+                                                    ├─ (no anchor yet) → commit_anchor → flip
+                                                    ├─ flip → bridge
+                                                    ├─ flip_epilogue → epilogue
+                                                    └─ close
 respond | bridge | epilogue | close → revise_anchor ► END
 ```
 
@@ -133,11 +132,13 @@ picture says why each branch is taken. The keys, and where they go:
 - `after_gate`: `asked back` → aside (`gate.asked_back` and a current card);
   `closed` → tail; `exchange` → exchange.
 - `after_exchange`: `frame dropped` → respond; `judged` → decide.
-- `advance`, one function used as the conditional edge out of both `decide`
-  and `commit_anchor`: `hold` → respond (`!decision.flip`); `no anchor yet`
-  → commit_anchor (in decide's map only — commit_anchor leaves an anchor
-  behind, so the key cannot recur and is not in its map); `epilogue earned`
-  → flip_epilogue; `spread complete` → close; `flip` → flip.
+- `advance` (from decide): `hold` → respond (`!decision.flip`); `no anchor
+  yet` → commit_anchor; `epilogue earned` → flip_epilogue; `spread complete`
+  → close; `flip` → flip. `commit_anchor → flip` is a plain edge, not a
+  second use of this router: the anchor is committed on the first flip and
+  the spread cannot be complete then, so `epilogue earned` and `spread
+  complete` are unreachable from commit_anchor. An earlier draft shared the
+  router and drew two dead edges; the coverage test below is what caught it.
 - `after_tail`: `frame dropped` → respond; `afterglow` → afterglow;
   `drifted` → regroup (afterglowDrift); `farewell due` → farewell; `after` →
   after.
@@ -149,7 +150,7 @@ implementation, drawn from the node and edge lists above before any code
 existed:
 
 - `2026-09-16-langgraph-engine-expected.mmd` — the `drawMermaid()` text the
-  compiled graph is expected to produce: 24 nodes, 41 edges, 26 of them
+  compiled graph is expected to produce: 24 nodes, 39 edges, 23 of them
   conditional and labelled. The check is mechanical: a sorted line diff
   between it and the real output must be empty. Edge order in LangGraph's
   output depends on insertion order, which is why the diff is sorted.
@@ -284,30 +285,49 @@ Mermaid, for the graph page only:
 
 Each scenario is an *input*: a title, a sentence on what it shows, and a
 short scripted conversation with scripted judge verdicts, in the shape the
-seeded session already uses. The trace is what the engine did with it. The
-set, each ending on the turn it is named for:
+seeded session already uses. The trace is what the engine did with it.
 
-| scenario                          | expected path, last turn                                   |
-|-----------------------------------|------------------------------------------------------------|
-| the opening answer                | judge_opening → flip → invite                              |
-| a thin answer ("dunno")           | judge_gate → exchange → decide → respond → revise_anchor (`hold`) |
-| a disclosure lands, the card dwells | same path as the thin answer; the reason line says why    |
-| the turn that earns the next card | … decide → commit_anchor → flip → bridge → revise_anchor   |
-| a later card flips                | … decide → flip → bridge → revise_anchor                   |
-| the fourth card is earned         | … decide → flip_epilogue → epilogue → revise_anchor        |
-| the close                         | … decide → close → revise_anchor                           |
-| a turn after the close            | judge_gate → tail → after                                  |
-| the goodbye                       | judge_gate → tail → farewell                               |
-| "what do you mean?"               | judge_gate → aside → clarify                               |
-| the frame is dropped              | judge_gate → exchange → respond → revise_anchor (`frame dropped`) |
-| "what do the cards mean"          | meanings                                                   |
+The set is chosen so that, between them, the recorded traces cross **every
+edge** of the compiled graph — which covers every node as a consequence,
+and which a test asserts. That makes the scenario file the graph's
+reachability proof as well as its demo: an edge nobody can reach is an edge
+that should not be drawn, and it was this requirement that removed two.
+Each scenario ends on the turn it is named for; the expected path is the
+last turn's:
+
+| scenario                              | expected path, last turn                                  |
+|---------------------------------------|-----------------------------------------------------------|
+| the opening answer                    | judge_opening → flip → invite                             |
+| a crisis in the opening answer        | judge_opening → respond → revise_anchor (`frame dropped`) |
+| talking on, with no card dealt        | off_frame → respond → revise_anchor                       |
+| a thin answer ("dunno")               | judge_gate → exchange → decide → respond → revise_anchor (`hold`) |
+| a disclosure lands, the card dwells   | same path as the thin answer; the reason line says why    |
+| the turn that earns the next card     | … decide → commit_anchor → flip → bridge → revise_anchor  |
+| a later card flips                    | … decide → flip → bridge → revise_anchor                  |
+| the fourth card is earned             | … decide → flip_epilogue → epilogue → revise_anchor       |
+| the close, fourth card unearned       | … decide → close → revise_anchor                          |
+| a turn after the close                | judge_gate → tail → after                                 |
+| the goodbye                           | judge_gate → tail → farewell                              |
+| staying a while                       | judge_gate → tail → afterglow                             |
+| the afterglow drifts                  | judge_gate → tail → regroup                               |
+| "what do you mean?"                   | judge_gate → aside → clarify                              |
+| the frame is dropped mid-reading      | judge_gate → exchange → respond → revise_anchor (`frame dropped`) |
+| the frame is dropped after the close  | judge_gate → tail → respond → revise_anchor (`frame dropped`) |
+| "what do the cards mean"              | meanings                                                  |
+
+The dwell scenario crosses no edge the thin answer does not; it is there
+because the two look identical on the picture and differ entirely in the
+reason line, which is the point of printing it. Two scenarios need care in
+their scripts: "the fourth card is earned" needs one unhedged disclosure at
+`DEPTH_ENOUGH` somewhere in the session, and "the close, fourth card
+unearned" needs none — the seeded script has one, so the close scenario
+cannot be a slice of it.
 
 The expected-path column is what the design predicts; the recorded file is
 what the engine did. The first implementation checks them against each
 other once, and after that the recording is the truth and the table is
-history. Scenarios that cannot be reached from the seeded script (the aside,
-the frame drop, the meanings request) get a script of their own, three or
-four turns long.
+history. Scenarios the seeded script does not reach get a script of their
+own, three to six turns long.
 
 The seeded script and its scripted client move out of
 `scripts/seeded_session.mjs` into `scripts/lib/seeded.mjs` so the trace
@@ -351,7 +371,11 @@ New, in `tests/engine/graph.test.mjs`:
    node, or a node the reader cannot speak, fails.
 4. `notes.nodes` covers exactly the compiled graph's node names and
    `notes.keys` exactly its conditional-edge labels — no missing, no extra.
-5. Once, at the end of the implementation and recorded in the plan changelog:
+5. Coverage: the union of `edges` across `web/graph-scenarios.json` equals
+   the compiled graph's edge set exactly, `__start__` and `__end__` included.
+   Every drawn edge is crossed by some recorded scenario, and no recorded
+   edge is missing from the drawing. Node coverage follows.
+6. Once, at the end of the implementation and recorded in the plan changelog:
    the sorted-line diff between `drawMermaid()` and the expected `.mmd` is
    empty, and each recorded scenario path matches the expected-path column.
 
