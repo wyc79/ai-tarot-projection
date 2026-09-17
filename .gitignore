@@ -19,7 +19,6 @@ downloads/
 eggs/
 .eggs/
 lib/
-!scripts/lib/
 lib64/
 parts/
 sdist/
@@ -242,3 +241,7 @@ references/
 
 # Redaction maps: these are what would let someone reverse a fixture.
 redactions/
+
+# The Python template's lib/ rule above would swallow this. It holds the
+# seeded script and the scenario inputs, and both are committed.
+!scripts/lib/
