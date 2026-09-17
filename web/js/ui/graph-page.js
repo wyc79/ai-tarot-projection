@@ -45,7 +45,7 @@ function bindTooltips(svg, notes) {
 
 /** The verdict as a line: every field but the judge's free-text gloss. */
 function describe(verdict) {
-  if (!verdict) return "(no judgement on this turn: a button press)";
+  if (!verdict) return "(no verdict: the judge was not consulted on this turn)";
   return Object.entries(verdict)
     .filter(([key]) => key !== "reading_of_them")
     .map(([key, value]) => `${key}: ${value}`)
@@ -87,6 +87,14 @@ async function main() {
   const { svg } = await window.mermaid.render(PREFIX, text);
   $("picture").innerHTML = svg;
   const drawing = $("picture").querySelector("svg");
+  // Mermaid gives the svg width="100%" and no height attribute, so it has no
+  // intrinsic size of its own — CSS "width: auto" then fills the container
+  // (per the replaced-element sizing rules) instead of using the viewBox's
+  // pixel size. Setting the attributes from the viewBox gives it a real
+  // intrinsic size, which is what lets graph.css render it at natural size.
+  const box = drawing.viewBox.baseVal;
+  drawing.setAttribute("width", box.width);
+  drawing.setAttribute("height", box.height);
   bindTooltips(drawing, notes);
 
   const response = await fetch("graph-scenarios.json");

@@ -1,6 +1,10 @@
 /* The graph page. debug.css does the frame; this is the picture, the side
    column and the tooltip. */
 
+/* The drawing is wider than the site's column; .explain keeps its own
+   max-width below. */
+main.wide { max-width: none; }
+
 .explain { max-width: 60rem; margin-bottom: 1.5rem; font-size: 0.92rem; }
 .explain p { margin: 0 0 0.75rem; }
 
@@ -30,10 +34,16 @@
 /* The picture keeps Mermaid's light theme on a light panel: it is a diagram,
    and LangGraph's own colours are part of what it shows. */
 .picture { background: #fff; border-radius: 8px; padding: 1rem; overflow: auto; color: #222; }
-.picture svg { max-width: none; height: auto; }
+/* Natural size, scrolled, rather than shrunk to fit: the labels are the point.
+   !important because Mermaid puts its max-width inline on the element. */
+.picture svg { width: auto; height: auto; max-width: none !important; }
 
 .picture g.node.lit rect, .picture g.node.lit path { stroke: #e0891b !important; stroke-width: 3px !important; }
 .picture path.lit { stroke: #e0891b !important; stroke-width: 3.5px !important; }
+
+/* debug.css's .label is the page's small-caps field label; Mermaid uses the
+   same class name for every label in the drawing. Give the drawing its own. */
+.picture .label { text-transform: none; font-size: inherit; letter-spacing: normal; }
 
 .trace { margin-top: 1rem; font-size: 0.92rem; }
 .trace p { margin: 0.3rem 0; }
