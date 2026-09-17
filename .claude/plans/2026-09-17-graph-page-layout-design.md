@@ -1,8 +1,8 @@
 # The graph page: a viewport, a scrolling list, and the legend up top
 
 2026-09-17. Branch `graph-page-layout`, off `main` after `langgraph-engine`
-merged. Status: implemented 2026-09-17; one deviation, noted inline under
-Layout. Follows 2026-09-16-langgraph-engine-design.md, which describes the
+merged. Status: implemented 2026-09-17; the Layout section records the two
+revisions it took. Follows 2026-09-16-langgraph-engine-design.md, which describes the
 page; this changes only how it is laid out.
 
 ## Goal
@@ -51,16 +51,20 @@ h1 / intro line
 
 - `.lead` is a two-column grid, explanation left and legend right; it
   stacks below 64rem, legend under the text.
-- The page is the window, like the reading page. `main` is a flex column
-  `calc(100dvh - 3.5rem)` tall (the body's padding; `dvh` as main.css uses); the head and the lead
-  take what they need and `.graph-layout` takes the rest, its one grid row
-  `minmax(0, 1fr)` so neither column's content can push it taller. On a
-  wide screen there is nothing to scroll. *Deviation, found by the hand
-  check:* the first cut gave the box a fixed `calc(100vh - 6rem)`, which
-  put its bottom off the first screen — and because the wheel over the
-  picture zooms, the gesture that would have scrolled to it zoomed instead.
-  `min-height: 40rem` on `main` lets a very short window scroll rather
-  than crush the picture.
+- The graph row (`#graph-row`, `.graph-layout`) is a window less a margin
+  tall: `height: calc(100dvh - 4rem)` (`dvh` as main.css uses), its one grid
+  row `minmax(0, 1fr)` so neither column's content can push it taller,
+  `min-height: 28rem` for very short windows, `scroll-margin-top: 2rem`.
+  The page scrolls: head and lead above, the row below. Choosing a scenario
+  calls `scrollIntoView({ behavior: "smooth", block: "start" })` on the row,
+  and the scroll margin leaves the 2rem that centres it, so the list, the
+  picture and the trace are all there is on screen. *Two revisions, both
+  from looking at it:* the first cut gave the box a fixed
+  `calc(100vh - 6rem)` with nothing to scroll it into view, so its bottom
+  sat off the first screen and the wheel over it zoomed instead of
+  scrolling; the second made the whole page the window, which at a
+  laptop's height left the fitted graph half a screen tall. The row a
+  window tall, scrolled to on click, is what was wanted.
 - The side column is a flex column: heading, note, then `#scenarios` taking
   the rest with `overflow-y: auto`. Below 64rem the layout stacks and
   scrolls like any page, the list gets `max-height: 16rem` so a phone is not
@@ -123,7 +127,8 @@ New module `web/js/ui/pan-zoom.js`:
 - `tests/engine/graph-page.test.mjs` unchanged and still green: the
   import closure grows by `pan-zoom.js`, which imports nothing.
 - Hand check in headless Chrome, as before: fit on load with the whole
-  graph visible and the page not scrolling, wheel zooms about the cursor,
+  graph visible, a scenario click scrolling the row to 2rem from the top
+  with its bottom inside the window, wheel zooms about the cursor,
   drag pans, buttons work, scenarios scroll in their column, legend top
   right, tooltips and highlighting still bind, own-origin requests only, no
   console errors; at 1600×1300, 1440×900 and 800×1300.

@@ -86,6 +86,10 @@ function renderScenarios(svg, scenarios) {
       for (const other of list.querySelectorAll(".scenario.active")) other.classList.remove("active");
       button.classList.add("active");
       light(svg, scenario);
+      // The row is sized to be all there is on screen once scrolled to (graph.css);
+      // the click is what scrolls to it, so the lit path is in view without a
+      // wheel that, over the picture, would zoom instead.
+      $("graph-row").scrollIntoView({ behavior: "smooth", block: "start" });
     });
     list.append(button);
   }

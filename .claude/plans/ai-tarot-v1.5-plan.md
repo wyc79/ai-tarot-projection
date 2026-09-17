@@ -727,9 +727,13 @@ Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider
   lead take what they need, the graph row takes the rest, nothing to scroll on a wide screen
   -- with the legend term-beside-meaning so it costs the picture less. Re-run after the fix:
   the document is exactly the window's height at 1600x1300 and 1440x900, and everything above
-  still holds. At 1440x900 the fitted
-  graph is a thumbnail (437px tall); that is what "the whole graph in the window" costs, and
-  the zoom is one notch away.
+  still holds. Then the human looked at it on a laptop: half a window of thumbnail was not what
+  was wanted. Third cut, the one that stayed: the graph row is a window less a margin tall and
+  the page scrolls to it -- choosing a scenario scrolls it into view, 2rem from the top with
+  the trace inside the window -- so the fitted graph gets the screen once you are there. At
+  1440x900 the picture is 736px tall. Re-checked at the three sizes: row top at 32px after a
+  click, bottom inside the window, everything else as above. At 1440x900 the fitted
+  graph was a thumbnail (437px tall).
 - v1.5 (2026-09-17): the engine is a LangGraph graph, on branch langgraph-engine. Spec in
   2026-09-16-langgraph-engine-design.md. The control flow of one turn moved from reading.js
   into graph.js as a StateGraph -- every reader turn kind a node, every branch a labelled
