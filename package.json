@@ -1,0 +1,11 @@
+{
+  "name": "ai-tarot-projection",
+  "private": true,
+  "type": "module",
+  "description": "Dev dependencies only: what scripts/vendor_langgraph.sh bundles into web/vendor/. Running the app needs none of this.",
+  "devDependencies": {
+    "@langchain/langgraph": "1.4.15",
+    "esbuild": "0.28.2",
+    "mermaid": "12.0.0"
+  }
+}

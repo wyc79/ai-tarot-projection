@@ -225,6 +225,9 @@ __marimo__/
 # wrangler dev local state
 worker/.wrangler/
 
+# Dev dependencies for scripts/vendor_langgraph.sh. What ships is in web/vendor/.
+node_modules/
+
 # Local-dev var overrides. Never deployed; the committed file is the example.
 worker/.dev.vars*
 !worker/.dev.vars.example
