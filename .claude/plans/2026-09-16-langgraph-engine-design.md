@@ -123,25 +123,31 @@ Routers are pure over `(state, session)` and return a path-map key, never a
 node name. The key is the label LangGraph draws on the dashed edge, so the
 picture says why each branch is taken. The keys, and where they go:
 
-- `entry` (from START): `meanings` → meanings; `opening` → judge_opening;
-  `frame dropped` → off_frame (frame dropped and no current card); `answer`
-  → judge_gate.
+- `entry` (from START): `asked for the meanings` → meanings; `opening` →
+  judge_opening; `frame dropped` → off_frame (frame dropped and no current
+  card); `answer` → judge_gate.
 - `after_opening`: `frame dropped` → respond; `dealt` → flip.
 - `after_flip`: `first card` → invite (`state.opening` set); `next card` →
   bridge.
 - `after_gate`: `asked back` → aside (`gate.asked_back` and a current card);
-  `closed` → tail; `exchange` → exchange.
+  `closed` → tail; `on a card` → exchange.
 - `after_exchange`: `frame dropped` → respond; `judged` → decide.
 - `advance` (from decide): `hold` → respond (`!decision.flip`); `no anchor
   yet` → commit_anchor; `epilogue earned` → flip_epilogue; `spread complete`
-  → close; `flip` → flip. `commit_anchor → flip` is a plain edge, not a
+  → close; `earned` → flip. `commit_anchor → flip` is a plain edge, not a
   second use of this router: the anchor is committed on the first flip and
   the spread cannot be complete then, so `epilogue earned` and `spread
   complete` are unreachable from commit_anchor. An earlier draft shared the
   router and drew two dead edges; the coverage test below is what caught it.
-- `after_tail`: `frame dropped` → respond; `afterglow` → afterglow;
-  `drifted` → regroup (afterglowDrift); `farewell due` → farewell; `after` →
+- `after_tail`: `frame dropped` → respond; `stayed` → afterglow; `drifted`
+  → regroup (afterglowDrift); `farewell due` → farewell; `still talking` →
   after.
+
+No key is the name of a node. LangGraph drops a conditional edge's drawn
+label when the key equals its destination (`label !== end ? label :
+undefined` in its graph builder), so a key that is the node's own name would
+leave a dashed edge with no word on it. Found in implementation; five keys
+were renamed for it, and the notes above are the renamed set.
 
 ### The expected picture
 

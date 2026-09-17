@@ -637,10 +637,12 @@ export function buildGraph(ctx = {}) {
   // -- routers ----------------------------------------------------------------
   //
   // Pure over (state, session), and they return a key, never a node name. The
-  // key is the label LangGraph draws on the dashed edge.
+  // key is the label LangGraph draws on the dashed edge -- and it must not be
+  // a node's name, because LangGraph drops the label when key and destination
+  // are the same string.
 
   const entry = (state) => {
-    if (state.kind === "meanings") return "meanings";
+    if (state.kind === "meanings") return "asked for the meanings";
     if (s().phase === "opening") return "opening";
     if (dropped() && !currentCard(s())) return "frame dropped";
     return "answer";
@@ -652,29 +654,31 @@ export function buildGraph(ctx = {}) {
     // epilogue card has a budget of its own, and an aside must not spend it.
     if (state.gate.asked_back && currentCard(s())) return "asked back";
     if (s().closed) return "closed";
-    return "exchange";
+    return "on a card";
   };
   const afterExchange = () => (dropped() ? "frame dropped" : "judged");
   const advance = (state) => {
     if (!state.decision.flip) return "hold";
     if (!s().anchor) return "no anchor yet";
     if (spreadComplete(s())) return epilogueEarned(s()) ? "epilogue earned" : "spread complete";
-    return "flip";
+    return "earned";
   };
   const afterTail = (state) => {
     if (dropped()) return "frame dropped";
-    if (s().phase === "afterglow") return afterglowDrift(s()) ? "drifted" : "afterglow";
-    return farewellDue(s(), state.gate) ? "farewell due" : "after";
+    if (s().phase === "afterglow") return afterglowDrift(s()) ? "drifted" : "stayed";
+    return farewellDue(s(), state.gate) ? "farewell due" : "still talking";
   };
 
   // -- edges ------------------------------------------------------------------
 
+  // One key, one note: "frame dropped" leaves four different nodes and means
+  // the same thing from each of them.
   const FRAME_DROPPED = "Safety outranks the rhythm: the stakes were judged as crisis, the tarot frame is dropped, and the reader responds plainly with no card in play.";
 
   g.addConditionalEdges(START, entry, branches({
-    meanings: { to: "meanings", note: "They pressed the button that asks what the cards traditionally mean. Only after the close." },
+    "asked for the meanings": { to: "meanings", note: "They pressed the button that asks what the cards traditionally mean. Only after the close." },
     opening: { to: "judge_opening", note: "The reading has not started: this is the answer to the opening question." },
-    "frame dropped": { to: "off_frame", note: "The frame was dropped on the opening answer and no card was ever dealt; they are still talking." },
+    "frame dropped": { to: "off_frame", note: FRAME_DROPPED },
     answer: { to: "judge_gate", note: "An ordinary answer, on a card or after the close. It goes to the gate." },
   }));
   g.addConditionalEdges("judge_opening", afterOpening, branches({
@@ -685,15 +689,15 @@ export function buildGraph(ctx = {}) {
   g.addConditionalEdges("judge_gate", afterGate, branches({
     "asked back": { to: "aside", note: "A question back is not an answer. It costs the reader a turn, not them one of theirs." },
     closed: { to: "tail", note: "The reading has closed and they are still talking. That is allowed, and it is not a second reading." },
-    exchange: { to: "exchange", note: "An answer on the current card. It goes on the ledger, then to the decision." },
+    "on a card": { to: "exchange", note: "An answer on the current card. It goes on the ledger, then to the decision." },
   }));
   g.addEdge("aside", "clarify");
   g.addConditionalEdges("tail", afterTail, branches({
     "frame dropped": { to: "respond", note: FRAME_DROPPED },
-    afterglow: { to: "afterglow", note: "They chose to stay after the goodbye, and this answer had something in it." },
+    stayed: { to: "afterglow", note: "They chose to stay after the goodbye, and this answer had something in it." },
     drifted: { to: "regroup", note: "Two consecutive afterglow answers with no life content: the reader stops following the wandering." },
     "farewell due": { to: "farewell", note: "The tail's budget is spent, or they said nothing real past its target. Time to say goodbye." },
-    after: { to: "after", note: "The first turns after the close get real replies; that is what the tail's budget is for." },
+    "still talking": { to: "after", note: "The first turns after the close get real replies; that is what the tail's budget is for." },
   }));
   g.addConditionalEdges("exchange", afterExchange, branches({
     "frame dropped": { to: "respond", note: FRAME_DROPPED },
@@ -702,7 +706,7 @@ export function buildGraph(ctx = {}) {
   g.addConditionalEdges("decide", advance, branches({
     hold: { to: "respond", note: "No card turns: the answer was thin, or a fresh disclosure gets one exchange inside it first (the dwell rule), or the card has not settled yet." },
     "no anchor yet": { to: "commit_anchor", note: "The first flip of the reading. The anchor is committed off the first card before the second exists." },
-    flip: { to: "flip", note: "The card is earned: enough depth, the position's budget spent, the dwell honoured." },
+    earned: { to: "flip", note: "The card is earned: enough depth, the position's budget spent, the dwell honoured." },
     "epilogue earned": { to: "flip_epilogue", note: "The spread is complete and something of their own landed: the fourth card turns and the close covers four." },
     "spread complete": { to: "close", note: "The spread is complete and the fourth card was not earned: it stays face down and the close names it in a line." },
   }));

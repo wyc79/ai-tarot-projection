@@ -43,8 +43,8 @@
 <path d="M1480,429.0 L1480,950 L800,950 L800,991.0" fill="none" stroke="#333" stroke-width="1.4" marker-end="url(#arrow)"/>
 <path d="M1620,429.0 L1620,950 L800,950 L800,991.0" fill="none" stroke="#333" stroke-width="1.4" marker-end="url(#arrow)"/>
 <path d="M120,189.0 L120,950 L800,950 L800,991.0" fill="none" stroke="#333" stroke-width="1.4" marker-end="url(#arrow)"/>
-<rect x="86" y="130.0" width="67" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
-<text x="120" y="141.0" text-anchor="middle" font-size="11.5" font-style="italic" fill="#6b3fa0">meanings</text>
+<rect x="35" y="130.0" width="171" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
+<text x="120" y="141.0" text-anchor="middle" font-size="11.5" font-style="italic" fill="#6b3fa0">asked for the meanings</text>
 <rect x="330" y="130.0" width="60" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
 <text x="360" y="141.0" text-anchor="middle" font-size="11.5" font-style="italic" fill="#6b3fa0">opening</text>
 <rect x="488" y="130.0" width="104" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
@@ -59,18 +59,18 @@
 <text x="800" y="224" text-anchor="middle" font-size="11.5" font-style="italic" fill="#6b3fa0">asked back</text>
 <rect x="1104" y="213" width="52" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
 <text x="1130" y="224" text-anchor="middle" font-size="11.5" font-style="italic" fill="#6b3fa0">closed</text>
-<rect x="964" y="247" width="67" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
-<text x="968" y="258" text-anchor="start" font-size="11.5" font-style="italic" fill="#6b3fa0">exchange</text>
+<rect x="964" y="247" width="75" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
+<text x="968" y="258" text-anchor="start" font-size="11.5" font-style="italic" fill="#6b3fa0">on a card</text>
 <rect x="998" y="343" width="104" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
 <text x="1050" y="354" text-anchor="middle" font-size="11.5" font-style="italic" fill="#6b3fa0">frame dropped</text>
-<rect x="1163" y="370.0" width="75" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
-<text x="1200" y="381.0" text-anchor="middle" font-size="11.5" font-style="italic" fill="#6b3fa0">afterglow</text>
+<rect x="1174" y="370.0" width="52" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
+<text x="1200" y="381.0" text-anchor="middle" font-size="11.5" font-style="italic" fill="#6b3fa0">stayed</text>
 <rect x="1310" y="370.0" width="60" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
 <text x="1340" y="381.0" text-anchor="middle" font-size="11.5" font-style="italic" fill="#6b3fa0">drifted</text>
 <rect x="1432" y="370.0" width="97" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
 <text x="1480" y="381.0" text-anchor="middle" font-size="11.5" font-style="italic" fill="#6b3fa0">farewell due</text>
-<rect x="1598" y="370.0" width="45" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
-<text x="1620" y="381.0" text-anchor="middle" font-size="11.5" font-style="italic" fill="#6b3fa0">after</text>
+<rect x="1568" y="370.0" width="104" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
+<text x="1620" y="381.0" text-anchor="middle" font-size="11.5" font-style="italic" fill="#6b3fa0">still talking</text>
 <rect x="698" y="323" width="104" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
 <text x="750" y="334" text-anchor="middle" font-size="11.5" font-style="italic" fill="#6b3fa0">frame dropped</text>
 <rect x="964" y="367" width="52" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
@@ -79,8 +79,8 @@
 <text x="540" y="501.0" text-anchor="middle" font-size="11.5" font-style="italic" fill="#6b3fa0">hold</text>
 <rect x="964" y="486" width="104" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
 <text x="968" y="497" text-anchor="start" font-size="11.5" font-style="italic" fill="#6b3fa0">no anchor yet</text>
-<rect x="364" y="549" width="38" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
-<text x="368" y="560" text-anchor="start" font-size="11.5" font-style="italic" fill="#6b3fa0">flip</text>
+<rect x="364" y="549" width="52" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
+<text x="368" y="560" text-anchor="start" font-size="11.5" font-style="italic" fill="#6b3fa0">earned</text>
 <rect x="764" y="519" width="119" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
 <text x="768" y="530" text-anchor="start" font-size="11.5" font-style="italic" fill="#6b3fa0">epilogue earned</text>
 <rect x="1104" y="549" width="119" height="15" rx="3" fill="#fff" fill-opacity="0.92"/>
