@@ -648,6 +648,21 @@ Internal machinery: the levels are never named to the user.
 - Tier-3 user memory (see section above) with familiarity stages, memory screen, export/import
 - PWA install, date-seeded daily card, zh-CN pack variant, additional symbol packs (Marseille as swappability proof)
 
+### M7 - The engine as a LangGraph graph
+- The session controller's control flow is a LangGraph StateGraph in the browser: one turn is
+  one run; the session stays closed over and state.js is untouched; every reader turn kind is
+  a node; every branch is a labelled conditional edge. Interface, events, return shapes and
+  the seeded session are unchanged
+- Drawn from itself: a README block and web/graph.html rendered from the compiled graph,
+  never by hand. Seventeen scenario traces recorded by running the real engine with the
+  scripted judge; a test requires them to cross every edge. scripts/draw_graph.mjs --check
+  is a leg of test.sh
+- LangGraph and Mermaid vendored, pinned, rebuilt from the lockfile; no CDN script on any
+  page; LangSmith never enabled and a test proves no network call. The graph page reaches
+  nothing but its own origin, so it works where the Worker does not
+- Done when: test.sh green including the new leg, vendor --check clean, the page checked by
+  hand, the branch merged
+
 ## Explicitly deferred
 - Stateful backend features: hosted tier, cross-device memory, server-side logging, any data at rest. The v1 Python backend stays a stateless relay; adding state reopens the custody question deliberately
 - App stores (fortune-telling category risk; web-first avoids gatekeepers)
@@ -692,6 +707,44 @@ Card assets and meanings data (all PD 1909 RWS unless noted):
 Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider-Waite" branding. Document art provenance in LICENSE-ART.md.
 
 ## Plan changelog
+- v1.5 (2026-09-17): the engine is a LangGraph graph, on branch langgraph-engine. Spec in
+  2026-09-16-langgraph-engine-design.md. The control flow of one turn moved from reading.js
+  into graph.js as a StateGraph -- every reader turn kind a node, every branch a labelled
+  conditional edge -- and say() is one run of it. Nothing about how a reading paces, judges
+  or ends changed: the seeded session's --json is byte-identical to main, and the suite is
+  green untouched. One simplification the design found while requiring the scenarios to cover
+  every edge: commit_anchor's only reachable continuation is flip, so it has a plain edge and
+  two dead edges are gone. Found in implementation: five path-map keys had to be renamed
+  (meanings, exchange, afterglow, after, flip) because LangGraph drops a conditional edge's
+  drawn label when the key equals its destination node's name; the spec's key list and the
+  three expected-file references were regenerated to match (commit 74d8935). Caught in review,
+  before wiring: the drafted graph.js had flip_epilogue calling flipCard, which computes the
+  next position itself and throws once the spread is full -- the only state that node is
+  reached in -- rather than flipEpilogue, which reading.js had always called; fixed before it
+  ran once. That is what a task review is for. **Conflict with the working agreements,
+  flagged:** AGENTS.md prefers libraries that reduce complexity, and this one does not -- it
+  is here because "built on LangGraph" is the deliverable. Cost stated: 1.3 MB vendored on
+  every page, 5.5 MB of Mermaid on the graph page alone. **Verification:** drawMermaid()
+  matches the expected .mmd line for line; all seventeen recorded paths matched the design's
+  table on the first run, no scenario script needed adjusting, and the coverage test's set
+  equality confirms every one of the graph's 39 edges is crossed. The page was checked by hand
+  through the Python relay and again through a bare static server: 24 node groups, 39 edge
+  paths and 17 scenario buttons on both; clicking scenarios lit exactly the recorded nodes and
+  edges (commit_anchor lit for "the turn that earns the next card" and not for "a later card
+  flips"; flip_epilogue and epilogue for "the fourth card is earned"; farewell for "the
+  goodbye"); tooltips appeared on hovering a node and an edge label and hid on leave; every
+  request went to the page's own origin, the only 404 Chrome's automatic favicon request,
+  pre-existing on every page. That hand check found and fixed three page defects:
+  debug.css's `.label` rule was leaking into Mermaid's own labels (uppercase at 11.5px, then
+  clipped descenders once resized), the drawing was shrunk to fit the column and is now natural
+  size in a scrolling panel, and a verdict placeholder mis-described an unconsulted gate as a
+  button press. vendor --check clean. LangSmith is neither wired nor mimicked, and a seeded
+  reading runs with fetch unplugged. Two deviations from the design, both noted inline in the
+  spec: the reading-page link to the graph lives in the intro, not a footer (the reading page's
+  body is a fixed-height grid with overflow hidden, so a footer would be clipped); and the
+  sorted-line diff between drawMermaid() and the expected .mmd stays a permanent test rather
+  than the one-time check first planned, since it costs nothing and keeps a deliberate graph
+  change honest against the design record beside it.
 - v1.5 (2026-09-01): the crossing is said out loud, on branch playtest-1. Prompt D item 4,
   which the plain-words round left undone. Pack data, plus one engine consequence worth an
   entry. The **own** move now teaches a first bridge in two parts -- a plain signpost that the

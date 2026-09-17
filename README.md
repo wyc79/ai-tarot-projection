@@ -56,14 +56,30 @@ Worker source to keep it that way.
 You do not have to take any of that on faith. `scripts/run_contract_tests.sh`
 runs the same suite against both relays, and among the twenty assertions are a
 canary key that must appear in no captured output, and the same canary checked
-against every error branch. It is one of the four legs of `scripts/test.sh`,
+against every error branch. It is one of the five legs of `scripts/test.sh`,
 which is everything that can be checked without a key or a network — the engine
 tests, the pack schema, a seeded session that has to reach its ending, and the
-relay contract. `scripts/test.sh --fast` skips the contract leg, which is the
+relay contract, and the graph — its README drawing and its recorded scenarios —
+checked against the code. `scripts/test.sh --fast` skips the contract leg, which is the
 slow one; the Worker half of it needs `wrangler` or `npx` on PATH and says so
 loudly rather than passing one relay and reporting two.
 
 ## The engine is a graph
+
+The reading is a state machine, and it is written as one: a
+[LangGraph](https://github.com/langchain-ai/langgraphjs) `StateGraph` in
+[`web/js/engine/graph.js`](web/js/engine/graph.js), running in your browser
+where the engine has always run. One turn of the conversation is one run of
+the graph. Every kind of turn the reader can take is a node with that name;
+every decision — hold or flip, dwell, earn the fourth card, close, say
+goodbye — is a conditional edge, and the label on it is the key its router
+returned. The picture below is not maintained by hand. It is what the
+compiled graph draws of itself, written here by
+[`scripts/draw_graph.mjs`](scripts/draw_graph.mjs), and `scripts/test.sh`
+fails if the code and the picture disagree. The live version, with a tooltip
+on every node and seventeen recorded scenarios that light the path a turn
+took, is at [`graph.html`](https://wyc79.github.io/ai-tarot-projection/graph.html)
+— it runs nothing, needs no key, and works with the relay unreachable.
 
 <!-- graph:begin -->
 ```mermaid
@@ -138,6 +154,23 @@ graph TD;
 ```
 <!-- graph:end -->
 
+Two honest notes about the dependency. LangGraph is here because "built on
+LangGraph" is something this project wants to be able to say truthfully; it
+did not make the engine simpler, and the plan says so. And it is vendored,
+not fetched: `web/vendor/langgraph.js` is one pinned, minified ES module
+built from the lockfile by
+[`scripts/vendor_langgraph.sh`](scripts/vendor_langgraph.sh), whose
+`--check` rebuilds it and byte-compares — the audit path for a 1.3 MB file
+nobody reads. The same script vendors Mermaid for the graph page alone. No
+page here loads a script from another origin, because a script on one page
+of this origin could read the `tarot:` keys on every page.
+
+The LangSmith tracer ships inside that bundle and is never enabled. Nothing
+in the graph is configured to trace, there is no key for it to trace with,
+and a test runs a whole seeded reading with `fetch` replaced by a function
+that throws. A reading's words go to the model you chose and nowhere else,
+and that is still tested rather than asserted.
+
 ## Bring your own deck
 
 If you own a tarot deck, the app would rather you used it. Choose "my own deck"
@@ -153,7 +186,8 @@ what the interface was imitating.
 ## Running it yourself
 
 You need Python 3 (tested on 3.10) and nothing else. No build step, no package
-install, no Node.
+install, no Node. (Re-vendoring the LangGraph and Mermaid bundles under
+`web/vendor/` needs Node once; running the app never does.)
 
 ```
 git clone https://github.com/wyc79/ai-tarot-projection.git

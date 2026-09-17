@@ -1,6 +1,6 @@
 # LangGraph engine — design
 
-2026-09-16. Branch `langgraph-engine`. Status: awaiting review.
+2026-09-16. Branch `langgraph-engine`. Status: implemented 2026-09-17; see the plan changelog. Two deviations, both noted inline.
 
 ## Goal
 
@@ -285,8 +285,10 @@ Mermaid, for the graph page only:
   `index.html` and to the README section, the way `pack.html` and
   `debug.html` cross-link today.
 - `index.html` gains one link to it in the same place it links nothing else
-  today: a line in the footer, "how the reading decides →". The styled page
-  otherwise does not change, and the debug machinery still never reaches it.
+  today: a line in the intro, "how the reading decides →" (not a footer: the
+  reading page's body is a fixed-height grid with overflow hidden, so a
+  footer would be clipped). The styled page otherwise does not change, and
+  the debug machinery still never reaches it.
 - **It stands without the relay.** The Pages site is reachable from places
   the Worker is not (mainland China is the known case), and this page is the
   portfolio piece, so it must work with the relay unreachable or absent. It
@@ -412,9 +414,12 @@ New, in `tests/engine/graph.test.mjs`:
    the compiled graph's edge set exactly, `__start__` and `__end__` included.
    Every drawn edge is crossed by some recorded scenario, and no recorded
    edge is missing from the drawing. Node coverage follows.
-6. Once, at the end of the implementation and recorded in the plan changelog:
-   the sorted-line diff between `drawMermaid()` and the expected `.mmd` is
-   empty, and each recorded scenario path matches the expected-path column.
+6. The sorted-line diff between `drawMermaid()` and the expected `.mmd` is
+   empty. Kept as a permanent test rather than the one-time check first
+   planned: it costs nothing, and it means a deliberate change to the graph
+   also updates the design record beside it. Each recorded scenario path
+   was checked against the expected-path column once, at the end of the
+   implementation, and the plan changelog records the result.
 7. The graph page reaches nothing but its own origin: walk the static
    `import` closure from `web/js/ui/graph-page.js` and assert it never
    resolves to `relayBase.js`, `llmClient.js` or `providers/`; and assert
