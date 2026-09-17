@@ -262,7 +262,8 @@ Mermaid, for the graph page only:
   the Mermaid text to do this.
 - **Scenarios.** A list of buttons beside the picture, each a moment in a
   reading. Clicking one colours the nodes and edges that turn visited and
-  prints the engine's own reason line under the picture. The paths come from
+  prints, under the picture, the scripted verdict that went in and the
+  engine's own reason line that came out. The paths come from
   `web/graph-scenarios.json`, which is written by the drawing script (below)
   and never by hand. Highlighting is a CSS class on the matched `g.node` and
   edge path elements; edges are matched by Mermaid's `L_<src>_<tgt>_<n>` ids,
@@ -286,6 +287,26 @@ Mermaid, for the graph page only:
 Each scenario is an *input*: a title, a sentence on what it shows, and a
 short scripted conversation with scripted judge verdicts, in the shape the
 seeded session already uses. The trace is what the engine did with it.
+
+What is scripted and what is not. The model in this engine judges; it does
+not decide. The judge returns a structured verdict — depth, life content,
+hedged, stakes, asked back — and every decision (flip, dwell, settle, earn,
+close, farewell) is a deterministic function in state.js of that verdict
+and the session. A scenario scripts the verdict; the engine's decision and
+the path it takes are real, and a model returning the same verdict would
+produce the same path. The reader's prose turns are canned placeholders,
+which changes nothing: text never influences routing. This is the same
+stand-in the test suite runs on, and it is why no key is needed. Recording
+against a real model was rejected: it needs a key, is nondeterministic (so
+`--check` could not hold), commits model text to the repo, and draws the
+same paths.
+
+The page says this in its own words, and each scenario shows both halves:
+the scripted verdict as the input and the engine's reason as the output —
+"gate: depth 1, no life content → held: nothing of theirs on this card
+yet". The recording therefore keeps, per scenario, the last turn's verdict
+(`gate` or `opening`, whichever that turn had) beside `nodes`, `edges` and
+`reason`.
 
 The set is chosen so that, between them, the recorded traces cross **every
 edge** of the compiled graph — which covers every node as a consequence,
@@ -342,8 +363,9 @@ moves under `web/`.
   ```` ```mermaid ```` fence; GitHub renders it. (2) `web/graph-scenarios.json`:
   every scenario run through `startReading()` with the scripted client, the
   `node` events of its last turn collected into `nodes`, the consecutive
-  pairs into `edges`, and the `flip_decision` (or the branch's synthetic
-  decision) reason into `reason`. `--check` regenerates both to a temporary
+  pairs into `edges`, the `flip_decision` (or the branch's synthetic
+  decision) reason into `reason`, and that turn's scripted verdict into
+  `verdict`. `--check` regenerates both to a temporary
   path and diffs, and is a leg of `scripts/test.sh`, so a node added without
   redrawing, or an engine change that moves a path, fails the suite. Both
   files are cached output of the code, not a second definition of anything.
