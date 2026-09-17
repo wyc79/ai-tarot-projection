@@ -715,8 +715,10 @@ Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider
   green untouched. One simplification the design found while requiring the scenarios to cover
   every edge: commit_anchor's only reachable continuation is flip, so it has a plain edge and
   two dead edges are gone. Found in implementation: five path-map keys had to be renamed
-  (meanings, exchange, afterglow, after, flip) because LangGraph drops a conditional edge's
-  drawn label when the key equals its destination node's name; the spec's key list and the
+  (to "asked for the meanings", "on a card", "stayed", "still talking" and "earned",
+  from keys that were the node names meanings, exchange, afterglow, after and flip)
+  because LangGraph drops a conditional edge's drawn label when the key equals its
+  destination node's name; the spec's key list and the
   three expected-file references were regenerated to match (commit 74d8935). Caught in review,
   before wiring: the drafted graph.js had flip_epilogue calling flipCard, which computes the
   next position itself and throws once the spread is full -- the only state that node is
@@ -725,7 +727,7 @@ Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider
   flagged:** AGENTS.md prefers libraries that reduce complexity, and this one does not -- it
   is here because "built on LangGraph" is the deliverable. Cost stated: 1.3 MB vendored on
   every page, 5.5 MB of Mermaid on the graph page alone. **Verification:** drawMermaid()
-  matches the expected .mmd line for line; all seventeen recorded paths matched the design's
+  matches the expected .mmd as a sorted-line diff; all seventeen recorded paths matched the design's
   table on the first run, no scenario script needed adjusting, and the coverage test's set
   equality confirms every one of the graph's 39 edges is crossed. The page was checked by hand
   through the Python relay and again through a bare static server: 24 node groups, 39 edge

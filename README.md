@@ -58,9 +58,9 @@ runs the same suite against both relays, and among the twenty assertions are a
 canary key that must appear in no captured output, and the same canary checked
 against every error branch. It is one of the five legs of `scripts/test.sh`,
 which is everything that can be checked without a key or a network — the engine
-tests, the pack schema, a seeded session that has to reach its ending, and the
-relay contract, and the graph — its README drawing and its recorded scenarios —
-checked against the code. `scripts/test.sh --fast` skips the contract leg, which is the
+tests, the pack schema, a seeded session that has to reach its ending, the relay
+contract, and the graph — its README drawing and its recorded scenarios — checked
+against the code. `scripts/test.sh --fast` skips the contract leg, which is the
 slow one; the Worker half of it needs `wrangler` or `npx` on PATH and says so
 loudly rather than passing one relay and reporting two.
 
