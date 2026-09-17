@@ -42,8 +42,10 @@ main.wide { max-width: none; }
 .picture path.lit { stroke: #e0891b !important; stroke-width: 3.5px !important; }
 
 /* debug.css's .label is the page's small-caps field label; Mermaid uses the
-   same class name for every label in the drawing. Give the drawing its own. */
-.picture .label { text-transform: none; font-size: inherit; letter-spacing: normal; }
+   same class name for every label in the drawing. Scoped to svg rather than to
+   .picture because Mermaid measures the labels in a temporary container outside
+   it, and a box measured at one size clips the text at another. */
+svg .label { text-transform: none; font-size: inherit; letter-spacing: normal; }
 
 .trace { margin-top: 1rem; font-size: 0.92rem; }
 .trace p { margin: 0.3rem 0; }
