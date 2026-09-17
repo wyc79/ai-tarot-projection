@@ -281,6 +281,15 @@ Mermaid, for the graph page only:
 - `index.html` gains one link to it in the same place it links nothing else
   today: a line in the footer, "how the reading decides →". The styled page
   otherwise does not change, and the debug machinery still never reaches it.
+- **It stands without the relay.** The Pages site is reachable from places
+  the Worker is not (mainland China is the known case), and this page is the
+  portfolio piece, so it must work with the relay unreachable or absent. It
+  never imports `relayBase.js`, `llmClient.js` or anything under
+  `providers/`, never pings `/v1/health`, and every request it makes — the
+  two vendored bundles, `graph-scenarios.json` — is to its own origin. The
+  site as a whole loads nothing from a third-party origin today (no fonts,
+  no CDN), and this page keeps it that way. Checked statically, not
+  asserted: see test 7.
 
 ### The scenarios
 
@@ -400,6 +409,11 @@ New, in `tests/engine/graph.test.mjs`:
 6. Once, at the end of the implementation and recorded in the plan changelog:
    the sorted-line diff between `drawMermaid()` and the expected `.mmd` is
    empty, and each recorded scenario path matches the expected-path column.
+7. The graph page reaches nothing but its own origin: walk the static
+   `import` closure from `web/js/ui/graph-page.js` and assert it never
+   resolves to `relayBase.js`, `llmClient.js` or `providers/`; and assert
+   `web/graph.html` has no `src`, `href` or `fetch` target with a scheme.
+   A grep-shaped test, like the Worker's no-logging one.
 
 New leg in `scripts/test.sh`: `node scripts/draw_graph.mjs --check`, which
 covers both the README block and `web/graph-scenarios.json`.
@@ -416,8 +430,9 @@ cards, same flip decisions and reasons, same prompts, same close.
 
 ## Docs and plan
 
-- README: the section above; the "You need Python 3 and nothing else" line
-  gets its caveat; the file-size note.
+- README: the section above, including that the graph page works with the
+  relay unreachable; the "You need Python 3 and nothing else" line gets its
+  caveat; the file-size note.
 - `.claude/plans/ai-tarot-v1.5-plan.md`: a milestone section for this work
   and a changelog entry in the same commit, per AGENTS.md. The entry says
   out loud that this dependency does not reduce complexity, which AGENTS.md
