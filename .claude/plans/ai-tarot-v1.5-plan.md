@@ -725,9 +725,15 @@ Naming: use "Smith-Waite (1909)" in-app; US Games holds trademarks around "Rider
   apart by whether message_stop arrived: the model finished without writing (with the token
   count, which says it thought) or the stream ended first (the hang-up the relay passes on as
   a clean end of stream, which the relay note above had assumed the client would notice).
-  The UI already removes the empty bubble on an error and prints the code and hint. Still
-  open: which of the two it was on the reported turn -- the log tail was not captured -- and
-  whether reader turns on the gateways should send thinking disabled, as judge calls do.
+  The UI already removes the empty bubble on an error and prints the code and hint. Then a
+  full relay log of one reading settled which: four reader turns at 184, 284, 1088 and 851
+  output tokens, of which 38, 28, 0 and 21 were text, all end_turn. The 0 is the report -- the
+  model drafted its whole reply inside the thinking ("Final: ...", then "Good.") and ended the
+  turn with no text block. Not a hang-up, and not the engine: a reasoning model reasoning by
+  default because nothing told it not to. Reader turns on the gateways now send thinking
+  disabled, the parameter the judge probe showed deepseek honours and every judge call already
+  sends; Anthropic keeps adaptive. No dots, a tenth of the output tokens, and no thinking
+  block for the reply to get lost in. The empty_reply error stays as the net under it.
 - v1.5 (2026-09-17): the graph page is laid out to be browsed, on branch graph-page-layout.
   Spec in 2026-09-17-graph-page-layout-design.md. The drawing had been shown at natural size in
   a scrolling panel, ~2100px wide, so the whole graph was never in view and the seventeen

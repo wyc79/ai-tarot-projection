@@ -14,14 +14,17 @@
  * payload builders take a `features` object. With everything off they emit the
  * plain Messages shape that any compatible endpoint has to accept.
  *
- *  - On a reader turn, thinking is sent explicitly as adaptive rather than left
- *    off. On Opus 5, omitting it means adaptive anyway; on Opus 4.8 and 4.7,
- *    omitting it means no thinking, and a model with thinking off may write its
- *    reasoning into the visible reply -- which in a four-sentence reader voice
- *    is not subtle. Latency and cost are managed with effort instead. (Pre-4.6
- *    models want {type: "enabled", budget_tokens: N} and will reject this.)
- *    On a judge call it is sent explicitly as disabled, for the opposite
- *    reason: see JUDGE_TOKENS below.
+ *  - Thinking is never left unsaid. On an Anthropic reader turn it is sent as
+ *    adaptive: on Opus 5, omitting it means adaptive anyway; on Opus 4.8 and
+ *    4.7, omitting it means no thinking, and a model with thinking off may
+ *    write its reasoning into the visible reply -- which in a four-sentence
+ *    reader voice is not subtle. Latency and cost are managed with effort
+ *    instead. (Pre-4.6 models want {type: "enabled", budget_tokens: N} and
+ *    will reject this.) On a gateway reader turn it is sent as disabled, the
+ *    parameter they honour, because their models think by default when nothing
+ *    is said and one of them ended a turn with the reply still inside the
+ *    thinking; see chatPayload. On a judge call it is disabled everywhere, for
+ *    the opposite reason: see JUDGE_TOKENS below.
  *  - stop_reason "refusal" comes back as HTTP 200, so the status code alone
  *    does not tell you the call succeeded.
  *  - max_tokens is a ceiling on everything the model generates, thinking
@@ -96,6 +99,15 @@ export const ANTHROPIC = {
       payload.system = [{ type: "text", text: system, cache_control: { type: "ephemeral" } }];
     }
     if (features.thinking) payload.thinking = { type: "adaptive" };
+    // A gateway's model thinks by default when nothing is said. Watched on
+    // deepseek-v4-flash, 2026-09-17, one reading: 184, 284, 1088 and 851
+    // output tokens on four reader turns, of which 38, 28, 0 and 21 were text.
+    // The 0 is the failure: it drafted its whole reply inside the thinking,
+    // wrote "Good." and ended the turn with no text block -- dots, then an
+    // empty bubble. The four-sentence voice does not need the deliberation and
+    // the person is waiting through it, so where the parameter is honoured it
+    // is sent, the way judge calls already send it.
+    else if (features.thinkingOff) payload.thinking = { type: "disabled" };
     if (features.effort) payload.output_config = { effort };
     return payload;
   },

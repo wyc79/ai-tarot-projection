@@ -185,16 +185,21 @@ test("judge returns the parsed object and is not streamed", async () => {
   assert.equal(calls[0].body.payload.output_config.format.type, "json_schema");
 });
 
-test("a gateway gets the plain Messages shape and nothing newer", async () => {
+test("a gateway gets the plain Messages shape, and is told not to think", async () => {
   const { client, calls } = harness({
     config: { provider: "deepseek" }, respond: () => sseResponse(A_TURN),
   });
   await client.chat({ system: "s", messages: [] });
   const payload = calls[0].body.payload;
   assert.equal(calls[0].body.provider, "deepseek", "the relay is told which entry to use");
-  assert.equal(payload.thinking, undefined, "gateways have not heard of adaptive thinking");
-  assert.equal(payload.output_config, undefined, "nor of effort");
-  assert.deepEqual(Object.keys(payload).sort(), ["max_tokens", "messages", "model", "stream", "system"]);
+  // Not adaptive, which gateways have not heard of: disabled, which they
+  // honour, the way judge calls already send it. Left unsaid, deepseek-v4-flash
+  // thinks by default -- 184 to 1088 tokens of it in front of 20 to 40 of
+  // text in one reading on 2026-09-17, and one turn that wrote its reply
+  // inside the thinking and ended without sending it.
+  assert.deepEqual(payload.thinking, { type: "disabled" });
+  assert.equal(payload.output_config, undefined, "gateways have not heard of effort");
+  assert.deepEqual(Object.keys(payload).sort(), ["max_tokens", "messages", "model", "stream", "system", "thinking"]);
 });
 
 test("without native structured output the schema goes in the prompt instead", async () => {

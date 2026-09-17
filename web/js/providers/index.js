@@ -25,7 +25,8 @@ const NONE = {
   // benefit either way. This flag is only about whether to send cache_control,
   // which a gateway that has never heard of it may reject outright.
   promptCaching: false,
-  // Whether a judge call may send thinking:{type:"disabled"}. ON by default,
+  // Whether a call may send thinking:{type:"disabled"} -- every judge call,
+  // and a reader turn where `thinking` (adaptive) is off. ON by default,
   // which is the opposite of every other flag here, and unlike the others this
   // one has been watched rather than argued for. Five judge calls on frozen
   // input, deepseek-v4-flash, 2026-08-25 (scripts/judge_probe.mjs):
