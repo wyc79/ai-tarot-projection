@@ -8,7 +8,10 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { Annotation, END, START, StateGraph } from "../../web/vendor/langgraph.js";
+import { buildGraph } from "../../web/js/engine/graph.js";
+import { TURN_KINDS } from "../../web/js/engine/prompts.js";
 
 test("the vendored LangGraph runs a two-node graph without touching fetch", async () => {
   const realFetch = globalThis.fetch;
@@ -25,10 +28,6 @@ test("the vendored LangGraph runs a two-node graph without touching fetch", asyn
     globalThis.fetch = realFetch;
   }
 });
-
-import { readFile } from "node:fs/promises";
-import { buildGraph } from "../../web/js/engine/graph.js";
-import { TURN_KINDS } from "../../web/js/engine/prompts.js";
 
 const EXPECTED_MMD = new URL("../../.claude/plans/2026-09-16-langgraph-engine-expected.mmd", import.meta.url);
 const sortedLines = (text) => text.split("\n").map((l) => l.trimEnd()).filter(Boolean).sort();

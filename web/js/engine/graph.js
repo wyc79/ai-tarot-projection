@@ -131,9 +131,14 @@ export function buildGraph(ctx = {}) {
 
   node("judge_gate",
     "The flip gate: the answer is judged for depth, life content, hedging, stakes, and whether it was a question back. The verdict is what every decision after this is made from.",
-    async (state) => ({
-      gate: await ctx.judge.gate({ card: currentCard(s()), question: ctx.question(), answer: state.answer }),
-    }));
+    async (state) => {
+      // A turn that failed after decide may have left a revision in flight. It
+      // belonged to that turn, and reading.js dropped it the same way.
+      pending = null;
+      return {
+        gate: await ctx.judge.gate({ card: currentCard(s()), question: ctx.question(), answer: state.answer }),
+      };
+    });
 
   node("off_frame",
     "The frame was dropped before a card was ever dealt. There is no reading to continue, only a conversation, and it must not crash looking for a card that was deliberately never turned.",
@@ -209,7 +214,9 @@ export function buildGraph(ctx = {}) {
   node("flip_epilogue",
     "The fourth card, decided at the advice-to-close boundary and before anything is closed: earned by something of their own, it turns and the reading closes once, over four.",
     async (state) => {
-      await flipInto(s().epilogue_position, EPILOGUE_FLIP_REASON);
+      flipEpilogue(s(), await ctx.cardFor(s().epilogue_position), { reason: EPILOGUE_FLIP_REASON });
+      const entry = currentCard(s());
+      ctx.onEvent({ type: "flip", card: ctx.pack.card(entry.card_id), position: entry.position, reason: entry.flip_reason });
       return { result: { gate: state.gate, decision: state.decision, flipped: true } };
     });
 
@@ -360,6 +367,8 @@ export function buildGraph(ctx = {}) {
 
   // -- edges ------------------------------------------------------------------
 
+  // One key, one note: "frame dropped" leaves four different nodes and means
+  // the same thing from each of them.
   const FRAME_DROPPED = "Safety outranks the rhythm: the stakes were judged as crisis, the tarot frame is dropped, and the reader responds plainly with no card in play.";
 
   g.addConditionalEdges(START, entry, branches({
