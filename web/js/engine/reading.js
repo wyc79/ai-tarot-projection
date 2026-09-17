@@ -9,21 +9,24 @@
  *   judge the answer -> record it -> decide whether the next card is earned
  *   -> the reader either stays on this card, bridges to the next one, or closes.
  *
- * The judge decides how deep the answer was. This file decides what that means.
- * Keeping those apart is what makes the flip rhythm testable without a model.
+ * That shape is a graph, and it lives in graph.js as one: every reader turn
+ * kind is a node, every branch a labelled edge, and one user turn is one run
+ * of it. What is here is what the graph's nodes need from outside -- the
+ * deal, the reader call, the card identifier, persistence -- and the public
+ * methods. The judge decides how deep the answer was; the graph decides what
+ * that means. Keeping those apart is what makes the flip rhythm testable
+ * without a model.
  */
 
 import { saveToHistory } from "./journal.js";
 import { judgements } from "./judgements.js";
-import { flipDirection, readerCall } from "./prompts.js";
+import { readerCall } from "./prompts.js";
 import {
-  afterglowDrift, close, commitAnchor, createSession, currentCard, dealtCardFor, end,
-  epilogueEarned, farewellDue, flipCard, flipDecision, flipEpilogue, nameCard, namedCards,
-  nextPosition, recordAfterward, recordExchange, recordOffFrame, recordAside,
-  recordOpening, recordReading, spreadComplete, stayAWhile, updateAnchor,
+  createSession, dealtCardFor, end, nameCard, namedCards, recordReading, stayAWhile,
 } from "./state.js";
 import { makeDeal } from "./draw.js";
 import { newSeed } from "./rng.js";
+import { buildGraph } from "./graph.js";
 
 export const SESSION_KEY = "session";
 
@@ -52,7 +55,7 @@ export function unwrapQuotes(text) {
   if (trimmed.length < 2) return trimmed;
   const wrapped = (trimmed.startsWith('"') && trimmed.endsWith('"')
                    && trimmed.match(/"/g).length % 2 === 0)
-    || (trimmed.startsWith("\u201c") && trimmed.endsWith("\u201d"));
+    || (trimmed.startsWith("“") && trimmed.endsWith("”"));
   if (!wrapped) return trimmed;
   const inner = trimmed.slice(1, -1).trim();
   // A turn ends on its question, or on the closing step. Anything else and the
@@ -181,107 +184,29 @@ export function startReading({
     return text;
   }
 
+  // The turn, as a graph. Built once per reading, over this reading's session
+  // and helpers; run once per turn.
+  const { graph } = buildGraph({
+    session, pack, judge, readerTurn, cardFor, persist, onEvent,
+    question: () => lastQuestion,
+  });
+
   /**
-   * Start revising the anchor, without waiting for it.
-   *
-   * The anchor is a narrative plan: its job is to steer the questions that come
-   * next. This turn's reply does not need it -- the reply has the whole session
-   * record and their actual words in front of it -- so making it wait was
-   * putting a second round trip in front of the thing the person is watching
-   * for, on exactly the turns where they had just said something real and were
-   * most aware of the pause.
-   *
-   * It runs alongside the reader turn instead and is settled before say()
-   * resolves, so the next turn sees it. Nothing reads session state until then,
-   * and chat() does not touch the session until it is done, so there is nothing
-   * here for the two of them to race over.
+   * One run of the graph. Each node's update arrives as it finishes, which is
+   * what the node event is: the trace of the turn, for anything that wants to
+   * draw it. The result is whatever the last node to write one wrote, in the
+   * shapes say() and meanings() have always returned.
    */
-  function beginAnchorRevision(gate) {
-    if (!session.anchor || !gate.has_life_content || gate.hedged) return null;
-    return judge.anchor(session, { rolling: true }).catch((error) => {
-      // A failed revision is not a failed turn. The reading carries on with the
-      // plan it already had, and says so rather than swallowing it.
-      onEvent({ type: "anchor_failed", error: error.message });
-      return null;
-    });
-  }
-
-  async function settleAnchorRevision(pending) {
-    if (!pending) return;
-    const revised = await pending;
-    if (!revised) return;
-    updateAnchor(session, revised);
-    persist();
-    onEvent({ type: "anchor", anchor: session.anchor, rolling: true });
-  }
-
-  /** Everything the gate implies, once it is in: hold, bridge, or close. */
-  async function advance(gate) {
-    const decision = flipDecision(session, gate);
-    onEvent({ type: "flip_decision", decision, gate });
-
-    if (!decision.flip) {
-      await readerTurn("respond");
-      return { gate, decision };
-    }
-
-    // The anchor is committed off the first card, before any second card
-    // exists to be reconciled with it.
-    if (!session.anchor) {
-      commitAnchor(session, await judge.anchor(session));
-      // Persist before announcing: a listener that reads storage on the event
-      // would otherwise see the state as it was a moment ago.
-      persist();
-      onEvent({ type: "anchor", anchor: session.anchor });
-    }
-
-    if (spreadComplete(session)) {
-      // The fourth card is decided HERE, before anything is closed, and that is
-      // the whole of this round's ending fix. Asked afterwards it produced two
-      // endings -- a reflection over three cards, then a card, then a second
-      // reflection reusing the first one's formula. Asked here it produces one:
-      // either the epilogue turns and the close covers four, or it stays face
-      // down and the close names it in a line.
-      if (epilogueEarned(session)) {
-        flipEpilogue(session, await cardFor(session.epilogue_position), {
-          reason: "earned before the close: the reading had somewhere left to go",
-        });
-        const entry = currentCard(session);
-        onEvent({ type: "flip", card: pack.card(entry.card_id), position: entry.position,
-                  reason: entry.flip_reason });
-        await readerTurn("epilogue", {
-          stageDirection: flipDirection(pack, session),
-          readingOffset: 1,
-        });
-        return { gate, decision, flipped: true };
+  async function run(input) {
+    let result;
+    for await (const chunk of await graph.stream(input, { streamMode: "updates" })) {
+      for (const [node, update] of Object.entries(chunk)) {
+        onEvent({ type: "node", node });
+        if (update && "result" in update) result = update.result;
       }
-      const text = await readerTurn("close");
-      close(session, text);
-      // The spread is spent. What is left is a short tail and a goodbye.
-      session.phase = "afterward";
-      persist();
-      onEvent({ type: "closed", reflection: text });
-      return { gate, decision, closed: true };
     }
-
-    await flipNext(decision.reason);
-    // A bridge answers the card behind it while the new one is already up.
-    await readerTurn("bridge", {
-      stageDirection: flipDirection(pack, session),
-      readingOffset: 1,
-    });
-    return { gate, decision, flipped: true };
+    return result;
   }
-
-  async function flipNext(reason) {
-    // Off the table, not off the pile: the card has been lying on this position
-    // face down since the reading began.
-    flipCard(session, await cardFor(nextPosition(session)), { reason });
-    const entry = currentCard(session);
-    onEvent({ type: "flip", card: pack.card(entry.card_id), position: entry.position, reason });
-    return entry;
-  }
-
 
   // One turn at a time, over one session.
   //
@@ -324,8 +249,8 @@ export function startReading({
    * from in front of the whole reading.
    *
    * What it costs is persona-voice variation on a two-sentence question. What
-   * the session record keeps is unchanged: openWith still judges the answer,
-   * and recordOpening still writes this question above it.
+   * the session record keeps is unchanged: the graph's judge_opening still
+   * judges the answer, and recordOpening still writes this question above it.
    */
   async function begin() {
     lastQuestion = pack.opening.question;
@@ -338,126 +263,10 @@ export function startReading({
     return session;
   }
 
-  /** One user turn. Everything that follows from it happens here. */
+  /** One user turn. Everything that follows from it happens in the graph. */
   async function say(answer) {
     if (session.ended) throw new Error("this reading has ended");
-
-    if (session.phase === "opening") return openWith(answer);
-
-    // The frame was dropped before a card was ever dealt. There is no reading
-    // to continue, only a conversation -- and it must not crash looking for a
-    // card that was deliberately never turned.
-    if (session.safety_state === "drop_frame" && !currentCard(session)) {
-      recordOffFrame(session, { question: lastQuestion, answer });
-      await readerTurn("respond");
-      persist();
-      return { dealt: false, offFrame: true };
-    }
-
-    const gate = await judge.gate({
-      card: currentCard(session), question: lastQuestion, answer,
-    });
-
-    // They asked what the question meant instead of answering it. Nothing
-    // moves: not the card, not the count, not the ladder. A question that did
-    // not land costs the reader a turn, not them one of theirs -- charging
-    // them for it is charging someone for the reader's own bad phrasing, and
-    // it lands as a depth-1 deflection on a card they were engaged with.
-    //
-    // Before the closed branch, because it is just as true afterwards: an
-    // epilogue card has a budget of its own, and this must not spend it.
-    if (gate.asked_back && currentCard(session)) {
-      recordAside(session, { question: lastQuestion, answer, gate });
-      onEvent({ type: "gate", gate });
-      if (session.safety_state === "drop_frame") onEvent({ type: "frame_dropped" });
-      await readerTurn("clarify", { onCard: false });
-      persist();
-      return { gate, decision: { flip: false, reason: "they asked what the question meant" } };
-    }
-
-    // The reading is over and they are still talking. That is allowed, and it
-    // is not a reason to hang up on them or to start a second reading: the
-    // beat has been given, the ledger is sealed, and the three cards are
-    // still on the table to route through. They end it, not the spread.
-    //
-    // The gate still runs, because stakes still do. Someone can say the thing
-    // they came in not planning to say after the closing beat as easily as
-    // before it, and the frame has to be droppable here too.
-    if (session.closed) return afterward(answer, gate);
-
-    recordExchange(session, { question: lastQuestion, answer, gate });
-    onEvent({ type: "gate", gate });
-
-    // Safety outranks the rhythm. Once the frame is dropped there are no more
-    // cards, so the decision below is never even consulted.
-    if (session.safety_state === "drop_frame") {
-      onEvent({ type: "frame_dropped" });
-      await readerTurn("respond");
-      persist();
-      return { gate, decision: { flip: false, reason: "frame dropped" } };
-    }
-
-    // A committed anchor is revised while the reading is still collecting:
-    // the material that decides what a session is about now usually arrives
-    // after the first card, because a disclosure buys a turn inside itself.
-    // Started here, settled after the reader has spoken -- see above.
-    const revision = beginAnchorRevision(gate);
-    const turn = await advance(gate);
-    await settleAnchorRevision(revision);
-    return turn;
-  }
-
-  /**
-   * A turn after the closing beat.
-   *
-   * Two shapes and the phase says which. The default tail is short by
-   * construction: it exists so a last question gets a real answer, and then
-   * the reader says goodbye. The afterglow is the other one -- entered only
-   * by someone choosing it, and it stays until they leave or until it stops
-   * going anywhere.
-   *
-   * No card turns over in either. The fourth card was decided before the
-   * close, which is what stopped this being the place a second reading grew.
-   */
-  async function afterward(answer, gate) {
-    const afterglow = session.phase === "afterglow";
-    recordAfterward(session, {
-      question: lastQuestion, answer, gate,
-      position: afterglow ? "afterglow" : "afterward",
-    });
-    onEvent({ type: "gate", gate });
-
-    if (session.safety_state === "drop_frame") {
-      onEvent({ type: "frame_dropped" });
-      await readerTurn("respond", { onCard: false });
-      persist();
-      return { gate, decision: { flip: false, reason: "frame dropped" } };
-    }
-
-    if (afterglow) {
-      // Two answers running with nothing of theirs in them. There is no card
-      // left to move on to, so the reader goes back to what the reading was
-      // about or offers the door again -- rather than carrying on asking
-      // after whatever it wandered into.
-      const drifted = afterglowDrift(session);
-      await readerTurn(drifted ? "regroup" : "afterglow", { onCard: false });
-      persist();
-      return { gate, decision: { flip: false, reason: drifted
-        ? "the afterglow drifted off the anchor; back to it, or out"
-        : "afterglow" } };
-    }
-
-    if (farewellDue(session, gate)) {
-      const text = await readerTurn("farewell", { onCard: false });
-      end(session, text);
-      persist();
-      onEvent({ type: "ended", farewell: text });
-      return { gate, decision: { flip: false, reason: "the reading is over; that was goodbye" } };
-    }
-
-    await readerTurn("after", { onCard: false });
-    persist();
-    return { gate, decision: { flip: false, reason: "the reading is closed; this is after it" } };
+    return run({ kind: "say", answer });
   }
 
   /**
@@ -469,11 +278,6 @@ export function startReading({
    * expecting -- delivered after the projection work is done rather than
    * instead of it, and only on request.
    *
-   * It is not a turn of the tail. Recorded as an aside for the same reason a
-   * "what did you mean?" is: it keeps its place in the transcript and it buys
-   * nothing, so farewellDue counts exactly what it counted before. Someone who
-   * asks what the deck means has not spent one of their last few turns on it.
-   *
    * Refused after the goodbye, like say(). The farewell is the last thing the
    * reader says in a session, and a turn generated after it takes that back.
    * The way to the meanings from there is the door the farewell already
@@ -483,57 +287,15 @@ export function startReading({
   async function meanings() {
     if (session.ended) throw new Error("this reading has ended");
     if (!session.closed) throw new Error("the reading has not closed yet");
-    recordAfterward(session, {
-      // q is the reader's standing turn and a is theirs, the way every exchange
-      // is built. The button press is the thing they said. The standing turn
-      // rather than the last one: after a farewell there is none, and lastQuestion
-      // is still holding the goodbye -- which would print the farewell twice in
-      // the keepsake, once above the button press and once at the end.
-      question: session.pending_question,
-      answer: MEANINGS_REQUEST,
-      gate: {},
-      aside: true,
-      // Where it happened, so the transcript reads in the order it was said.
-      position: session.phase === "afterglow" ? "afterglow" : "afterward",
-    });
-    const text = await readerTurn("meanings", { onCard: false });
-    persist();
-    return { text, decision: { flip: false, reason: "they asked what the cards mean" } };
-  }
-
-  /** The answer to the opening question. Deals the first card, or does not. */
-  async function openWith(answer) {
-    const opening = await judge.opening({ question: lastQuestion, answer });
-    recordOpening(session, { question: lastQuestion, answer, opening });
-    onEvent({ type: "opening", opening, topic: session.topic });
-
-    // Safety before the first card, not after it: if a tarot frame is the
-    // wrong thing here, nothing should be dealt at all.
-    if (session.safety_state === "drop_frame") {
-      onEvent({ type: "frame_dropped" });
-      await readerTurn("respond");
-      persist();
-      return { opening, dealt: false };
-    }
-
-    // The first card is not earned, it is dealt: the gate has nothing to
-    // judge yet. Saying so is better than leaving the one blank flip reason
-    // in the ledger to be read as a missing value.
-    await flipNext("the opening question was answered; the reading begins");
-    await readerTurn("invite", { stageDirection: flipDirection(pack, session) });
-    return { opening, dealt: true };
+    return run({ kind: "meanings", answer: MEANINGS_REQUEST });
   }
 
   return {
     session,
 
-    // The turns, each of them the only one that can be running. say() reaches
-    // openWith() and afterward() through the plain functions above rather than
-    // through these, so delegating to one is not re-entering it.
+    // The turns, each of them the only one that can be running.
     begin: oneAtATime(begin),
     say: oneAtATime(say),
-    afterward: oneAtATime(afterward),
-    openWith: oneAtATime(openWith),
     meanings: oneAtATime(meanings),
 
     /**

@@ -61,3 +61,65 @@ test("every node and every edge label carries a note, and nothing else does", as
     assert.ok(typeof note === "string" && note.length > 20, `the note on ${name} is not a sentence`);
   }
 });
+
+import { startReading } from "../../web/js/engine/reading.js";
+import { declines, fakeClient, gate, realPack, wants } from "./helpers.mjs";
+
+const SEED = "moon-4f2a91";
+const nodesVisited = (events) => events.filter((e) => e.type === "node").map((e) => e.node);
+
+async function reading({ gates, opening = declines, reply } = {}) {
+  const pack = await realPack();
+  const client = fakeClient({ gates, opening, ...(reply ? { reply } : {}) });
+  const events = [];
+  const r = startReading({ pack, client, seed: SEED, onEvent: (e) => events.push(e) });
+  await r.begin();
+  return { r, events, client };
+}
+
+test("a turn reports the nodes it visited, in order, as node events", async () => {
+  const { r, events } = await reading({ gates: [gate(1)] });
+  await r.say("no, nothing in particular");
+  assert.deepEqual(nodesVisited(events), ["judge_opening", "flip", "invite"]);
+  events.length = 0;
+  await r.say("dunno");
+  assert.deepEqual(nodesVisited(events), ["judge_gate", "exchange", "decide", "respond", "revise_anchor"]);
+});
+
+test("the node event for a node comes after the events that node emitted", async () => {
+  const { r, events } = await reading({ gates: [gate(1)] });
+  await r.say("no, nothing in particular");
+  await r.say("dunno");
+  const types = events.map((e) => (e.type === "node" ? `node:${e.node}` : e.type));
+  assert.ok(types.indexOf("gate") < types.indexOf("node:exchange"), "exchange's gate event precedes its node event");
+  assert.ok(types.indexOf("flip_decision") < types.indexOf("node:decide"));
+});
+
+test("a reader that throws rejects say() with that same error, unwrapped", async () => {
+  const { r } = await reading({
+    gates: [gate(1)],
+    reply: () => { throw new Error("upstream said no"); },
+  });
+  await assert.rejects(r.say("no, nothing in particular"), (error) => {
+    assert.equal(error.message, "upstream said no");
+    assert.equal(error.constructor, Error);
+    return true;
+  });
+});
+
+test("a whole seeded reading runs with the network unreachable", async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = () => { throw new Error("the graph runtime reached for the network"); };
+  try {
+    const { r } = await reading({
+      gates: Array.from({ length: 16 }, () => gate(3)),
+      opening: wants("whether I keep bracing for a fight nobody's having"),
+    });
+    await r.say("yeah, that");
+    for (let i = 0; i < 16 && !r.session.ended; i += 1) await r.say(`answer ${i}`);
+    assert.equal(r.session.closed, true);
+    assert.equal(r.session.ended, true);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
